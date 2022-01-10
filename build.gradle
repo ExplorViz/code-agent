@@ -16,8 +16,8 @@ dependencies {
     implementation 'io.quarkus:quarkus-arc'
     implementation 'io.quarkus:quarkus-container-image-jib'
     implementation 'io.quarkus:quarkus-vertx'
-    //implementation 'io.quarkus:quarkus-resteasy-reactive'
-    //implementation 'io.quarkus:quarkus-grpc'
+    implementation 'io.quarkus:quarkus-resteasy-reactive'
+    implementation 'io.quarkus:quarkus-grpc'
     
 	implementation 'org.apache.camel.quarkus:camel-quarkus-file-watch:2.4.0' 
 	
@@ -43,3 +43,12 @@ compileJava {
 compileTestJava {
     options.encoding = 'UTF-8'
 }
+
+sourceSets {
+    main {
+        java {
+            srcDirs 'build/classes/java/quarkus-generated-sources/grpc'
+        }
+    }
+}
+

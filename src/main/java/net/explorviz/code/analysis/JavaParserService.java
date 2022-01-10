@@ -12,6 +12,7 @@ import com.github.javaparser.symbolsolver.resolution.typesolvers.JavaParserTypeS
 import com.github.javaparser.symbolsolver.resolution.typesolvers.ReflectionTypeSolver;
 import com.github.javaparser.utils.SourceRoot;
 import com.github.javaparser.utils.SourceRoot.Callback;
+import io.quarkus.grpc.GrpcClient;
 import io.quarkus.runtime.StartupEvent;
 import io.quarkus.vertx.ConsumeEvent;
 import java.io.IOException;
@@ -22,7 +23,6 @@ import java.util.List;
 import javax.enterprise.context.ApplicationScoped;
 import javax.enterprise.event.Observes;
 import javax.inject.Inject;
-import net.explorviz.code.analysis.util.FqnCalculator;
 import net.explorviz.code.analysis.visitor.ClassNameVisitor;
 import net.explorviz.code.analysis.visitor.ImplementedInterfaceVisitor;
 import net.explorviz.code.analysis.visitor.ImportVisitor;
@@ -31,6 +31,9 @@ import net.explorviz.code.analysis.visitor.LocVisitor;
 import net.explorviz.code.analysis.visitor.MethocCallVisitor;
 import net.explorviz.code.analysis.visitor.MethodVisitor;
 import net.explorviz.code.analysis.visitor.PackageNameVisitor;
+import net.explorviz.code.proto.StructureCreateEvent;
+import net.explorviz.code.proto.StructureEventService;
+import net.explorviz.code.proto.StructureModifyEvent;
 import org.eclipse.microprofile.config.inject.ConfigProperty;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -58,6 +61,9 @@ public class JavaParserService {
   private final VoidVisitor<List<String>> methodCallCollector = new MethocCallVisitor();
   private final VoidVisitor<List<String>> importVisitor = new ImportVisitor();
   private final GenericVisitorAdapter<String, String> packageCollector = new PackageNameVisitor();
+
+  @GrpcClient("StructureEventService")
+  StructureEventService structureEventService;
 
   /**
    * Constructor for this class. Injects {@link ConfigProperty} ${explorviz.watchservice.folder} for
@@ -93,13 +99,17 @@ public class JavaParserService {
   public void processFile(final String absoluteFilePath) throws IOException {
     final CompilationUnit cu = StaticJavaParser.parse(Paths.get(absoluteFilePath));
 
-    final List<String> className = new ArrayList<>();
+    final List<String> classNames = new ArrayList<>();
     System.out.println("Class names:");
 
     // print fqn
-    this.classNameVisitor.visit(cu, className);
-    className.forEach(n -> System.out.println(n));
-    className.clear();
+    JavaParserService.this.classNameVisitor.visit(cu, classNames);
+    for (final String className : classNames) {
+      System.out.println(className);
+      final StructureModifyEvent event =
+          StructureModifyEvent.newBuilder().setClassName(className).build();
+      JavaParserService.this.structureEventService.sendModifyEvent(event);
+    }
 
   }
 
@@ -133,49 +143,55 @@ public class JavaParserService {
 
           // print fqn
           JavaParserService.this.classNameVisitor.visit(cu, className);
-          className.forEach(n -> System.out.println(n));
+          for (final String className : className) {
+            System.out.println(className);
+            final StructureCreateEvent event =
+                StructureCreateEvent.newBuilder().setClassName(className).build();
+            JavaParserService.this.structureEventService.sendCreateEvent(event).await()
+                .indefinitely();
+          }
+
           className.clear();
 
-          System.out.println("Package:");
-          System.out.println(JavaParserService.this.packageCollector.visit(cu, ""));
-
-          System.out.println("LoC:");
-          System.out.println(JavaParserService.this.locCollector.visit(cu, 0));
-
-          System.out.println("Imports:");
-          JavaParserService.this.importVisitor.visit(cu, importNames);
-          importNames.forEach(n -> System.out.println(n));
-
-          System.out.println("Super classes:");
-
-          JavaParserService.this.inheritanceCollector.visit(cu, superClassNames);
-          superClassNames.forEach(
-              n -> System.out.println(FqnCalculator.calculateFqnBasedOnImport(importNames, n)));
-
-          System.out.println("Implemented interfaces:");
-
-          JavaParserService.this.implementedInterfacesCollector.visit(cu,
-              implementedInterfacesClassNames);
-          implementedInterfacesClassNames.forEach(
-              n -> System.out.println(FqnCalculator.calculateFqnBasedOnImport(importNames, n)));
-
-          System.out.println("Contained Methods:");
-
-          JavaParserService.this.methodCollector.visit(cu, methodsOfClass);
-          methodsOfClass.forEach(n -> System.out.println(n));
-
-          System.out.println("Called methods:");
-
-          JavaParserService.this.methodCallCollector.visit(cu, calledMethodsInClass);
-          calledMethodsInClass.forEach(n -> System.out.println(n));
-
-          importNames.clear();
-          superClassNames.clear();
-          implementedInterfacesClassNames.clear();
-          methodsOfClass.clear();
-          calledMethodsInClass.clear();
-
-          System.out.println("");
+          /*
+           * System.out.println("Package:");
+           * System.out.println(JavaParserService.this.packageCollector.visit(cu, ""));
+           *
+           * System.out.println("LoC:");
+           * System.out.println(JavaParserService.this.locCollector.visit(cu, 0));
+           *
+           *
+           *
+           * System.out.println("Imports:"); JavaParserService.this.importVisitor.visit(cu,
+           * importNames); importNames.forEach(n -> System.out.println(n));
+           *
+           * System.out.println("Super classes:");
+           *
+           * JavaParserService.this.inheritanceCollector.visit(cu, superClassNames);
+           * superClassNames.forEach( n ->
+           * System.out.println(FqnCalculator.calculateFqnBasedOnImport(importNames, n)));
+           *
+           * System.out.println("Implemented interfaces:");
+           *
+           * JavaParserService.this.implementedInterfacesCollector.visit(cu,
+           * implementedInterfacesClassNames); implementedInterfacesClassNames.forEach( n ->
+           * System.out.println(FqnCalculator.calculateFqnBasedOnImport(importNames, n)));
+           *
+           * System.out.println("Contained Methods:");
+           *
+           * JavaParserService.this.methodCollector.visit(cu, methodsOfClass);
+           * methodsOfClass.forEach(n -> System.out.println(n));
+           *
+           * System.out.println("Called methods:");
+           *
+           * JavaParserService.this.methodCallCollector.visit(cu, calledMethodsInClass);
+           * calledMethodsInClass.forEach(n -> System.out.println(n));
+           *
+           * importNames.clear(); superClassNames.clear(); implementedInterfacesClassNames.clear();
+           * methodsOfClass.clear(); calledMethodsInClass.clear();
+           *
+           * System.out.println("");
+           */
         }
         return Result.DONT_SAVE;
       }

@@ -1,0 +1,27 @@
+syntax = "proto3";
+
+option java_multiple_files = true;
+option java_package = "net.explorviz.code.proto";
+option java_outer_classname = "StructureEvent";
+
+import "google/protobuf/empty.proto";
+
+package net.explorviz.code.proto;
+
+service StructureEventService {
+    rpc sendCreateEvent (StructureCreateEvent) returns (google.protobuf.Empty) {}
+    rpc sendDeleteEvent (StructureDeleteEvent) returns (google.protobuf.Empty) {}
+    rpc sendModifyEvent (StructureModifyEvent) returns (google.protobuf.Empty) {}
+}
+
+message StructureCreateEvent {
+    string className = 1;
+}
+
+message StructureDeleteEvent {
+    string className = 1;
+}
+
+message StructureModifyEvent {
+    string className = 1;
+}
