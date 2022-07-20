@@ -73,7 +73,7 @@ coverage:
     # convert report from jacoco to cobertura
     - python /opt/cover2cover.py build/jacoco/jacoco.xml $CI_PROJECT_DIR/src/main/java/ > build/cobertura.xml
     # read the <source></source> tag and prepend the path to every filename attribute
-    #- 'python /opt/source2filename.py build/cobertura.xml'
+    - python /opt/source2filename.py build/cobertura.xml
   needs: ["test"]
   dependencies:
     - test
