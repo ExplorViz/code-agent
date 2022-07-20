@@ -19,9 +19,9 @@ dependencies {
     implementation 'io.quarkus:quarkus-resteasy-reactive'
     implementation 'io.quarkus:quarkus-grpc'
     
-	implementation 'org.apache.camel.quarkus:camel-quarkus-file-watch:2.4.0' 
+	implementation 'org.apache.camel.quarkus:camel-quarkus-file-watch:2.10.0' 
 	
-	implementation 'com.github.javaparser:javaparser-symbol-solver-core:3.23.1'
+	implementation 'com.github.javaparser:javaparser-symbol-solver-core:3.24.2'
       
     testImplementation 'io.quarkus:quarkus-junit5'
     testImplementation 'io.rest-assured:rest-assured'
@@ -48,6 +48,11 @@ sourceSets {
     main {
         java {
             srcDirs 'build/classes/java/quarkus-generated-sources/grpc'
+        }
+    }
+    test {
+    	java {
+            srcDirs 'build/classes/java/quarkus-test-generated-sources/grpc'
         }
     }
 }

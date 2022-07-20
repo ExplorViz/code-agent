@@ -1,6 +1,5 @@
 package net.explorviz.code.analysis.visitor;
 
-import com.github.javaparser.ast.expr.Expression;
 import com.github.javaparser.ast.expr.MethodCallExpr;
 import com.github.javaparser.ast.visitor.VoidVisitorAdapter;
 import java.util.List;
@@ -28,14 +27,14 @@ public class MethocCallVisitor extends VoidVisitorAdapter<List<String>> {
      * = expr.asNameExpr().resolve().getType().toString(); } }
      */
 
-    for (final Expression a : n.getArguments()) {
-      System.out.println(a);
-    }
+    // for (final Expression a : n.getArguments()) {
+    // System.out.println(a);
+    // }
 
-    if (n.getScope().isPresent()) {
-      // System.out.println("ALEX: " + n.getScope().get().calculateResolvedType());
-      // System.out.println("ALEX: " + n.getScope().get());
-    }
+    // if (n.getScope().isPresent()) {
+    // System.out.println("ALEX: " + n.getScope().get().calculateResolvedType());
+    // System.out.println("ALEX: " + n.getScope().get());
+    // }
 
     collector.add(type + " - " + n.getScope() + " - " + n.getName());
   }

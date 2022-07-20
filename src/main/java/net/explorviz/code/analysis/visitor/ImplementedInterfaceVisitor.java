@@ -15,7 +15,7 @@ public class ImplementedInterfaceVisitor extends VoidVisitorAdapter<List<String>
     for (final ClassOrInterfaceType c : n.getImplementedTypes()) {
 
       try {
-        collector.add(c.resolve().getQualifiedName());
+        collector.add(c.resolve().describe());
       } catch (final UnsolvedSymbolException e) {
         collector.add(c.getNameAsString());
       }

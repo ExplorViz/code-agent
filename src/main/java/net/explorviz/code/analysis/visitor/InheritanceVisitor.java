@@ -13,7 +13,7 @@ public class InheritanceVisitor extends VoidVisitorAdapter<List<String>> {
 
     for (final ClassOrInterfaceType c : n.getExtendedTypes()) {
       try {
-        collector.add(c.resolve().getQualifiedName());
+        collector.add(c.resolve().describe());
       } catch (final UnsolvedSymbolException e) {
         collector.add("Unresolvable super class: " + c.getNameAsString());
       }

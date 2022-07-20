@@ -15,13 +15,19 @@ service StructureEventService {
 }
 
 message StructureCreateEvent {
-    string className = 1;
+	string landscapeToken = 1;
+    string fullyQualifiedOperationName = 2;
+    int64 epochMilli = 3;
 }
 
 message StructureDeleteEvent {
-    string className = 1;
+    string landscapeToken = 1;
+    string fullyQualifiedOperationName = 2;
+    int64 epochMilli = 3;
 }
 
 message StructureModifyEvent {
-    string className = 1;
+    string landscapeToken = 1;
+    string fullyQualifiedOperationName = 2;
+    int64 epochMilli = 3;
 }

@@ -1,0 +1,82 @@
+image: openjdk:11-jdk
+
+# Disable the Gradle daemon for Continuous Integration servers as correctness
+# is usually a priority over speed in CI environments. Using a fresh
+# runtime for each build is more reliable since the runtime is completely
+# isolated from any previous builds.
+variables:
+  GRADLE_OPTS: "-Dorg.gradle.daemon=false"
+
+before_script:
+  - export GRADLE_USER_HOME=`pwd`/.gradle
+
+cache:
+  policy: pull
+  paths:
+    - .gradle
+
+stages:
+  - build
+  - code-analysis
+  - test
+  - coverage
+  - visualize
+  - deploy
+
+build:
+  stage: build
+  tags:
+    - exec-docker
+  script: ./gradlew --build-cache assemble
+  cache:
+    policy: push
+    paths:
+      - .gradle
+  artifacts:
+    paths:
+      - build
+
+pmd:
+  stage: code-analysis
+  tags:
+    - exec-docker
+  script: ./gradlew pmdMain
+
+checkstyle:
+  stage: code-analysis
+  tags:
+    - exec-docker
+  script: ./gradlew checkstyleMain
+
+test:
+  stage: test
+  tags:
+    - exec-docker
+  script: 
+    - ./gradlew jacocoTestReport
+    # Print test coverage to console (for coverage badge)
+    - cat build/reports/jacoco/test/html/index.html | grep -o 'Total[^%]*%' | sed 's/<.*>/ /; s/Total/Jacoco Coverage Total:/'
+  coverage: '/Jacoco Coverage Total: ([0-9]{1,3})%/'
+  artifacts:
+    when: always
+    reports:
+      junit: build/test-results/test/**/TEST-*.xml
+    paths:
+      - build/reports/jacoco/test/jacocoTestReport.xml
+  
+coverage:
+  stage: visualize
+  tags:
+    - exec-docker
+  image: registry.gitlab.com/haynes/jacoco2cobertura:1.0.7
+  script:
+    # convert report from jacoco to cobertura
+    - 'python /opt/cover2cover.py build/reports/jacoco/test/jacocoTestReport.xml src/main/java > build/cobertura.xml'
+    # read the <source></source> tag and prepend the path to every filename attribute
+    - 'python /opt/source2filename.py build/cobertura.xml'
+  needs: ["test"]
+  dependencies:
+    - test
+  artifacts:
+    reports:
+      cobertura: build/cobertura.xml

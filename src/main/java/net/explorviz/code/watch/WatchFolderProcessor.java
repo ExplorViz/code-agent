@@ -36,7 +36,7 @@ public class WatchFolderProcessor implements Processor {
 
     LOGGER.trace("File {} was {} at {}.", filename, eventType, eventDate);
 
-    if (!eventType.equals("DELETE")) {
+    if (!"DELETE".equals(eventType)) { // NOPMD
       this.bus.send("filechange", filename);
     }
 

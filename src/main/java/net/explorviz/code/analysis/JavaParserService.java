@@ -4,7 +4,6 @@ import com.github.javaparser.ParseResult;
 import com.github.javaparser.ParserConfiguration;
 import com.github.javaparser.StaticJavaParser;
 import com.github.javaparser.ast.CompilationUnit;
-import com.github.javaparser.ast.visitor.GenericVisitorAdapter;
 import com.github.javaparser.ast.visitor.VoidVisitor;
 import com.github.javaparser.symbolsolver.JavaSymbolSolver;
 import com.github.javaparser.symbolsolver.resolution.typesolvers.CombinedTypeSolver;
@@ -24,13 +23,6 @@ import javax.enterprise.context.ApplicationScoped;
 import javax.enterprise.event.Observes;
 import javax.inject.Inject;
 import net.explorviz.code.analysis.visitor.ClassNameVisitor;
-import net.explorviz.code.analysis.visitor.ImplementedInterfaceVisitor;
-import net.explorviz.code.analysis.visitor.ImportVisitor;
-import net.explorviz.code.analysis.visitor.InheritanceVisitor;
-import net.explorviz.code.analysis.visitor.LocVisitor;
-import net.explorviz.code.analysis.visitor.MethocCallVisitor;
-import net.explorviz.code.analysis.visitor.MethodVisitor;
-import net.explorviz.code.analysis.visitor.PackageNameVisitor;
 import net.explorviz.code.proto.StructureCreateEvent;
 import net.explorviz.code.proto.StructureEventService;
 import net.explorviz.code.proto.StructureModifyEvent;
@@ -48,22 +40,25 @@ public class JavaParserService {
 
   private static final Logger LOGGER = LoggerFactory.getLogger(JavaParserService.class);
 
+  @GrpcClient("StructureEventService")
+  /* default */ StructureEventService structureEventService; // NOCS
+
   private final ParserConfiguration config;
 
   private final String folderPath;
 
   private final VoidVisitor<List<String>> classNameVisitor = new ClassNameVisitor();
-  private final GenericVisitorAdapter<Integer, Integer> locCollector = new LocVisitor();
-  private final VoidVisitor<List<String>> inheritanceCollector = new InheritanceVisitor();
-  private final VoidVisitor<List<String>> implementedInterfacesCollector =
-      new ImplementedInterfaceVisitor();
-  private final VoidVisitor<List<String>> methodCollector = new MethodVisitor();
-  private final VoidVisitor<List<String>> methodCallCollector = new MethocCallVisitor();
-  private final VoidVisitor<List<String>> importVisitor = new ImportVisitor();
-  private final GenericVisitorAdapter<String, String> packageCollector = new PackageNameVisitor();
+  // private final GenericVisitorAdapter<Integer, Integer> locCollector = new LocVisitor();
+  // private final VoidVisitor<List<String>> inheritanceCollector = new InheritanceVisitor();
+  // private final VoidVisitor<List<String>> implementedInterfacesCollector =
+  // new ImplementedInterfaceVisitor();
+  // private final VoidVisitor<List<String>> methodCollector = new MethodVisitor();
+  // private final VoidVisitor<List<String>> methodCallCollector = new MethocCallVisitor();
+  // private final VoidVisitor<List<String>> importVisitor = new ImportVisitor();
+  // private final GenericVisitorAdapter<String, String> packageCollector = new
+  // PackageNameVisitor();
 
-  @GrpcClient("StructureEventService")
-  StructureEventService structureEventService;
+
 
   /**
    * Constructor for this class. Injects {@link ConfigProperty} ${explorviz.watchservice.folder} for
@@ -100,15 +95,15 @@ public class JavaParserService {
     final CompilationUnit cu = StaticJavaParser.parse(Paths.get(absoluteFilePath));
 
     final List<String> classNames = new ArrayList<>();
-    System.out.println("Class names:");
+    LOGGER.debug("Class names:"); // NOCS
 
     // print fqn
-    JavaParserService.this.classNameVisitor.visit(cu, classNames);
+    this.classNameVisitor.visit(cu, classNames);
     for (final String className : classNames) {
-      System.out.println(className);
+      LOGGER.debug("{}", className);
       final StructureModifyEvent event =
-          StructureModifyEvent.newBuilder().setClassName(className).build();
-      JavaParserService.this.structureEventService.sendModifyEvent(event);
+          StructureModifyEvent.newBuilder().setFullyQualifiedOperationName(className).build();
+      this.structureEventService.sendModifyEvent(event).subscribe();
     }
 
   }
@@ -124,11 +119,11 @@ public class JavaParserService {
     final SourceRoot sourceRoot = new SourceRoot(pathToSource);
 
     final List<String> className = new ArrayList<>();
-    final List<String> superClassNames = new ArrayList<>();
-    final List<String> implementedInterfacesClassNames = new ArrayList<>();
-    final List<String> methodsOfClass = new ArrayList<>();
-    final List<String> calledMethodsInClass = new ArrayList<>();
-    final List<String> importNames = new ArrayList<>();
+    // final List<String> superClassNames = new ArrayList<>();
+    // final List<String> implementedInterfacesClassNames = new ArrayList<>();
+    // final List<String> methodsOfClass = new ArrayList<>();
+    // final List<String> calledMethodsInClass = new ArrayList<>();
+    // final List<String> importNames = new ArrayList<>();
 
     sourceRoot.parse("", this.config, new Callback() {
 
@@ -139,16 +134,20 @@ public class JavaParserService {
         if (result.isSuccessful() && result.getResult().isPresent()) {
           final CompilationUnit cu = result.getResult().get();
 
-          System.out.println("Class names:");
+          LOGGER.debug("Class names:");
 
           // print fqn
           JavaParserService.this.classNameVisitor.visit(cu, className);
           for (final String className : className) {
-            System.out.println(className);
+            LOGGER.debug("{}", className);
             final StructureCreateEvent event =
-                StructureCreateEvent.newBuilder().setClassName(className).build();
-            JavaParserService.this.structureEventService.sendCreateEvent(event).await()
-                .indefinitely();
+                StructureCreateEvent.newBuilder().setFullyQualifiedOperationName(className).build();
+            JavaParserService.this.structureEventService.sendCreateEvent(event).onItem()
+                .invoke(() -> LOGGER.debug("1ALEX Done")).onCancellation()
+                .invoke(() -> LOGGER.error("1ALEX Cancel")).onFailure()
+                .invoke(t -> LOGGER.debug("1ALEX Failure, {}", t)).await().indefinitely();
+
+            // JavaParserService.this.structureEventService.sendCreateEvent(event).subscribe();
           }
 
           className.clear();
