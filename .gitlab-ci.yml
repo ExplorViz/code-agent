@@ -79,4 +79,6 @@ coverage:
     - test
   artifacts:
     reports:
-      cobertura: build/cobertura.xml
+      coverage_report:
+        coverage_format: cobertura
+        path: build/cobertura.xml
