@@ -12,6 +12,9 @@ import org.apache.camel.Processor;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+/**
+ * Watches folder.
+ */
 @ApplicationScoped
 public class WatchFolderProcessor implements Processor {
 

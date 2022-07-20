@@ -5,6 +5,9 @@ import javax.inject.Inject;
 import org.apache.camel.builder.RouteBuilder;
 import org.eclipse.microprofile.config.inject.ConfigProperty;
 
+/**
+ * Watches folder.
+ */
 @ApplicationScoped
 public class WatchFolderRoute extends RouteBuilder {
 
