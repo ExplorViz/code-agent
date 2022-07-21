@@ -25,6 +25,8 @@ dependencies {
       
     testImplementation 'io.quarkus:quarkus-junit5'
     testImplementation 'io.rest-assured:rest-assured'
+    testImplementation 'io.grpc:grpc-testing:1.46.0'
+    testImplementation 'org.mockito:mockito-core:4.6.1'
 }
 
 group 'net.explorviz'
