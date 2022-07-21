@@ -6,7 +6,7 @@ import com.github.javaparser.JavaParser;
 import com.github.javaparser.ast.CompilationUnit;
 import com.google.protobuf.Empty;
 import io.grpc.Server;
-import io.grpc.inprocess.InProcessServerBuilder;
+import io.grpc.ServerBuilder;
 import io.grpc.testing.GrpcCleanupRule;
 import io.quarkus.test.junit.QuarkusTest;
 import io.smallrye.mutiny.Uni;
@@ -41,6 +41,8 @@ public class JavaParserServiceTest {
   @BeforeEach
   void setup() throws IOException {
 
+    // TODO GrpcClient Channel override fpr JavaParserService
+
     // this.channel = ManagedChannelBuilder.forAddress("localhost", 9001).usePlaintext().build();
 
     final StructureEventServiceGrpc.StructureEventServiceImplBase serviceImpl =
@@ -65,8 +67,10 @@ public class JavaParserServiceTest {
 
     // Create a server, add service, start, and register for automatic graceful shutdown.
 
-    final Server server = InProcessServerBuilder.forName("localhost:9001").directExecutor()
-        .addService(serviceImpl).build().start();
+    final Server server = ServerBuilder.forPort(9001).addService(serviceImpl).build().start();
+
+    // final Server server = InProcessServerBuilder.forName("localhost").directExecutor()
+    // .addService(serviceImpl).build().start();
 
     this.grpcCleanup.register(server);
 
