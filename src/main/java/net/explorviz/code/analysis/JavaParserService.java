@@ -107,9 +107,9 @@ public class JavaParserService {
       final StructureModifyEvent event =
           StructureModifyEvent.newBuilder().setFullyQualifiedOperationName(className).build();
       this.structureEventService.sendModifyEvent(event).onItem()
-          .invoke(() -> LOGGER.debug("1ALEX Done")).onCancellation()
-          .invoke(() -> LOGGER.error("1ALEX Cancel")).onFailure()
-          .invoke(t -> LOGGER.debug("1ALEX Failure, {}", t)).await().indefinitely();
+          .invoke(() -> LOGGER.debug("12ALEX Done")).onCancellation()
+          .invoke(() -> LOGGER.error("12ALEX Cancel")).onFailure()
+          .invoke(t -> LOGGER.debug("12ALEX Failure, {}", t)).await().indefinitely();
     }
 
   }
