@@ -11,7 +11,6 @@ import com.github.javaparser.symbolsolver.resolution.typesolvers.JavaParserTypeS
 import com.github.javaparser.symbolsolver.resolution.typesolvers.ReflectionTypeSolver;
 import com.github.javaparser.utils.SourceRoot;
 import com.github.javaparser.utils.SourceRoot.Callback;
-import io.grpc.Channel;
 import io.quarkus.grpc.GrpcClient;
 import io.quarkus.runtime.StartupEvent;
 import io.quarkus.vertx.ConsumeEvent;
@@ -24,8 +23,8 @@ import javax.enterprise.context.ApplicationScoped;
 import javax.enterprise.event.Observes;
 import javax.inject.Inject;
 import net.explorviz.code.analysis.visitor.ClassNameVisitor;
-import net.explorviz.code.proto.MutinyStructureEventServiceGrpc;
 import net.explorviz.code.proto.StructureCreateEvent;
+import net.explorviz.code.proto.StructureEventService;
 import net.explorviz.code.proto.StructureModifyEvent;
 import org.eclipse.microprofile.config.inject.ConfigProperty;
 import org.slf4j.Logger;
@@ -41,11 +40,11 @@ public class JavaParserService {
 
   private static final Logger LOGGER = LoggerFactory.getLogger(JavaParserService.class);
 
-  // @GrpcClient("StructureEventService")
-  // /* default */ StructureEventService structureEventService; // NOCS
-
   @GrpcClient("StructureEventService")
-  /* default */ Channel channel; // NOCS
+  /* default */ StructureEventService structureEventService; // NOCS
+
+  // @GrpcClient("StructureEventService")
+  /// * default */ Channel channel; // NOCS
 
   private final ParserConfiguration config;
 
@@ -107,7 +106,7 @@ public class JavaParserService {
       LOGGER.debug("{}", className);
       final StructureModifyEvent event =
           StructureModifyEvent.newBuilder().setFullyQualifiedOperationName(className).build();
-      MutinyStructureEventServiceGrpc.newMutinyStub(this.channel).sendModifyEvent(event).onItem()
+      this.structureEventService.sendModifyEvent(event).onItem()
           .invoke(() -> LOGGER.debug("1ALEX Done")).onCancellation()
           .invoke(() -> LOGGER.error("1ALEX Cancel")).onFailure()
           .invoke(t -> LOGGER.debug("1ALEX Failure, {}", t)).await().indefinitely();
@@ -147,17 +146,25 @@ public class JavaParserService {
           JavaParserService.this.classNameVisitor.visit(cu, className);
           for (final String className : className) {
             LOGGER.debug("{}", className);
+
+            // try {
+            // TimeUnit.SECONDS.sleep(20);
+            // } catch (final InterruptedException e) {
+            // TODO Auto-generated catch block
+            // e.printStackTrace();
+            // }
+
             final StructureCreateEvent event =
                 StructureCreateEvent.newBuilder().setFullyQualifiedOperationName(className).build();
-            // JavaParserService.this.structureEventService.sendCreateEvent(event).onItem()
-            // // .invoke(() -> LOGGER.debug("1ALEX Done")).onCancellation()
-            // .invoke(() -> LOGGER.error("1ALEX Cancel")).onFailure()
-            // .invoke(t -> LOGGER.debug("1ALEX Failure, {}", t)).await().indefinitely();
-
-            MutinyStructureEventServiceGrpc.newMutinyStub(JavaParserService.this.channel)
-                .sendCreateEvent(event).onItem().invoke(() -> LOGGER.debug("1ALEX Done"))
-                .onCancellation().invoke(() -> LOGGER.error("1ALEX Cancel")).onFailure()
+            JavaParserService.this.structureEventService.sendCreateEvent(event).onItem()
+                .invoke(() -> LOGGER.debug("1ALEX Done")).onCancellation()
+                .invoke(() -> LOGGER.error("1ALEX Cancel")).onFailure()
                 .invoke(t -> LOGGER.debug("1ALEX Failure, {}", t)).await().indefinitely();
+
+            // MutinyStructureEventServiceGrpc.newMutinyStub(JavaParserService.this.channel)
+            // .sendCreateEvent(event).onItem().invoke(() -> LOGGER.debug("1ALEX Done"))
+            // .onCancellation().invoke(() -> LOGGER.error("1ALEX Cancel")).onFailure()
+            // .invoke(t -> LOGGER.debug("1ALEX Failure, {}", t)).await().indefinitely();
 
             // JavaParserService.this.structureEventService.sendCreateEvent(event).subscribe();
           }

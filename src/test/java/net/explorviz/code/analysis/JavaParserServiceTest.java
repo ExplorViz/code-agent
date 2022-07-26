@@ -1,24 +1,31 @@
 package net.explorviz.code.analysis;
 
 import static org.mockito.AdditionalAnswers.delegatesTo;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.lenient;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.times;
+import static org.mockito.Mockito.verify;
 import com.github.javaparser.JavaParser;
 import com.github.javaparser.ast.CompilationUnit;
 import com.google.protobuf.Empty;
 import io.grpc.Server;
-import io.grpc.ServerBuilder;
+import io.grpc.ServerCallHandler;
+import io.grpc.ServerInterceptor;
+import io.grpc.netty.NettyChannelBuilder;
+import io.grpc.netty.NettyServerBuilder;
 import io.grpc.testing.GrpcCleanupRule;
 import io.quarkus.test.junit.QuarkusTest;
 import io.smallrye.mutiny.Uni;
 import java.io.IOException;
+import java.net.InetSocketAddress;
 import javax.inject.Inject;
+import net.explorviz.code.proto.MutinyStructureEventServiceGrpc;
 import net.explorviz.code.proto.StructureCreateEvent;
 import net.explorviz.code.proto.StructureDeleteEvent;
 import net.explorviz.code.proto.StructureEventService;
-import net.explorviz.code.proto.StructureEventServiceGrpc;
 import net.explorviz.code.proto.StructureModifyEvent;
 import org.junit.Rule;
-import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
@@ -38,41 +45,79 @@ public class JavaParserServiceTest {
   @Inject
   JavaParserService parserService;
 
+  private final MutinyStructureEventServiceGrpc.StructureEventServiceImplBase serviceImpl =
+      mock(MutinyStructureEventServiceGrpc.StructureEventServiceImplBase.class,
+          delegatesTo(new StructureEventService() {
+
+            @Override
+            public Uni<Empty> sendCreateEvent(final StructureCreateEvent request) {
+              return Uni.createFrom().item(() -> Empty.newBuilder().build());
+            }
+
+            @Override
+            public Uni<Empty> sendDeleteEvent(final StructureDeleteEvent request) {
+              return Uni.createFrom().item(() -> Empty.newBuilder().build());
+            }
+
+            @Override
+            public Uni<Empty> sendModifyEvent(final StructureModifyEvent request) {
+              return Uni.createFrom().item(() -> Empty.newBuilder().build());
+            }
+          }));
+
   @BeforeEach
   void setup() throws IOException {
+
+    System.out.println("sockets : ");
 
     // TODO GrpcClient Channel override fpr JavaParserService
 
     // this.channel = ManagedChannelBuilder.forAddress("localhost", 9001).usePlaintext().build();
 
-    final StructureEventServiceGrpc.StructureEventServiceImplBase serviceImpl =
-        mock(StructureEventServiceGrpc.StructureEventServiceImplBase.class,
-            delegatesTo(new StructureEventService() {
-
-              @Override
-              public Uni<Empty> sendCreateEvent(final StructureCreateEvent request) {
-                return Uni.createFrom().item(() -> Empty.newBuilder().build());
-              }
-
-              @Override
-              public Uni<Empty> sendDeleteEvent(final StructureDeleteEvent request) {
-                return Uni.createFrom().item(() -> Empty.newBuilder().build());
-              }
-
-              @Override
-              public Uni<Empty> sendModifyEvent(final StructureModifyEvent request) {
-                return Uni.createFrom().item(() -> Empty.newBuilder().build());
-              }
-            }));
+    // this.serviceImpl = mock(MutinyStructureEventServiceGrpc.StructureEventServiceImplBase.class,
+    // delegatesTo(new StructureEventService() {
+    //
+    // @Override
+    // public Uni<Empty> sendCreateEvent(final StructureCreateEvent request) {
+    // return Uni.createFrom().item(() -> Empty.newBuilder().build());
+    // }
+    //
+    // @Override
+    // public Uni<Empty> sendDeleteEvent(final StructureDeleteEvent request) {
+    // return Uni.createFrom().item(() -> Empty.newBuilder().build());
+    // }
+    //
+    // @Override
+    // public Uni<Empty> sendModifyEvent(final StructureModifyEvent request) {
+    // return Uni.createFrom().item(() -> Empty.newBuilder().build());
+    // }
+    // }));
 
     // Create a server, add service, start, and register for automatic graceful shutdown.
 
-    final Server server = ServerBuilder.forPort(9001).addService(serviceImpl).build().start();
+    // final Server server = ServerBuilder.forPort(9001).addService(serviceImpl).build().start();
+
+    final ServerInterceptor interceptor = mock(ServerInterceptor.class);
+
+    lenient().doAnswer(invocation -> {
+      final ServerCallHandler<?, ?> next = invocation.getArgument(2);
+      return next.startCall(invocation.getArgument(0), invocation.getArgument(1));
+    }).when(interceptor).interceptCall(any(), any(), any());
+
+    final Server server = NettyServerBuilder.forAddress(new InetSocketAddress("localhost", 9001))
+        .directExecutor().intercept(interceptor).addService(this.serviceImpl).build().start();
+
+    System.out.println("sockets : " + server.getListenSockets());
+
+    NettyChannelBuilder.forAddress(new InetSocketAddress("localhost", 9001)).usePlaintext().build();
 
     // final Server server = InProcessServerBuilder.forName("localhost").directExecutor()
     // .addService(serviceImpl).build().start();
 
-    this.grpcCleanup.register(server);
+    // this.grpcCleanup.register(server);
+
+    // final ManagedChannel channel =
+    // ManagedChannelBuilder.forAddress("localhost", 9001).usePlaintext().build();
 
     // System.out.println(server.getListenSockets());
 
@@ -94,7 +139,11 @@ public class JavaParserServiceTest {
   @Test()
   void testPayload() throws IOException {
 
-    Assertions.assertTrue(true);
+    this.parserService.processFile("src/test/resources/files/TestClass.java");
+
+    verify(this.serviceImpl, times(1)).sendModifyEvent(any());
+
+    // Assertions.assertTrue(true);
 
   }
 
