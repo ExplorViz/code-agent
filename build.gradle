@@ -53,10 +53,5 @@ sourceSets {
             srcDirs 'build/classes/java/quarkus-generated-sources/grpc'
         }
     }
-    test {
-    	java {
-            srcDirs 'build/classes/java/quarkus-test-generated-sources/grpc'
-        }
-    }
 }
 
