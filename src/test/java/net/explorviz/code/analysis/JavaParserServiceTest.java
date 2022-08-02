@@ -4,15 +4,14 @@ import static org.mockito.AdditionalAnswers.delegatesTo;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
-import com.github.javaparser.JavaParser;
-import com.github.javaparser.ast.CompilationUnit;
 import com.google.protobuf.Empty;
+import io.grpc.Server;
 import io.grpc.netty.NettyServerBuilder;
-import io.grpc.testing.GrpcCleanupRule;
 import io.quarkus.test.junit.QuarkusTest;
 import io.smallrye.mutiny.Uni;
 import java.io.IOException;
 import java.net.InetSocketAddress;
+import java.util.List;
 import javax.inject.Inject;
 import net.explorviz.code.proto.MutinyStructureEventServiceGrpc;
 import net.explorviz.code.proto.StructureCreateEvent;
@@ -20,7 +19,7 @@ import net.explorviz.code.proto.StructureDeleteEvent;
 import net.explorviz.code.proto.StructureEventService;
 import net.explorviz.code.proto.StructureModifyEvent;
 import org.eclipse.microprofile.config.inject.ConfigProperty;
-import org.junit.Rule;
+import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -32,18 +31,13 @@ import org.mockito.ArgumentCaptor;
 @QuarkusTest
 public class JavaParserServiceTest {
 
-  /**
-   * This rule manages automatic graceful shutdown for the registered servers and channels at the
-   * end of test.
-   */
-  @Rule
-  public final GrpcCleanupRule grpcCleanup = new GrpcCleanupRule();
-
   @Inject
   JavaParserService parserService;
 
   @ConfigProperty(name = "quarkus.grpc.clients.\"StructureEventService\".port")
   int port;
+
+  private Server server;
 
   private final MutinyStructureEventServiceGrpc.StructureEventServiceImplBase serviceImpl =
       mock(MutinyStructureEventServiceGrpc.StructureEventServiceImplBase.class,
@@ -68,25 +62,35 @@ public class JavaParserServiceTest {
   @BeforeEach
   void setup() throws IOException {
 
-    // server
-    this.grpcCleanup
-        .register(NettyServerBuilder.forAddress(new InetSocketAddress("localhost", this.port))
-            .directExecutor().addService(this.serviceImpl).build().start());
+    this.server = NettyServerBuilder.forAddress(new InetSocketAddress("localhost", this.port))
+        .directExecutor().addService(this.serviceImpl).build().start();
 
     // channel
     // this.grpcCleanup.register(NettyChannelBuilder
     // .forAddress(new InetSocketAddress("localhost", port)).usePlaintext().build());
   }
 
-  private CompilationUnit createUnit() {
-    final JavaParser javaParser = new JavaParser();
+  @AfterEach
+  void cleanup() {
+    this.server.shutdownNow();
+  }
 
-    final CompilationUnit unit =
-        javaParser.parse("public class Test\n" + "{\n" + "   public class InnerTest\n" + "   {\n"
-            + "       public InnerTest() {}\n" + "   }\n" + "    \n" + "   public Test() {\n"
-            + "   }\n" + "\n" + "   public static void main( String[] args ) { \n"
-            + "       new Test().new InnerTest();\n" + "   }\n" + "}").getResult().get();
-    return unit;
+  @Test()
+  void testProcessFolder() throws IOException {
+
+    final ArgumentCaptor<StructureCreateEvent> requestCaptor =
+        ArgumentCaptor.forClass(StructureCreateEvent.class);
+
+    this.parserService.processFolder("src/test/resources/files");
+
+    verify(this.serviceImpl, times(2)).sendCreateEvent(requestCaptor.capture());
+
+    final List<StructureCreateEvent> actuals = requestCaptor.getAllValues();
+
+    Assertions.assertEquals(2, actuals.size());
+
+    Assertions.assertEquals("files.TestClass", actuals.get(0).getFullyQualifiedOperationName());
+    Assertions.assertEquals("files.TestClass2", actuals.get(1).getFullyQualifiedOperationName());
   }
 
   @Test()
