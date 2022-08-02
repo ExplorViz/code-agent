@@ -18,7 +18,7 @@ public class WatchFolderRoute extends RouteBuilder {
   /* default */ String events; // NOCS
 
   @Inject
-  private WatchFolderProcessor processor;
+  WatchFolderProcessor processor;
 
   @Override
   public void configure() throws Exception {

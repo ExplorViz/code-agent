@@ -37,6 +37,12 @@ public class JavaParserServiceTest {
   @ConfigProperty(name = "quarkus.grpc.clients.\"StructureEventService\".port")
   int port;
 
+  @ConfigProperty(name = "explorviz.landscape.token")
+  /* default */ String landscapeToken; // NOCS
+
+  @ConfigProperty(name = "explorviz.landscape.secret")
+  /* default */ String landscapeSecret; // NOCS
+
   private Server server;
 
   private final MutinyStructureEventServiceGrpc.StructureEventServiceImplBase serviceImpl =
@@ -91,6 +97,12 @@ public class JavaParserServiceTest {
 
     Assertions.assertEquals("files.TestClass", actuals.get(0).getFullyQualifiedOperationName());
     Assertions.assertEquals("files.TestClass2", actuals.get(1).getFullyQualifiedOperationName());
+
+    Assertions.assertEquals(this.landscapeToken, actuals.get(0).getLandscapeToken());
+    Assertions.assertEquals(this.landscapeToken, actuals.get(1).getLandscapeToken());
+
+    Assertions.assertEquals(this.landscapeSecret, actuals.get(0).getLandscapeSecret());
+    Assertions.assertEquals(this.landscapeSecret, actuals.get(1).getLandscapeSecret());
   }
 
   @Test()
@@ -103,8 +115,13 @@ public class JavaParserServiceTest {
 
     verify(this.serviceImpl, times(1)).sendModifyEvent(requestCaptor.capture());
 
-    Assertions.assertEquals("files.TestClass",
-        requestCaptor.getValue().getFullyQualifiedOperationName());
+    final StructureModifyEvent actual = requestCaptor.getValue();
+
+    Assertions.assertEquals("files.TestClass", actual.getFullyQualifiedOperationName());
+
+    Assertions.assertEquals(this.landscapeToken, actual.getLandscapeToken());
+
+    Assertions.assertEquals(this.landscapeSecret, actual.getLandscapeSecret());
   }
 
 }

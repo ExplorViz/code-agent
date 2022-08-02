@@ -43,8 +43,11 @@ public class JavaParserService {
   @GrpcClient("StructureEventService")
   /* default */ StructureEventService structureEventService; // NOCS
 
-  // @GrpcClient("StructureEventService")
-  /// * default */ Channel channel; // NOCS
+  @ConfigProperty(name = "explorviz.landscape.token")
+  /* default */ String landscapeToken; // NOCS
+
+  @ConfigProperty(name = "explorviz.landscape.secret")
+  /* default */ String landscapeSecret; // NOCS
 
   private final ParserConfiguration config;
 
@@ -104,8 +107,9 @@ public class JavaParserService {
     this.classNameVisitor.visit(cu, classNames);
     for (final String className : classNames) {
       LOGGER.debug("{}", className);
-      final StructureModifyEvent event =
-          StructureModifyEvent.newBuilder().setFullyQualifiedOperationName(className).build();
+      final StructureModifyEvent event = StructureModifyEvent.newBuilder()
+          .setFullyQualifiedOperationName(className).setLandscapeToken(this.landscapeToken)
+          .setLandscapeSecret(this.landscapeSecret).build();
       this.structureEventService.sendModifyEvent(event).onItem()
           .invoke(() -> LOGGER.debug("12ALEX Done")).onCancellation()
           .invoke(() -> LOGGER.error("12ALEX Cancel")).onFailure()
@@ -155,7 +159,9 @@ public class JavaParserService {
             // }
 
             final StructureCreateEvent event =
-                StructureCreateEvent.newBuilder().setFullyQualifiedOperationName(className).build();
+                StructureCreateEvent.newBuilder().setFullyQualifiedOperationName(className)
+                    .setLandscapeToken(JavaParserService.this.landscapeToken)
+                    .setLandscapeSecret(JavaParserService.this.landscapeSecret).build();
             JavaParserService.this.structureEventService.sendCreateEvent(event).onItem()
                 .invoke(() -> LOGGER.debug("1ALEX Done")).onCancellation()
                 .invoke(() -> LOGGER.error("1ALEX Cancel")).onFailure()
