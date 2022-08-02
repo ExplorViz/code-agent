@@ -1,7 +1,6 @@
 package net.explorviz.code.analysis;
 
 import static org.mockito.AdditionalAnswers.delegatesTo;
-import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
@@ -22,8 +21,10 @@ import net.explorviz.code.proto.StructureEventService;
 import net.explorviz.code.proto.StructureModifyEvent;
 import org.eclipse.microprofile.config.inject.ConfigProperty;
 import org.junit.Rule;
+import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.mockito.ArgumentCaptor;
 
 /**
  * Collects class names.
@@ -89,14 +90,17 @@ public class JavaParserServiceTest {
   }
 
   @Test()
-  void testPayload() throws IOException {
+  void testProcessFile() throws IOException {
+
+    final ArgumentCaptor<StructureModifyEvent> requestCaptor =
+        ArgumentCaptor.forClass(StructureModifyEvent.class);
 
     this.parserService.processFile("src/test/resources/files/TestClass.java");
 
-    verify(this.serviceImpl, times(1)).sendModifyEvent(any());
+    verify(this.serviceImpl, times(1)).sendModifyEvent(requestCaptor.capture());
 
-    // Assertions.assertTrue(true);
-
+    Assertions.assertEquals("files.TestClass",
+        requestCaptor.getValue().getFullyQualifiedOperationName());
   }
 
 }
