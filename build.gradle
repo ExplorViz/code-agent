@@ -19,12 +19,15 @@ dependencies {
     implementation 'io.quarkus:quarkus-resteasy-reactive'
     implementation 'io.quarkus:quarkus-grpc'
     
-	implementation 'org.apache.camel.quarkus:camel-quarkus-file-watch:2.10.0' 
+	implementation 'org.apache.camel.quarkus:camel-quarkus-file-watch:2.11.0'
 	
 	implementation 'com.github.javaparser:javaparser-symbol-solver-core:3.24.2'
       
     testImplementation 'io.quarkus:quarkus-junit5'
+    testImplementation 'io.quarkus:quarkus-junit5-mockito'
     testImplementation 'io.rest-assured:rest-assured'
+    testImplementation 'io.grpc:grpc-testing:1.48.0'
+    //testImplementation 'org.mockito:mockito-core:4.6.1'
 }
 
 group 'net.explorviz'
@@ -48,11 +51,6 @@ sourceSets {
     main {
         java {
             srcDirs 'build/classes/java/quarkus-generated-sources/grpc'
-        }
-    }
-    test {
-    	java {
-            srcDirs 'build/classes/java/quarkus-test-generated-sources/grpc'
         }
     }
 }

@@ -16,18 +16,21 @@ service StructureEventService {
 
 message StructureCreateEvent {
 	string landscapeToken = 1;
-    string fullyQualifiedOperationName = 2;
-    int64 epochMilli = 3;
+	string landscapeSecret = 2;
+    string fullyQualifiedOperationName = 3;
+    int64 epochMilli = 4;
 }
 
 message StructureDeleteEvent {
     string landscapeToken = 1;
-    string fullyQualifiedOperationName = 2;
-    int64 epochMilli = 3;
+    string landscapeSecret = 2;
+    string fullyQualifiedOperationName = 3;
+    int64 epochMilli = 4;
 }
 
 message StructureModifyEvent {
     string landscapeToken = 1;
-    string fullyQualifiedOperationName = 2;
-    int64 epochMilli = 3;
+    string landscapeSecret = 2;
+    string fullyQualifiedOperationName = 3;
+    int64 epochMilli = 4;
 }
