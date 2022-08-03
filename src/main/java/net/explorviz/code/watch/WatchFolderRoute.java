@@ -18,12 +18,11 @@ public class WatchFolderRoute extends RouteBuilder {
   /* default */ String events; // NOCS
 
   @Inject
-  WatchFolderProcessor processor;
+  /* default */ WatchFolderProcessor processor; // NOCS
 
   @Override
   public void configure() throws Exception {
     this.fromF("file-watch://%s?events=%s&antInclude=**/*.java", this.folderPath, this.events)
         .process(this.processor);
   }
-
 }
