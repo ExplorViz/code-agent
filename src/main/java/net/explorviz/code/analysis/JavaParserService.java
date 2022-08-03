@@ -43,6 +43,12 @@ public class JavaParserService {
   @GrpcClient("StructureEventService")
   /* default */ StructureEventService structureEventService; // NOCS
 
+  @ConfigProperty(name = "explorviz.landscape.token")
+  /* default */ String landscapeToken; // NOCS
+
+  @ConfigProperty(name = "explorviz.landscape.secret")
+  /* default */ String landscapeSecret; // NOCS
+
   private final ParserConfiguration config;
 
   private final String folderPath;
@@ -101,9 +107,13 @@ public class JavaParserService {
     this.classNameVisitor.visit(cu, classNames);
     for (final String className : classNames) {
       LOGGER.debug("{}", className);
-      final StructureModifyEvent event =
-          StructureModifyEvent.newBuilder().setFullyQualifiedOperationName(className).build();
-      this.structureEventService.sendModifyEvent(event).subscribe();
+      final StructureModifyEvent event = StructureModifyEvent.newBuilder()
+          .setFullyQualifiedOperationName(className).setLandscapeToken(this.landscapeToken)
+          .setLandscapeSecret(this.landscapeSecret).build();
+      this.structureEventService.sendModifyEvent(event).onItem()
+          .invoke(() -> LOGGER.debug("12ALEX Done")).onCancellation()
+          .invoke(() -> LOGGER.error("12ALEX Cancel")).onFailure()
+          .invoke(t -> LOGGER.debug("12ALEX Failure, {}", t)).await().indefinitely();
     }
 
   }
@@ -140,12 +150,27 @@ public class JavaParserService {
           JavaParserService.this.classNameVisitor.visit(cu, className);
           for (final String className : className) {
             LOGGER.debug("{}", className);
+
+            // try {
+            // TimeUnit.SECONDS.sleep(20);
+            // } catch (final InterruptedException e) {
+            // TODO Auto-generated catch block
+            // e.printStackTrace();
+            // }
+
             final StructureCreateEvent event =
-                StructureCreateEvent.newBuilder().setFullyQualifiedOperationName(className).build();
+                StructureCreateEvent.newBuilder().setFullyQualifiedOperationName(className)
+                    .setLandscapeToken(JavaParserService.this.landscapeToken)
+                    .setLandscapeSecret(JavaParserService.this.landscapeSecret).build();
             JavaParserService.this.structureEventService.sendCreateEvent(event).onItem()
                 .invoke(() -> LOGGER.debug("1ALEX Done")).onCancellation()
                 .invoke(() -> LOGGER.error("1ALEX Cancel")).onFailure()
                 .invoke(t -> LOGGER.debug("1ALEX Failure, {}", t)).await().indefinitely();
+
+            // MutinyStructureEventServiceGrpc.newMutinyStub(JavaParserService.this.channel)
+            // .sendCreateEvent(event).onItem().invoke(() -> LOGGER.debug("1ALEX Done"))
+            // .onCancellation().invoke(() -> LOGGER.error("1ALEX Cancel")).onFailure()
+            // .invoke(t -> LOGGER.debug("1ALEX Failure, {}", t)).await().indefinitely();
 
             // JavaParserService.this.structureEventService.sendCreateEvent(event).subscribe();
           }
