@@ -1,4 +1,4 @@
-package net.explorviz.code.analysis;
+package net.explorviz.code.analysis.git;
 
 import java.io.File;
 import java.io.IOException;

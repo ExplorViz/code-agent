@@ -12,7 +12,6 @@ import com.github.javaparser.symbolsolver.resolution.typesolvers.ReflectionTypeS
 import com.github.javaparser.utils.SourceRoot;
 import com.github.javaparser.utils.SourceRoot.Callback;
 import io.quarkus.grpc.GrpcClient;
-import io.quarkus.runtime.StartupEvent;
 import io.quarkus.vertx.ConsumeEvent;
 import java.io.IOException;
 import java.nio.file.Path;
@@ -20,8 +19,6 @@ import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.List;
 import javax.enterprise.context.ApplicationScoped;
-import javax.enterprise.event.Observes;
-import javax.inject.Inject;
 import net.explorviz.code.analysis.visitor.ClassNameVisitor;
 import net.explorviz.code.proto.StructureCreateEvent;
 import net.explorviz.code.proto.StructureEventService;
@@ -49,10 +46,6 @@ public class JavaParserService {
   @ConfigProperty(name = "explorviz.landscape.secret")
   /* default */ String landscapeSecret; // NOCS
 
-  private final ParserConfiguration config;
-
-  private final String folderPath;
-
   private final VoidVisitor<List<String>> classNameVisitor = new ClassNameVisitor();
   // private final GenericVisitorAdapter<Integer, Integer> locCollector = new LocVisitor();
   // private final VoidVisitor<List<String>> inheritanceCollector = new InheritanceVisitor();
@@ -65,29 +58,6 @@ public class JavaParserService {
   // PackageNameVisitor();
 
 
-
-  /**
-   * Constructor for this class. Injects {@link ConfigProperty} ${explorviz.watchservice.folder} for
-   * the initial analysis of the top level folder path to the source code.
-   *
-   * @param folderPath Absolute folder path used to setup the type solver and configure the initial
-   *        analysis of the source code.
-   */
-  @Inject
-  public JavaParserService(
-      @ConfigProperty(name = "explorviz.watchservice.folder") final String folderPath) {
-
-    this.folderPath = folderPath;
-
-    final CombinedTypeSolver combinedTypeSolver = new CombinedTypeSolver(new ReflectionTypeSolver(),
-        new JavaParserTypeSolver(this.folderPath));
-
-    final JavaSymbolSolver symbolSolver = new JavaSymbolSolver(combinedTypeSolver);
-
-    this.config = new ParserConfiguration().setStoreTokens(true).setSymbolResolver(symbolSolver);
-
-    StaticJavaParser.getConfiguration().setSymbolResolver(symbolSolver);
-  }
 
   /**
    * This method listens to the Vert.x event "filechange" and will analyze a given absolute file
@@ -124,7 +94,7 @@ public class JavaParserService {
    * @param absoluteFolderPath Absolute folder path that will be analyzed by the JavaParser.
    * @throws IOException Throwed if the parsing of the absoluteFolderPath fails.
    */
-  public void processFolder(final String absoluteFolderPath) throws IOException {
+  public void processFolder(final String absoluteFolderPath) throws IOException { // NOPMD
     final Path pathToSource = Paths.get(absoluteFolderPath);
     final SourceRoot sourceRoot = new SourceRoot(pathToSource);
 
@@ -135,7 +105,17 @@ public class JavaParserService {
     // final List<String> calledMethodsInClass = new ArrayList<>();
     // final List<String> importNames = new ArrayList<>();
 
-    sourceRoot.parse("", this.config, new Callback() {
+    final CombinedTypeSolver combinedTypeSolver = new CombinedTypeSolver(new ReflectionTypeSolver(),
+        new JavaParserTypeSolver(absoluteFolderPath));
+
+    final JavaSymbolSolver symbolSolver = new JavaSymbolSolver(combinedTypeSolver);
+
+    final ParserConfiguration config =
+        new ParserConfiguration().setStoreTokens(true).setSymbolResolver(symbolSolver);
+
+    StaticJavaParser.getConfiguration().setSymbolResolver(symbolSolver);
+
+    sourceRoot.parse("", config, new Callback() {
 
       @Override
       public Result process(final Path localPath, final Path absolutePath,
@@ -221,12 +201,6 @@ public class JavaParserService {
       }
 
     });
-  }
-
-  /* default */ void onStart(@Observes final StartupEvent ev) throws IOException {
-    LOGGER.debug("Starting initial analysis of the source code for directory {} ...",
-        this.folderPath);
-    this.processFolder(this.folderPath);
   }
 
 }

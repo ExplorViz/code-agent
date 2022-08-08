@@ -1,4 +1,4 @@
-package net.explorviz.code.analysis;
+package net.explorviz.code.analysis.git;
 
 import io.quarkus.test.junit.QuarkusTest;
 import java.io.File;
