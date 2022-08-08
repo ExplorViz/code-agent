@@ -18,9 +18,7 @@ dependencies {
     implementation 'io.quarkus:quarkus-vertx'
     implementation 'io.quarkus:quarkus-resteasy-reactive'
     implementation 'io.quarkus:quarkus-grpc'
-    
-	implementation 'org.apache.camel.quarkus:camel-quarkus-file-watch:2.11.0'
-	
+    	
 	implementation 'com.github.javaparser:javaparser-symbol-solver-core:3.24.2'
 	
 	implementation 'org.eclipse.jgit:org.eclipse.jgit:6.2.0.202206071550-r'
