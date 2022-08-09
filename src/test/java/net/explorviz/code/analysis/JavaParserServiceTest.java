@@ -11,13 +11,10 @@ import io.quarkus.test.junit.QuarkusTest;
 import io.smallrye.mutiny.Uni;
 import java.io.IOException;
 import java.net.InetSocketAddress;
-import java.util.List;
 import javax.inject.Inject;
 import net.explorviz.code.proto.MutinyStructureEventServiceGrpc;
-import net.explorviz.code.proto.StructureCreateEvent;
-import net.explorviz.code.proto.StructureDeleteEvent;
 import net.explorviz.code.proto.StructureEventService;
-import net.explorviz.code.proto.StructureModifyEvent;
+import net.explorviz.code.proto.StructureFileEvent;
 import org.eclipse.microprofile.config.inject.ConfigProperty;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Assertions;
@@ -50,17 +47,7 @@ public class JavaParserServiceTest {
           delegatesTo(new StructureEventService() {
 
             @Override
-            public Uni<Empty> sendCreateEvent(final StructureCreateEvent request) {
-              return Uni.createFrom().item(() -> Empty.newBuilder().build());
-            }
-
-            @Override
-            public Uni<Empty> sendDeleteEvent(final StructureDeleteEvent request) {
-              return Uni.createFrom().item(() -> Empty.newBuilder().build());
-            }
-
-            @Override
-            public Uni<Empty> sendModifyEvent(final StructureModifyEvent request) {
+            public Uni<Empty> sendStructureFileEvent(final StructureFileEvent request) {
               return Uni.createFrom().item(() -> Empty.newBuilder().build());
             }
           }));
@@ -82,40 +69,16 @@ public class JavaParserServiceTest {
   }
 
   @Test()
-  void testProcessFolder() throws IOException {
-
-    final ArgumentCaptor<StructureCreateEvent> requestCaptor =
-        ArgumentCaptor.forClass(StructureCreateEvent.class);
-
-    this.parserService.processFolder("src/test/resources/files");
-
-    verify(this.serviceImpl, times(2)).sendCreateEvent(requestCaptor.capture());
-
-    final List<StructureCreateEvent> actuals = requestCaptor.getAllValues();
-
-    Assertions.assertEquals(2, actuals.size());
-
-    Assertions.assertEquals("files.TestClass", actuals.get(0).getFullyQualifiedOperationName());
-    Assertions.assertEquals("files.TestClass2", actuals.get(1).getFullyQualifiedOperationName());
-
-    Assertions.assertEquals(this.landscapeToken, actuals.get(0).getLandscapeToken());
-    Assertions.assertEquals(this.landscapeToken, actuals.get(1).getLandscapeToken());
-
-    Assertions.assertEquals(this.landscapeSecret, actuals.get(0).getLandscapeSecret());
-    Assertions.assertEquals(this.landscapeSecret, actuals.get(1).getLandscapeSecret());
-  }
-
-  @Test()
   void testProcessFile() throws IOException {
 
-    final ArgumentCaptor<StructureModifyEvent> requestCaptor =
-        ArgumentCaptor.forClass(StructureModifyEvent.class);
+    final ArgumentCaptor<StructureFileEvent> requestCaptor =
+        ArgumentCaptor.forClass(StructureFileEvent.class);
 
     this.parserService.processFile("src/test/resources/files/TestClass.java");
 
-    verify(this.serviceImpl, times(1)).sendModifyEvent(requestCaptor.capture());
+    verify(this.serviceImpl, times(1)).sendStructureFileEvent(requestCaptor.capture());
 
-    final StructureModifyEvent actual = requestCaptor.getValue();
+    final StructureFileEvent actual = requestCaptor.getValue();
 
     Assertions.assertEquals("files.TestClass", actual.getFullyQualifiedOperationName());
 

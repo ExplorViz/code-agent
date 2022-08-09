@@ -1,28 +1,17 @@
 package net.explorviz.code.analysis;
 
-import com.github.javaparser.ParseResult;
-import com.github.javaparser.ParserConfiguration;
 import com.github.javaparser.StaticJavaParser;
 import com.github.javaparser.ast.CompilationUnit;
 import com.github.javaparser.ast.visitor.VoidVisitor;
-import com.github.javaparser.symbolsolver.JavaSymbolSolver;
-import com.github.javaparser.symbolsolver.resolution.typesolvers.CombinedTypeSolver;
-import com.github.javaparser.symbolsolver.resolution.typesolvers.JavaParserTypeSolver;
-import com.github.javaparser.symbolsolver.resolution.typesolvers.ReflectionTypeSolver;
-import com.github.javaparser.utils.SourceRoot;
-import com.github.javaparser.utils.SourceRoot.Callback;
 import io.quarkus.grpc.GrpcClient;
-import io.quarkus.vertx.ConsumeEvent;
 import java.io.IOException;
-import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.List;
 import javax.enterprise.context.ApplicationScoped;
 import net.explorviz.code.analysis.visitor.ClassNameVisitor;
-import net.explorviz.code.proto.StructureCreateEvent;
 import net.explorviz.code.proto.StructureEventService;
-import net.explorviz.code.proto.StructureModifyEvent;
+import net.explorviz.code.proto.StructureFileEvent;
 import org.eclipse.microprofile.config.inject.ConfigProperty;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -66,7 +55,6 @@ public class JavaParserService {
    * @param absoluteFilePath Absolute file path that will be analyzed by the JavaParser.
    * @throws IOException Throwed if the parsing of the absoluteFilePath fails.
    */
-  @ConsumeEvent("filechange")
   public void processFile(final String absoluteFilePath) throws IOException {
     final CompilationUnit cu = StaticJavaParser.parse(Paths.get(absoluteFilePath));
 
@@ -77,130 +65,15 @@ public class JavaParserService {
     this.classNameVisitor.visit(cu, classNames);
     for (final String className : classNames) {
       LOGGER.debug("{}", className);
-      final StructureModifyEvent event = StructureModifyEvent.newBuilder()
+      final StructureFileEvent event = StructureFileEvent.newBuilder()
           .setFullyQualifiedOperationName(className).setLandscapeToken(this.landscapeToken)
           .setLandscapeSecret(this.landscapeSecret).build();
-      this.structureEventService.sendModifyEvent(event).onItem()
+      this.structureEventService.sendStructureFileEvent(event).onItem()
           .invoke(() -> LOGGER.debug("12ALEX Done")).onCancellation()
           .invoke(() -> LOGGER.error("12ALEX Cancel")).onFailure()
           .invoke(t -> LOGGER.debug("12ALEX Failure, {}", t)).await().indefinitely();
     }
 
-  }
-
-  /**
-   * Recursive source code analysis with JavaParser of a given folder.
-   *
-   * @param absoluteFolderPath Absolute folder path that will be analyzed by the JavaParser.
-   * @throws IOException Throwed if the parsing of the absoluteFolderPath fails.
-   */
-  public void processFolder(final String absoluteFolderPath) throws IOException { // NOPMD
-    final Path pathToSource = Paths.get(absoluteFolderPath);
-    final SourceRoot sourceRoot = new SourceRoot(pathToSource);
-
-    final List<String> className = new ArrayList<>();
-    // final List<String> superClassNames = new ArrayList<>();
-    // final List<String> implementedInterfacesClassNames = new ArrayList<>();
-    // final List<String> methodsOfClass = new ArrayList<>();
-    // final List<String> calledMethodsInClass = new ArrayList<>();
-    // final List<String> importNames = new ArrayList<>();
-
-    final CombinedTypeSolver combinedTypeSolver = new CombinedTypeSolver(new ReflectionTypeSolver(),
-        new JavaParserTypeSolver(absoluteFolderPath));
-
-    final JavaSymbolSolver symbolSolver = new JavaSymbolSolver(combinedTypeSolver);
-
-    final ParserConfiguration config =
-        new ParserConfiguration().setStoreTokens(true).setSymbolResolver(symbolSolver);
-
-    StaticJavaParser.getConfiguration().setSymbolResolver(symbolSolver);
-
-    sourceRoot.parse("", config, new Callback() {
-
-      @Override
-      public Result process(final Path localPath, final Path absolutePath,
-          final ParseResult<CompilationUnit> result) {
-
-        if (result.isSuccessful() && result.getResult().isPresent()) {
-          final CompilationUnit cu = result.getResult().get();
-
-          LOGGER.debug("Class names:");
-
-          // print fqn
-          JavaParserService.this.classNameVisitor.visit(cu, className);
-          for (final String className : className) {
-            LOGGER.debug("{}", className);
-
-            // try {
-            // TimeUnit.SECONDS.sleep(20);
-            // } catch (final InterruptedException e) {
-            // TODO Auto-generated catch block
-            // e.printStackTrace();
-            // }
-
-            final StructureCreateEvent event =
-                StructureCreateEvent.newBuilder().setFullyQualifiedOperationName(className)
-                    .setLandscapeToken(JavaParserService.this.landscapeToken)
-                    .setLandscapeSecret(JavaParserService.this.landscapeSecret).build();
-            JavaParserService.this.structureEventService.sendCreateEvent(event).onItem()
-                .invoke(() -> LOGGER.debug("1ALEX Done")).onCancellation()
-                .invoke(() -> LOGGER.error("1ALEX Cancel")).onFailure()
-                .invoke(t -> LOGGER.debug("1ALEX Failure, {}", t)).await().indefinitely();
-
-            // MutinyStructureEventServiceGrpc.newMutinyStub(JavaParserService.this.channel)
-            // .sendCreateEvent(event).onItem().invoke(() -> LOGGER.debug("1ALEX Done"))
-            // .onCancellation().invoke(() -> LOGGER.error("1ALEX Cancel")).onFailure()
-            // .invoke(t -> LOGGER.debug("1ALEX Failure, {}", t)).await().indefinitely();
-
-            // JavaParserService.this.structureEventService.sendCreateEvent(event).subscribe();
-          }
-
-          className.clear();
-
-          /*
-           * System.out.println("Package:");
-           * System.out.println(JavaParserService.this.packageCollector.visit(cu, ""));
-           *
-           * System.out.println("LoC:");
-           * System.out.println(JavaParserService.this.locCollector.visit(cu, 0));
-           *
-           *
-           *
-           * System.out.println("Imports:"); JavaParserService.this.importVisitor.visit(cu,
-           * importNames); importNames.forEach(n -> System.out.println(n));
-           *
-           * System.out.println("Super classes:");
-           *
-           * JavaParserService.this.inheritanceCollector.visit(cu, superClassNames);
-           * superClassNames.forEach( n ->
-           * System.out.println(FqnCalculator.calculateFqnBasedOnImport(importNames, n)));
-           *
-           * System.out.println("Implemented interfaces:");
-           *
-           * JavaParserService.this.implementedInterfacesCollector.visit(cu,
-           * implementedInterfacesClassNames); implementedInterfacesClassNames.forEach( n ->
-           * System.out.println(FqnCalculator.calculateFqnBasedOnImport(importNames, n)));
-           *
-           * System.out.println("Contained Methods:");
-           *
-           * JavaParserService.this.methodCollector.visit(cu, methodsOfClass);
-           * methodsOfClass.forEach(n -> System.out.println(n));
-           *
-           * System.out.println("Called methods:");
-           *
-           * JavaParserService.this.methodCallCollector.visit(cu, calledMethodsInClass);
-           * calledMethodsInClass.forEach(n -> System.out.println(n));
-           *
-           * importNames.clear(); superClassNames.clear(); implementedInterfacesClassNames.clear();
-           * methodsOfClass.clear(); calledMethodsInClass.clear();
-           *
-           * System.out.println("");
-           */
-        }
-        return Result.DONT_SAVE;
-      }
-
-    });
   }
 
 }
