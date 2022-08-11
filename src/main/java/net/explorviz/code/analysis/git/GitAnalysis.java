@@ -4,9 +4,12 @@ import io.quarkus.runtime.StartupEvent;
 import java.io.IOException;
 import java.util.Collection;
 import java.util.Date;
+import java.util.List;
 import javax.enterprise.context.ApplicationScoped;
 import javax.enterprise.event.Observes;
 import javax.inject.Inject;
+import net.explorviz.code.analysis.JavaParserService;
+import net.explorviz.code.proto.StructureFileEvent;
 import org.eclipse.jgit.api.errors.GitAPIException;
 import org.eclipse.jgit.api.errors.NoHeadException;
 import org.eclipse.jgit.lib.PersonIdent;
@@ -14,7 +17,9 @@ import org.eclipse.jgit.lib.Ref;
 import org.eclipse.jgit.lib.Repository;
 import org.eclipse.jgit.revwalk.RevCommit;
 import org.eclipse.jgit.revwalk.RevSort;
+import org.eclipse.jgit.revwalk.RevTree;
 import org.eclipse.jgit.revwalk.RevWalk;
+import org.eclipse.jgit.treewalk.TreeWalk;
 import org.eclipse.microprofile.config.inject.ConfigProperty;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -33,6 +38,9 @@ public class GitAnalysis {
 
   @Inject
   /* package */ GitHelper gitHelper; // NOCS
+
+  @Inject
+  /* package */ JavaParserService parserService; // NOCS
 
   private void analyzeAndSendGitRepoHistory() throws IOException, NoHeadException, GitAPIException {
 
@@ -55,14 +63,45 @@ public class GitAnalysis {
         }
         int count = 0;
         for (final RevCommit commit : revWalk) {
-          // System.out.println("Commit: " + commit);
+
           final PersonIdent authorIdent = commit.getAuthorIdent();
-          final Date authorDate = authorIdent.getWhen();
+          final Date commitDate = authorIdent.getWhen();
 
           if (LOGGER.isDebugEnabled()) {
-            LOGGER.debug("LogCommitDate: {}", authorDate);
+            LOGGER.debug("LogCommitDate: {}", commitDate);
           }
           count++;
+
+          final RevTree tree = commit.getTree();
+          // System.out.println("Having tree: " + tree);
+
+          // now use a TreeWalk to iterate over all files in the Tree recursively
+          // you can set Filters to narrow down the results if needed
+          try (final TreeWalk treeWalk = new TreeWalk(repository)) { // NOPMD
+            treeWalk.addTree(tree);
+            treeWalk.setRecursive(true);
+            while (treeWalk.next()) {
+              // System.out.println("found: " + treeWalk.getPathString());
+
+              final String fileContent =
+                  this.gitHelper.getContent(treeWalk.getObjectId(0), repository);
+
+              final List<StructureFileEvent> classes =
+                  this.parserService.processStringifiedClass(fileContent);
+
+              for (int i = 0; i < classes.size(); i++) {
+                final StructureFileEvent event = classes.get(i);
+                final StructureFileEvent eventWithTiming = StructureFileEvent.newBuilder(event)
+                    .setEpochMilli(authorIdent.getWhen().getTime()).build();
+                classes.set(i, eventWithTiming);
+              }
+
+              if (LOGGER.isDebugEnabled()) {
+                LOGGER.debug("Classes names: {}", classes);
+              }
+
+            }
+          }
         }
         if (LOGGER.isDebugEnabled()) {
           LOGGER.debug("Analyzed {} commits", count);

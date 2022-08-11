@@ -9,8 +9,6 @@ import org.eclipse.jgit.lib.ObjectId;
 import org.eclipse.jgit.lib.ObjectLoader;
 import org.eclipse.jgit.lib.ObjectReader;
 import org.eclipse.jgit.lib.Repository;
-import org.eclipse.jgit.revwalk.RevCommit;
-import org.eclipse.jgit.treewalk.TreeWalk;
 
 /**
  * Injectable helper class for jGit concerns.
@@ -37,22 +35,18 @@ public class GitHelper {
   /**
    * Returns the string content for a file path that was modified in a commit for a given repo.
    *
+   * @param blobId The {@link ObjectId}.
    * @param repo The {@link Repository}.
-   * @param commit The encompassing Git commit.
-   * @param path Path to the desired file.
    * @return The stringified file content.
    * @throws IOException Thrown if JGit cannot open the Git repo.
    */
-  public String getContent(final Repository repo, final RevCommit commit, final String path)
-      throws IOException {
-    try (TreeWalk treeWalk = TreeWalk.forPath(repo, path, commit.getTree())) {
-      final ObjectId blobId = treeWalk.getObjectId(0);
-      try (ObjectReader objectReader = repo.newObjectReader()) {
-        final ObjectLoader objectLoader = objectReader.open(blobId);
-        final byte[] bytes = objectLoader.getBytes();
-        return new String(bytes, StandardCharsets.UTF_8);
-      }
+  public String getContent(final ObjectId blobId, final Repository repo) throws IOException {
+    try (ObjectReader objectReader = repo.newObjectReader()) {
+      final ObjectLoader objectLoader = objectReader.open(blobId);
+      final byte[] bytes = objectLoader.getBytes();
+      return new String(bytes, StandardCharsets.UTF_8);
     }
+
   }
 
 

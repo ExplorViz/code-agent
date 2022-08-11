@@ -12,7 +12,9 @@ import org.eclipse.jgit.api.errors.TransportException;
 import org.eclipse.jgit.lib.ObjectId;
 import org.eclipse.jgit.lib.Repository;
 import org.eclipse.jgit.revwalk.RevCommit;
+import org.eclipse.jgit.revwalk.RevTree;
 import org.eclipse.jgit.revwalk.RevWalk;
+import org.eclipse.jgit.treewalk.TreeWalk;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 
@@ -55,20 +57,28 @@ public class GitHelperTest {
 
       try (RevWalk walk = new RevWalk(repo)) {
         final ObjectId id = repo.resolve("8ee1f25");
+
         final RevCommit commit = walk.parseCommit(id);
-        final String content =
-            this.gitHelper.getContent(repo, commit, "my/test/pckg/TestGitClass.java");
 
-        final String expected = "package testgit.my.test.pckg;\n" + "\n"
-            + "public class TestGitClass {\n" + "\n" + "  private final String testVariable;\n"
-            + "\n" + "  public TestGitClass(final String testVariable) {\n"
-            + "    this.testVariable = testVariable;\n" + "  }\n" + "\n" + "}";
+        final RevTree tree = commit.getTree();
 
-        Assertions.assertEquals(expected.replace(" ", "").replace("\n", "").replace("\r", ""),
-            content.replace(" ", "").replace("\n", "").replace("\r", ""));
+        try (TreeWalk treeWalk = new TreeWalk(repo)) {
+          treeWalk.addTree(tree);
+          treeWalk.setRecursive(true);
+          while (treeWalk.next()) {
+            final String actual = this.gitHelper.getContent(treeWalk.getObjectId(0), repo);
+            final String expected = "package testgit.my.test.pckg;\n" + "\n"
+                + "public class TestGitClass {\n" + "\n" + "  private final String testVariable;\n"
+                + "\n" + "  public TestGitClass(final String testVariable) {\n"
+                + "    this.testVariable = testVariable;\n" + "  }\n" + "\n" + "}";
 
-        walk.dispose();
+            Assertions.assertEquals(expected.replace(" ", "").replace("\n", "").replace("\r", ""),
+                actual.replace(" ", "").replace("\n", "").replace("\r", ""));
 
+            walk.dispose();
+
+          }
+        }
       }
     }
 
