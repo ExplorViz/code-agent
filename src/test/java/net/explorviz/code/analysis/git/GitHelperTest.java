@@ -48,7 +48,6 @@ public class GitHelperTest {
 
     final File tmpGitLocation = Files.createTempDirectory("explorviz-test").toFile();
 
-
     try (Git result =
         Git.cloneRepository().setURI("https://github.com/Alexander-Krause-Glau/Test-JGit-Code.git")
             .setDirectory(tmpGitLocation).call()) {

@@ -5,6 +5,7 @@ import java.io.IOException;
 import java.util.Collection;
 import java.util.Date;
 import java.util.List;
+import java.util.Optional;
 import javax.enterprise.context.ApplicationScoped;
 import javax.enterprise.event.Observes;
 import javax.inject.Inject;
@@ -35,7 +36,7 @@ public class GitAnalysis {
   private static final Logger LOGGER = LoggerFactory.getLogger(GitAnalysis.class);
 
   @ConfigProperty(name = "explorviz.repo.folder.path")
-  /* package */ String repoPath; // NOCS
+  /* package */ Optional<String> repoPath; // NOCS
 
   @Inject
   /* package */ GitHelper gitHelper; // NOCS
@@ -43,9 +44,13 @@ public class GitAnalysis {
   @Inject
   /* package */ JavaParserService parserService; // NOCS
 
-  private void analyzeAndSendGitRepoHistory() throws IOException, NoHeadException, GitAPIException {
+  private void analyzeAndSendGitRepoHistory() throws IOException, NoHeadException, GitAPIException { // NOPMD
 
-    try (Repository repository = this.gitHelper.openGitRepository(this.repoPath)) {
+    if (this.repoPath.isEmpty()) {
+      return;
+    }
+
+    try (Repository repository = this.gitHelper.openGitRepository(this.repoPath.get())) {
 
       // get a list of all known heads, tags, remotes, ...
       final Collection<Ref> allRefs = repository.getRefDatabase().getRefs();
