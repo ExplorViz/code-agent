@@ -44,7 +44,8 @@ public class GitAnalysis {
   @Inject
   /* package */ JavaParserService parserService; // NOCS
 
-  private void analyzeAndSendGitRepoHistory() throws IOException, NoHeadException, GitAPIException { // NOPMD
+  private void analyzeAndSendRepo() throws IOException, NoHeadException, GitAPIException { // NOPMD
+
 
     if (this.repoPath.isEmpty()) {
       return;
@@ -120,7 +121,7 @@ public class GitAnalysis {
 
   /* package */ void onStart(@Observes final StartupEvent ev)
       throws IOException, NoHeadException, GitAPIException {
-    this.analyzeAndSendGitRepoHistory();
+    this.analyzeAndSendRepo();
   }
 
 }
