@@ -20,6 +20,7 @@ import org.eclipse.jgit.revwalk.RevSort;
 import org.eclipse.jgit.revwalk.RevTree;
 import org.eclipse.jgit.revwalk.RevWalk;
 import org.eclipse.jgit.treewalk.TreeWalk;
+import org.eclipse.jgit.treewalk.filter.PathSuffixFilter;
 import org.eclipse.microprofile.config.inject.ConfigProperty;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -80,6 +81,7 @@ public class GitAnalysis {
           try (final TreeWalk treeWalk = new TreeWalk(repository)) { // NOPMD
             treeWalk.addTree(tree);
             treeWalk.setRecursive(true);
+            treeWalk.setFilter(PathSuffixFilter.create(".java"));
             while (treeWalk.next()) {
               // System.out.println("found: " + treeWalk.getPathString());
 
