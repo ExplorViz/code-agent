@@ -12,6 +12,7 @@ public class LocVisitor extends GenericVisitorAdapter<Integer, Void> {
 
   @Override
   public Integer visit(final ClassOrInterfaceDeclaration n, final Void x) {
+
     int result = -1;
 
     if (n.getRange().isPresent()) {

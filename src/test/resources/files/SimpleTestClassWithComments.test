@@ -1,0 +1,24 @@
+package my.test.pckg;
+
+/**
+ * Test Java Doc.
+ */
+public class SimpleTestClass {
+
+  // Test Comment Single
+  private final String testVariable;
+
+  /*
+   * Test Comment Block
+   */
+  public SimpleTestClass(final String testVariable) {
+    this.testVariable = testVariable;
+  }
+
+  /**
+   * Test Java Doc.
+   */
+  public String getTestVariable() {
+    return this.testVariable;
+  }
+}
