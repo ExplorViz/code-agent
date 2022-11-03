@@ -1,5 +1,6 @@
 package net.explorviz.code.analysis.git;
 
+import io.quarkus.grpc.GrpcClient;
 import io.quarkus.runtime.StartupEvent;
 import java.io.IOException;
 import java.util.Collection;
@@ -10,6 +11,10 @@ import javax.enterprise.context.ApplicationScoped;
 import javax.enterprise.event.Observes;
 import javax.inject.Inject;
 import net.explorviz.code.analysis.JavaParserService;
+import net.explorviz.code.proto.StructureEvent;
+import net.explorviz.code.proto.StructureEventService;
+import net.explorviz.code.proto.StructureEventServiceClient;
+import net.explorviz.code.proto.StructureEventServiceGrpc;
 import net.explorviz.code.proto.StructureFileEvent;
 import org.eclipse.jgit.api.errors.GitAPIException;
 import org.eclipse.jgit.api.errors.NoHeadException;
@@ -44,12 +49,17 @@ public class GitAnalysis {
   @Inject
   /* package */ JavaParserService parserService; // NOCS
 
+  @GrpcClient
+  /* package */ StructureEventServiceGrpc.StructureEventServiceBlockingStub grpcClient; // NOCS
+
   private void analyzeAndSendRepo() throws IOException, NoHeadException, GitAPIException { // NOPMD
 
 
     if (this.repoPath.isEmpty()) {
       return;
     }
+
+    LOGGER.debug("Starting to analyze Git Repo... this might take a moment.");
 
     try (Repository repository = this.gitHelper.openGitRepository(this.repoPath.get())) {
 
@@ -102,11 +112,15 @@ public class GitAnalysis {
                 final StructureFileEvent eventWithTiming = StructureFileEvent.newBuilder(event)
                     .setEpochMilli(authorIdent.getWhen().getTime()).build();
                 classes.set(i, eventWithTiming);
+                //grpcClient.sendStructureFileEvent(event).await().indefinitely();
+                grpcClient.sendStructureFileEvent(event);
               }
 
               if (LOGGER.isDebugEnabled()) {
                 LOGGER.debug("Classes names: {}", classes);
               }
+
+
 
             }
           }
