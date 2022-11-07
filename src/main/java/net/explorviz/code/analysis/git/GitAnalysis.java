@@ -46,7 +46,7 @@ public class GitAnalysis {
   @Inject
   /* package */ JavaParserService parserService; // NOCS
 
-  @GrpcClient
+  @GrpcClient("structureevent")
   /* package */ StructureEventServiceGrpc.StructureEventServiceBlockingStub grpcClient; // NOCS
 
   private void analyzeAndSendRepo() throws IOException, NoHeadException, GitAPIException { // NOPMD
