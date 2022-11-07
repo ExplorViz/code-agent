@@ -1,7 +1,8 @@
 plugins {
     id 'java'
     id 'io.quarkus'
-    id 'com.adarshr.test-logger' version '3.1.0'
+    id 'com.adarshr.test-logger' version '3.2.0'
+    id 'eclipse'
 }
 
 apply from: 'buildscripts/code-analysis.gradle'
@@ -18,16 +19,15 @@ dependencies {
     implementation 'io.quarkus:quarkus-vertx'
     implementation 'io.quarkus:quarkus-resteasy-reactive'
     implementation 'io.quarkus:quarkus-grpc'
-    
-	implementation 'org.apache.camel.quarkus:camel-quarkus-file-watch:2.11.0'
+    	
+	implementation 'com.github.javaparser:javaparser-symbol-solver-core:3.24.7'
 	
-	implementation 'com.github.javaparser:javaparser-symbol-solver-core:3.24.2'
-      
+	implementation 'org.eclipse.jgit:org.eclipse.jgit:6.3.0.202209071007-r'
+	     
     testImplementation 'io.quarkus:quarkus-junit5'
     testImplementation 'io.quarkus:quarkus-junit5-mockito'
     testImplementation 'io.rest-assured:rest-assured'
-    testImplementation 'io.grpc:grpc-testing:1.48.0'
-    //testImplementation 'org.mockito:mockito-core:4.6.1'
+    testImplementation 'io.grpc:grpc-testing:1.50.2'
 }
 
 group 'net.explorviz'
@@ -54,4 +54,3 @@ sourceSets {
         }
     }
 }
-
