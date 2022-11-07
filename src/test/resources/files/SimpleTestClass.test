@@ -1,0 +1,14 @@
+package my.test.pckg;
+
+public class SimpleTestClass {
+
+  private final String testVariable;
+
+  public SimpleTestClass(final String testVariable) {
+    this.testVariable = testVariable;
+  }
+
+  public String getTestVariable() {
+    return this.testVariable;
+  }
+}
