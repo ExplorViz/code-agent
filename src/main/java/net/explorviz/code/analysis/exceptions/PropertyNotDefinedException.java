@@ -4,26 +4,30 @@ package net.explorviz.code.analysis.exceptions;
  * Exception regarding not existing property.
  */
 public class PropertyNotDefinedException extends Exception {
-  public PropertyNotDefinedException(String propertyName) {
+
+  public static final long serialVersionUID = 765345121;
+
+  public PropertyNotDefinedException(final String propertyName) {
     this(propertyName, "");
   }
 
-  public PropertyNotDefinedException(String propertyName, String errorMessage) {
+  public PropertyNotDefinedException(final String propertyName, final String errorMessage) {
     super(toMessage(new String[]{propertyName}, errorMessage));
   }
 
-  public PropertyNotDefinedException(String[] propertyNames) {
+  public PropertyNotDefinedException(final String[] propertyNames) { //NOPMD
     this(propertyNames, "");
   }
 
-  public PropertyNotDefinedException(String[] propertyNames, String errorMessage) {
+  public PropertyNotDefinedException(final String[] propertyNames, final String errorMessage) {
     super(PropertyNotDefinedException.toMessage(propertyNames, errorMessage));
   }
 
-  private static String toMessage(String[] propertyNames, String errorMessage) {
-    StringBuilder message = new StringBuilder("Properties ");
-    for (String item : propertyNames) {
-      message.append("<").append(item).append("> ");
+  private static String toMessage(final String[] propertyNames, final String errorMessage) {
+    final StringBuilder message = new StringBuilder(80);
+    message.append("Properties ");
+    for (final String item : propertyNames) {
+      message.append('<').append(item).append("> ");
     }
     message.append("not defined in application.properties\n").append(errorMessage);
     return message.toString();

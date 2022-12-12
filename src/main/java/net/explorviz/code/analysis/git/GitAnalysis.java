@@ -44,24 +44,24 @@ public class GitAnalysis {
     //    FOR TESTING ONLY
     //  gitController.downloadRepository("", "");
     try (Repository repository = this.gitRepositoryLoader.getGitRepository()) {
-      LOGGER.info("repository Open");
-      Git r = new Git(repository);
-      int c = 0;
-
-      List<Ref> call = r.branchList().setListMode(ListBranchCommand.ListMode.ALL).call();
-      for (Ref ref : call) {
-        System.out.println("Branch: " + ref + " " + ref.getName() + " "
-            + ref.getObjectId().getName());
-        c++;
+      if (LOGGER.isDebugEnabled()) {
+        LOGGER.debug("repository Open");
       }
-      System.out.println("Number of branches: " + c);
-    } catch (Exception e) {
-      throw e;
-    }
-    if (true) {
-      return;
-    }
+      int counter = 0;
 
+      final List<Ref> refs = new Git(repository).branchList().setListMode(
+          ListBranchCommand.ListMode.ALL).call();
+      for (final Ref ref : refs) {
+        if (LOGGER.isDebugEnabled()) {
+          LOGGER.debug("Branch: " + ref + " " + ref.getName() + " "
+              + ref.getObjectId().getName());
+        }
+        counter++;
+      }
+      if (LOGGER.isDebugEnabled()) {
+        LOGGER.debug("Number of branches: " + counter);
+      }
+    }
 
     /*LOGGER.debug("Starting to analyze Git Repo... this might take a moment.");
 

@@ -34,22 +34,22 @@ public class GitRepositoryLoader {
   private static final Logger LOGGER = LoggerFactory.getLogger(GitRepositoryLoader.class);
 
   @ConfigProperty(name = "explorviz.gitanalysis.local.folder.path")
-  String repoPathProperty;  // NOCS
+  /* default */ String repoPathProperty;  // NOCS
 
   @ConfigProperty(name = "explorviz.gitanalysis.remote.Url")
-  Optional<String> repoUrlProperty; // NOCS
+  /* default */ Optional<String> repoUrlProperty; // NOCS
 
   @ConfigProperty(name = "explorviz.gitanalysis.remote.username")
-  Optional<String> usernameProperty;  // NOCS
+  /* default */ Optional<String> usernameProperty;  // NOCS
 
   @ConfigProperty(name = "explorviz.gitanalysis.remote.password")
-  Optional<String> passwordProperty;  // NOCS
+  /* default */ Optional<String> passwordProperty;  // NOCS
 
   @ConfigProperty(name = "explorviz.gitanalysis.fullanalysis", defaultValue = "true")
-  boolean fullAnalysis; // NOCS
+  /* default */ boolean fullAnalysis; // NOCS
 
   @ConfigProperty(name = "explorviz.gitanalysis.branch", defaultValue = "master")
-  String repositoryBranch;  // NOCS
+  /* default */ String repositoryBranch;  // NOCS
 
   /**
    * Tries to download the Git {@link Repository} based on a given Url to the given.
@@ -60,15 +60,16 @@ public class GitRepositoryLoader {
    * @return returns an opened git repository
    * @throws GitAPIException gets thrown if the git api encounters an error
    */
-  public Repository downloadGitRepository(String repositoryPath, String repositoryUrl,
-                                          CredentialsProvider credentialsProvider)
+  public Repository downloadGitRepository(final String repositoryPath, final String repositoryUrl,
+                                          final CredentialsProvider credentialsProvider)
       throws GitAPIException {
 
-    Git git;
     try {
-      LOGGER.info("Cloning repository from " + repositoryUrl);
-      git = Git.cloneRepository().setURI(repositoryUrl).setCredentialsProvider(
-          credentialsProvider).setDirectory(new File(repositoryPath)).call();
+      if (LOGGER.isInfoEnabled()) {
+        LOGGER.info("Cloning repository from " + repositoryUrl);
+      }
+      return Git.cloneRepository().setURI(repositoryUrl).setCredentialsProvider(
+          credentialsProvider).setDirectory(new File(repositoryPath)).call().getRepository();
     } catch (TransportException te) {
       LOGGER.error("The repository is private, username and password are required.");
       throw te;
@@ -76,7 +77,6 @@ public class GitRepositoryLoader {
       LOGGER.error("The repository's Url seems not right, no git repository was found there.");
       throw e;
     }
-    return git.getRepository();
   }
 
   /**
@@ -86,14 +86,16 @@ public class GitRepositoryLoader {
    * @return returns an opened git {@link Repository}
    * @throws IOException gets thrown if JGit cannot open the Git repository.
    */
-  public Repository openGitRepository(String repositoryPath) throws IOException {
+  public Repository openGitRepository(final String repositoryPath) throws IOException {
 
     final File localRepositoryDirectory = new File(repositoryPath);
 
     if (!localRepositoryDirectory.isDirectory()) {
       LOGGER.error("Given path is not a directory");
       throw new NotDirectoryException(repositoryPath);
-    } else if (Objects.requireNonNull(localRepositoryDirectory.listFiles()).length == 0) {
+    }
+
+    if (Objects.requireNonNull(localRepositoryDirectory.listFiles()).length == 0) {
       return null;
     }
     return Git.open(localRepositoryDirectory).getRepository();
@@ -107,12 +109,11 @@ public class GitRepositoryLoader {
    * @return returns an opened git repository
    * @throws GitAPIException gets thrown if the git api encounters an error
    */
-  public Repository getInMemoryRepository(String remoteUrl,
-                                          CredentialsProvider credentialsProvider)
+  public Repository getInMemoryRepository(final String remoteUrl,
+                                          final CredentialsProvider credentialsProvider)
       throws GitAPIException {
-    DfsRepositoryDescription repositoryDescription = new DfsRepositoryDescription();
-    InMemoryRepository repository = new InMemoryRepository(repositoryDescription);
-    Git git = new Git(repository);
+    final DfsRepositoryDescription repositoryDescription = new DfsRepositoryDescription();
+    final Git git = new Git(new InMemoryRepository(repositoryDescription)); //NOPMD
     git.fetch().setRemote(remoteUrl).setCredentialsProvider(credentialsProvider).call();
     return git.getRepository();
   }
@@ -135,14 +136,16 @@ public class GitRepositoryLoader {
    *                         folder
    * @throws GitAPIException gets thrown if the git api encounters an error
    */
-  public Repository getGitRepository(String repositoryPath, String repositoryUrl, String username,
-                                     String password) throws IOException, GitAPIException {
+  public Repository getGitRepository(final String repositoryPath, //NOPMD
+                                     final String repositoryUrl,
+                                     final String username, final String password)
+      throws IOException, GitAPIException {
 
     CredentialsProvider credentialsProvider;
-    if (!username.isBlank() && !password.isBlank()) {
-      credentialsProvider = new UsernamePasswordCredentialsProvider(username, password);
-    } else {
+    if (username.isBlank() || password.isBlank()) {
       credentialsProvider = CredentialsProvider.getDefault();
+    } else {
+      credentialsProvider = new UsernamePasswordCredentialsProvider(username, password);
     }
 
     if (repositoryPath.isBlank()) {
@@ -151,7 +154,7 @@ public class GitRepositoryLoader {
 
     Repository localRepository = this.openGitRepository(repositoryPath);
     if (localRepository == null) {
-      localRepository = this.downloadGitRepository(repositoryPath, repositoryUrl,
+      localRepository = this.downloadGitRepository(repositoryPath, repositoryUrl, //NOPMD
           credentialsProvider);
     } else if (Objects.equals(getRemoteOriginUrl(localRepository), repositoryUrl)) {
       new Git(localRepository).pull().call();
@@ -189,7 +192,7 @@ public class GitRepositoryLoader {
    * @param repository the repository object
    * @return the remote origin Url
    */
-  public static String getRemoteOriginUrl(Repository repository) {
+  public static String getRemoteOriginUrl(final Repository repository) {
     return repository.getConfig().getString("remote", "origin", "Url");
   }
 
