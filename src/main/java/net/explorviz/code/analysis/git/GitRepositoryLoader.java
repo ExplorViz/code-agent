@@ -10,6 +10,7 @@ import java.util.Optional;
 import javax.enterprise.context.ApplicationScoped;
 import net.explorviz.code.analysis.exceptions.PropertyNotDefinedException;
 import org.eclipse.jgit.api.Git;
+import org.eclipse.jgit.api.PullCommand;
 import org.eclipse.jgit.api.errors.GitAPIException;
 import org.eclipse.jgit.api.errors.InvalidRemoteException;
 import org.eclipse.jgit.api.errors.TransportException;
@@ -157,8 +158,23 @@ public class GitRepositoryLoader {
       localRepository = this.downloadGitRepository(repositoryPath, repositoryUrl, //NOPMD
           credentialsProvider);
     } else if (Objects.equals(getRemoteOriginUrl(localRepository), repositoryUrl)) {
-      new Git(localRepository).pull().call();
+      // TODO: repoUrl need to begin with http
+      // seems like, at least with gitlab, jgit does not like the ssh style git@... url
+      // produces -remote hung up unexpectedly- even with cloned repo, pulls are not doable
+      // with ssh, maybe check here if it is http and try, or throw exception if the url
+      // is http style.
+
+      if (LOGGER.isInfoEnabled()) {
+        LOGGER.info("Pulling latests commits...");
+      }
+      try (Git git = new Git(localRepository)) {
+        PullCommand cmd = git.pull();
+        cmd.call();
+      }
     } else {
+      if (LOGGER.isWarnEnabled()) {
+        LOGGER.warn("Local repository does not match with remote, local will be overwritten.");
+      }
       localRepository.close();
       Files.delete(new File(repositoryPath).toPath());
       localRepository = this.downloadGitRepository(repositoryPath, repositoryUrl,

@@ -3,6 +3,8 @@ package net.explorviz.code.analysis.git;
 import io.quarkus.grpc.GrpcClient;
 import io.quarkus.runtime.StartupEvent;
 import java.io.IOException;
+import java.util.Collection;
+import java.util.Date;
 import java.util.List;
 import java.util.Optional;
 import javax.enterprise.context.ApplicationScoped;
@@ -11,12 +13,18 @@ import javax.inject.Inject;
 import net.explorviz.code.analysis.JavaParserService;
 import net.explorviz.code.analysis.exceptions.PropertyNotDefinedException;
 import net.explorviz.code.proto.StructureEventServiceGrpc;
-import org.eclipse.jgit.api.Git;
-import org.eclipse.jgit.api.ListBranchCommand;
+import net.explorviz.code.proto.StructureFileEvent;
 import org.eclipse.jgit.api.errors.GitAPIException;
 import org.eclipse.jgit.api.errors.NoHeadException;
+import org.eclipse.jgit.lib.PersonIdent;
 import org.eclipse.jgit.lib.Ref;
 import org.eclipse.jgit.lib.Repository;
+import org.eclipse.jgit.revwalk.RevCommit;
+import org.eclipse.jgit.revwalk.RevSort;
+import org.eclipse.jgit.revwalk.RevTree;
+import org.eclipse.jgit.revwalk.RevWalk;
+import org.eclipse.jgit.treewalk.TreeWalk;
+import org.eclipse.jgit.treewalk.filter.PathSuffixFilter;
 import org.eclipse.microprofile.config.inject.ConfigProperty;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -45,18 +53,25 @@ public class GitAnalysis {
 
   private void analyzeAndSendRepo()
       throws IOException, GitAPIException, PropertyNotDefinedException { // NOPMD
-
+    // TODO: delete, but currently needed for testing
     if (repoPathProperty.isEmpty()) {
       return;
     }
-    //    FOR TESTING ONLY
-    //  gitController.downloadRepository("", "");
-    try (Repository repository = this.gitRepositoryLoader.getGitRepository()) {
+
+    // steps:
+    // open or download repository
+    // get remote state of the analyzed data
+    // loop for missing commits
+    //  - find difference between last and "current" commit
+    //  - analyze differences
+    //  - send data chunk
+
+
+    /*try (Repository repository = this.gitRepositoryLoader.getGitRepository()) {
       if (LOGGER.isDebugEnabled()) {
         LOGGER.debug("repository Open");
       }
       int counter = 0;
-
       final List<Ref> refs = new Git(repository).branchList().setListMode(
           ListBranchCommand.ListMode.ALL).call();
       for (final Ref ref : refs) {
@@ -69,9 +84,7 @@ public class GitAnalysis {
       if (LOGGER.isDebugEnabled()) {
         LOGGER.debug("Number of branches: " + counter);
       }
-    }
-
-    /*LOGGER.debug("Starting to analyze Git Repo... this might take a moment.");
+    }*/
 
     try (Repository repository = this.gitRepositoryLoader.getGitRepository()) {
 
@@ -140,7 +153,7 @@ public class GitAnalysis {
           LOGGER.debug("Analyzed {} commits", count);
         }
       }
-    }*/
+    }
   }
 
 
