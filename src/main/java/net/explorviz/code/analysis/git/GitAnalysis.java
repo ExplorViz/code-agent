@@ -4,6 +4,7 @@ import io.quarkus.grpc.GrpcClient;
 import io.quarkus.runtime.StartupEvent;
 import java.io.IOException;
 import java.util.List;
+import java.util.Optional;
 import javax.enterprise.context.ApplicationScoped;
 import javax.enterprise.event.Observes;
 import javax.inject.Inject;
@@ -16,6 +17,7 @@ import org.eclipse.jgit.api.errors.GitAPIException;
 import org.eclipse.jgit.api.errors.NoHeadException;
 import org.eclipse.jgit.lib.Ref;
 import org.eclipse.jgit.lib.Repository;
+import org.eclipse.microprofile.config.inject.ConfigProperty;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -29,6 +31,9 @@ public class GitAnalysis {
 
   private static final Logger LOGGER = LoggerFactory.getLogger(GitAnalysis.class);
 
+  @ConfigProperty(name = "explorviz.gitanalysis.local.folder.path")
+  /* default */ Optional<String> repoPathProperty;  // NOCS
+
   @Inject
   /* package */ GitRepositoryLoader gitRepositoryLoader; // NOCS
 
@@ -41,6 +46,9 @@ public class GitAnalysis {
   private void analyzeAndSendRepo()
       throws IOException, GitAPIException, PropertyNotDefinedException { // NOPMD
 
+    if (repoPathProperty.isEmpty()) {
+      return;
+    }
     //    FOR TESTING ONLY
     //  gitController.downloadRepository("", "");
     try (Repository repository = this.gitRepositoryLoader.getGitRepository()) {

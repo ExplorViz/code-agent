@@ -34,7 +34,7 @@ public class GitRepositoryLoader {
   private static final Logger LOGGER = LoggerFactory.getLogger(GitRepositoryLoader.class);
 
   @ConfigProperty(name = "explorviz.gitanalysis.local.folder.path")
-  /* default */ String repoPathProperty;  // NOCS
+  /* default */ Optional<String> repoPathProperty;  // NOCS
 
   @ConfigProperty(name = "explorviz.gitanalysis.remote.url")
   /* default */ Optional<String> repoUrlProperty; // NOCS
@@ -182,7 +182,11 @@ public class GitRepositoryLoader {
       throw new PropertyNotDefinedException("explorviz.gitanalysis.remote.url");
     }
 
-    return getGitRepository(this.repoPathProperty, this.repoUrlProperty.get(),
+    if (repoPathProperty.isEmpty()) {
+      throw new PropertyNotDefinedException("explorviz.gitanalysis.local.folder.path");
+    }
+
+    return getGitRepository(this.repoPathProperty.get(), this.repoUrlProperty.get(),
         this.usernameProperty.orElse(""), this.passwordProperty.orElse(""));
   }
 
