@@ -47,7 +47,7 @@ public class JavaParserService {
    *
    * @param stringifiedClass The stringified class that will be analyzed by the JavaParser.
    * @return List of StructureFileEvent. Often contains only one element, i.e., multiple elements
-   *         indicate a nested class.
+   *     indicate a nested class.
    * @throws IOException Throwed if the parsing of the stringified class fails.
    */
   public List<StructureFileEvent> processStringifiedClass(final String stringifiedClass)

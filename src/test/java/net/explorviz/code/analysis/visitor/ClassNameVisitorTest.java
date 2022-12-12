@@ -28,10 +28,10 @@ public class ClassNameVisitorTest {
     final JavaParser javaParser = new JavaParser();
 
     final CompilationUnit unit =
-        javaParser.parse("public class Test\n" + "{\n" + "   public class InnerTest\n" + "   {\n"
+        javaParser.parse("public class Test\n" + "{\n" + "   public class InnerTest\n   {\n"
             + "       public InnerTest() {}\n" + "   }\n" + "    \n" + "   public Test() {\n"
-            + "   }\n" + "\n" + "   public static void main( String[] args ) { \n"
-            + "       new Test().new InnerTest();\n" + "   }\n" + "}").getResult().get();
+            + "   }\n\n" + "   public static void main( String[] args ) { \n"
+            + "       new Test().new InnerTest();\n   }\n" + "}").getResult().get(); //NOCS
     return unit;
   }
 

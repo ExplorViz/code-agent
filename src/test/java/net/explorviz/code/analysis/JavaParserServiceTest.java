@@ -16,7 +16,7 @@ import org.junit.jupiter.api.Test;
 public class JavaParserServiceTest {
 
   @Inject
-  JavaParserService parserService;
+  JavaParserService parserService;  // NOCS
 
   @ConfigProperty(name = "explorviz.landscape.token")
   /* default */ String landscapeToken; // NOCS

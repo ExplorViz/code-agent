@@ -4,6 +4,7 @@ import com.github.javaparser.JavaParser;
 import com.github.javaparser.ast.CompilationUnit;
 import com.github.javaparser.ast.body.ClassOrInterfaceDeclaration;
 import java.io.IOException;
+import java.io.InputStream;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -70,8 +71,13 @@ public class LocVisitorTest {
   }
 
   private String loadFromFilePath(final String filePath) throws IOException {
-    return new String(
-        ClassLoader.getSystemClassLoader().getResourceAsStream(filePath).readAllBytes());
+
+    ClassLoader loader = ClassLoader.getSystemClassLoader();
+    InputStream stream = loader.getResourceAsStream(filePath);
+    if (stream == null) {
+      System.out.println("Is Null");
+    }
+    return new String(stream.readAllBytes());
   }
 
 }
