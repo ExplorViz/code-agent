@@ -36,7 +36,7 @@ public class GitRepositoryLoader {
   @ConfigProperty(name = "explorviz.gitanalysis.local.folder.path")
   /* default */ String repoPathProperty;  // NOCS
 
-  @ConfigProperty(name = "explorviz.gitanalysis.remote.Url")
+  @ConfigProperty(name = "explorviz.gitanalysis.remote.url")
   /* default */ Optional<String> repoUrlProperty; // NOCS
 
   @ConfigProperty(name = "explorviz.gitanalysis.remote.username")
@@ -179,7 +179,7 @@ public class GitRepositoryLoader {
   public Repository getGitRepository()
       throws PropertyNotDefinedException, GitAPIException, IOException {
     if (repoUrlProperty.isEmpty()) {
-      throw new PropertyNotDefinedException("explorviz.repo.remote.Url");
+      throw new PropertyNotDefinedException("explorviz.gitanalysis.remote.url");
     }
 
     return getGitRepository(this.repoPathProperty, this.repoUrlProperty.get(),
@@ -193,7 +193,7 @@ public class GitRepositoryLoader {
    * @return the remote origin Url
    */
   public static String getRemoteOriginUrl(final Repository repository) {
-    return repository.getConfig().getString("remote", "origin", "Url");
+    return repository.getConfig().getString("remote", "origin", "url");
   }
 
   /**
