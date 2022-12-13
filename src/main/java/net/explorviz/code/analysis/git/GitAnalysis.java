@@ -36,7 +36,6 @@ import org.slf4j.LoggerFactory;
 @ApplicationScoped
 public class GitAnalysis {
 
-
   private static final Logger LOGGER = LoggerFactory.getLogger(GitAnalysis.class);
 
   @ConfigProperty(name = "explorviz.gitanalysis.local.folder.path")
@@ -53,11 +52,6 @@ public class GitAnalysis {
 
   private void analyzeAndSendRepo()
       throws IOException, GitAPIException, PropertyNotDefinedException { // NOPMD
-    // TODO: delete, but currently needed for testing
-    if (repoPathProperty.isEmpty()) {
-      return;
-    }
-
     // steps:
     // open or download repository
     // get remote state of the analyzed data
@@ -65,26 +59,6 @@ public class GitAnalysis {
     //  - find difference between last and "current" commit
     //  - analyze differences
     //  - send data chunk
-
-
-    /*try (Repository repository = this.gitRepositoryLoader.getGitRepository()) {
-      if (LOGGER.isDebugEnabled()) {
-        LOGGER.debug("repository Open");
-      }
-      int counter = 0;
-      final List<Ref> refs = new Git(repository).branchList().setListMode(
-          ListBranchCommand.ListMode.ALL).call();
-      for (final Ref ref : refs) {
-        if (LOGGER.isDebugEnabled()) {
-          LOGGER.debug("Branch: " + ref + " " + ref.getName() + " "
-              + ref.getObjectId().getName());
-        }
-        counter++;
-      }
-      if (LOGGER.isDebugEnabled()) {
-        LOGGER.debug("Number of branches: " + counter);
-      }
-    }*/
 
     try (Repository repository = this.gitRepositoryLoader.getGitRepository()) {
 
@@ -137,7 +111,7 @@ public class GitAnalysis {
                 final StructureFileEvent eventWithTiming = StructureFileEvent.newBuilder(event)
                     .setEpochMilli(authorIdent.getWhen().getTime()).build();
                 classes.set(i, eventWithTiming);
-                //grpcClient.sendStructureFileEvent(event).await().indefinitely();
+                // grpcClient.sendStructureFileEvent(event).await().indefinitely();
                 grpcClient.sendStructureFileEvent(event);
               }
 
@@ -159,6 +133,10 @@ public class GitAnalysis {
 
   /* package */ void onStart(@Observes final StartupEvent ev)
       throws IOException, NoHeadException, GitAPIException, PropertyNotDefinedException {
+    // TODO: delete, but currently needed for testing
+    if (repoPathProperty.isEmpty()) {
+      return;
+    }
     this.analyzeAndSendRepo();
   }
 

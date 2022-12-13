@@ -1,10 +1,13 @@
 package net.explorviz.code.analysis.git;
 
+
 import java.io.File;
 import java.io.IOException;
+import java.net.MalformedURLException;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.NotDirectoryException;
+import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
 import javax.enterprise.context.ApplicationScoped;
@@ -35,7 +38,7 @@ public class GitRepositoryLoader {
   private static final Logger LOGGER = LoggerFactory.getLogger(GitRepositoryLoader.class);
 
   @ConfigProperty(name = "explorviz.gitanalysis.local.folder.path")
-  /* default */ Optional<String> repoPathProperty;  // NOCS
+  /* default */ Optional<String> repoPathProperty; // NOCS
 
   @ConfigProperty(name = "explorviz.gitanalysis.remote.url")
   /* default */ Optional<String> repoUrlProperty; // NOCS
@@ -63,19 +66,28 @@ public class GitRepositoryLoader {
    */
   public Repository downloadGitRepository(final String repositoryPath, final String repositoryUrl,
                                           final CredentialsProvider credentialsProvider)
-      throws GitAPIException {
+      throws GitAPIException, MalformedURLException {
+    final Map.Entry<Boolean, String> checkedRepositoryUrl = convertSshToHttps(repositoryUrl);
 
     try {
       if (LOGGER.isInfoEnabled()) {
-        LOGGER.info("Cloning repository from " + repositoryUrl);
+        LOGGER.info("Cloning repository from " + checkedRepositoryUrl.getValue());
       }
-      return Git.cloneRepository().setURI(repositoryUrl).setCredentialsProvider(
+      return Git.cloneRepository().setURI(checkedRepositoryUrl.getValue()).setCredentialsProvider(
           credentialsProvider).setDirectory(new File(repositoryPath)).call().getRepository();
     } catch (TransportException te) {
-      LOGGER.error("The repository is private, username and password are required.");
+      if (!checkedRepositoryUrl.getKey()) {
+        throw (MalformedURLException) new MalformedURLException(
+            checkedRepositoryUrl.getValue()).initCause(te);
+      }
+      if (LOGGER.isErrorEnabled()) {
+        LOGGER.error("The repository is private, username and password are required.");
+      }
       throw te;
     } catch (InvalidRemoteException e) {
-      LOGGER.error("The repository's Url seems not right, no git repository was found there.");
+      if (LOGGER.isErrorEnabled()) {
+        LOGGER.error("The repository's Url seems not right, no git repository was found there.");
+      }
       throw e;
     }
   }
@@ -114,7 +126,7 @@ public class GitRepositoryLoader {
                                           final CredentialsProvider credentialsProvider)
       throws GitAPIException {
     final DfsRepositoryDescription repositoryDescription = new DfsRepositoryDescription();
-    final Git git = new Git(new InMemoryRepository(repositoryDescription)); //NOPMD
+    final Git git = new Git(new InMemoryRepository(repositoryDescription)); // NOPMD
     git.fetch().setRemote(remoteUrl).setCredentialsProvider(credentialsProvider).call();
     return git.getRepository();
   }
@@ -137,7 +149,7 @@ public class GitRepositoryLoader {
    *                         folder
    * @throws GitAPIException gets thrown if the git api encounters an error
    */
-  public Repository getGitRepository(final String repositoryPath, //NOPMD
+  public Repository getGitRepository(final String repositoryPath, // NOPMD
                                      final String repositoryUrl,
                                      final String username, final String password)
       throws IOException, GitAPIException {
@@ -155,7 +167,7 @@ public class GitRepositoryLoader {
 
     Repository localRepository = this.openGitRepository(repositoryPath);
     if (localRepository == null) {
-      localRepository = this.downloadGitRepository(repositoryPath, repositoryUrl, //NOPMD
+      localRepository = this.downloadGitRepository(repositoryPath, repositoryUrl, // NOPMD
           credentialsProvider);
     } else if (Objects.equals(getRemoteOriginUrl(localRepository), repositoryUrl)) {
       // TODO: repoUrl need to begin with http
@@ -168,8 +180,8 @@ public class GitRepositoryLoader {
         LOGGER.info("Pulling latests commits...");
       }
       try (Git git = new Git(localRepository)) {
-        PullCommand cmd = git.pull();
-        cmd.call();
+        final PullCommand pullCommand = git.pull();
+        pullCommand.call();
       }
     } else {
       if (LOGGER.isWarnEnabled()) {
@@ -204,6 +216,37 @@ public class GitRepositoryLoader {
 
     return getGitRepository(this.repoPathProperty.get(), this.repoUrlProperty.get(),
         this.usernameProperty.orElse(""), this.passwordProperty.orElse(""));
+  }
+
+  /**
+   * Converts a git ssh url to a https url and returns it as well as if the conversion is usable. If
+   * the given url is already in https format, it will be returned as-is and the flag is set to
+   * true. If the given url is in ssh format, it will be converted to https and returned and the
+   * flag is set to true. If it is neither, a warning will be printed the url will get returned but
+   * the flag is set to false.
+   *
+   * @param url the original git url
+   * @return a Tuple containing a flag if the returned url should be used and the url itself
+   */
+  public static Map.Entry<Boolean, String> convertSshToHttps(final String url) {
+    if (url.matches("^git@\\S+.\\S+:\\w+(/[\\S&&[^/]]+)+.git$")) {
+      final String convertedUrl = url.replace(":", "/").replace("git@", "https://");
+      if (LOGGER.isWarnEnabled()) {
+        LOGGER.warn(
+            "The URL seems to be a SSH url, currently"
+                + " only HTTPS is supported, converted url now is: "
+                + convertedUrl);
+      }
+      return Map.entry(true, convertedUrl);
+    } else if (url.matches("^http[s]*://\\S+.\\S+(/[\\S&&[^/]]+)+.git$")) {
+      // it should not matter if it is http or https here, the user should know
+      return Map.entry(true, url);
+    } else {
+      if (LOGGER.isErrorEnabled()) {
+        LOGGER.error("Could not convert the url to https url.");
+      }
+      return Map.entry(false, url);
+    }
   }
 
   /**
