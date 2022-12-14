@@ -7,9 +7,12 @@ import java.net.MalformedURLException;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.NotDirectoryException;
+import java.nio.file.Path;
+import java.util.Comparator;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
+import java.util.stream.Stream;
 import javax.enterprise.context.ApplicationScoped;
 import net.explorviz.code.analysis.exceptions.PropertyNotDefinedException;
 import org.eclipse.jgit.api.Git;
@@ -62,8 +65,8 @@ public class GitRepositoryLoader {
    * @return returns an opened git repository
    * @throws GitAPIException gets thrown if the git api encounters an error
    */
-  public Repository downloadGitRepository(final String repositoryPath, final String repositoryUrl,
-                                          final CredentialsProvider credentialsProvider)
+  private Repository downloadGitRepository(final String repositoryPath, final String repositoryUrl,
+                                           final CredentialsProvider credentialsProvider)
       throws GitAPIException, MalformedURLException {
 
     final Map.Entry<Boolean, String> checkedRepositoryUrl = convertSshToHttps(repositoryUrl);
@@ -98,7 +101,7 @@ public class GitRepositoryLoader {
    * @return returns an opened git {@link Repository}
    * @throws IOException gets thrown if JGit cannot open the Git repository.
    */
-  public Repository openGitRepository(final String repositoryPath) throws IOException {
+  private Repository openGitRepository(final String repositoryPath) throws IOException {
 
     final File localRepositoryDirectory = new File(repositoryPath);
 
@@ -134,6 +137,10 @@ public class GitRepositoryLoader {
                                      final String username, final String password)
       throws IOException, GitAPIException {
 
+    if (repositoryPath.isBlank()) {
+      throw new IOException("The given repository path is empty!");
+    }
+
     CredentialsProvider credentialsProvider;
     if (username.isBlank() || password.isBlank()) {
       credentialsProvider = CredentialsProvider.getDefault();
@@ -141,15 +148,13 @@ public class GitRepositoryLoader {
       credentialsProvider = new UsernamePasswordCredentialsProvider(username, password);
     }
 
-    if (repositoryPath.isBlank()) {
-      throw new IOException("The given repository path is empty!");
-    }
 
     Repository localRepository = this.openGitRepository(repositoryPath);
     if (localRepository == null) {
       localRepository = this.downloadGitRepository(repositoryPath, repositoryUrl, // NOPMD
           credentialsProvider);
-    } else if (Objects.equals(getRemoteOriginUrl(localRepository), repositoryUrl)) {
+    } else if (Objects.equals(getRemoteOriginUrl(localRepository), repositoryUrl)
+        || repositoryUrl.isBlank()) {
       // TODO: repoUrl need to begin with http
       // seems like, at least with gitlab, jgit does not like the ssh style git@... url
       // produces -remote hung up unexpectedly- even with cloned repo, pulls are not doable
@@ -168,11 +173,51 @@ public class GitRepositoryLoader {
         LOGGER.warn("Local repository does not match with remote, local will be overwritten.");
       }
       localRepository.close();
-      Files.delete(new File(repositoryPath).toPath());
+      try (Stream<Path> walk = Files.walk(new File(repositoryPath).toPath())) {
+        walk.sorted(Comparator.reverseOrder()).map(Path::toFile)
+            .forEach(File::delete);
+      }
       localRepository = this.downloadGitRepository(repositoryPath, repositoryUrl,
           credentialsProvider);
     }
     return localRepository;
+  }
+
+  /**
+   * Returns a Git {@link Repository} object by opening the repository found at
+   * {@code repositoryPath}. If {@code repositoryUrl} is the same (or empty) as the local
+   * repository's remote Url, the repository will be updated. If {@code repositoryUrl} is specified
+   * and differs from the local repository's remote Url, the local repository gets deleted and the
+   * remote repository will be cloned to the given {@code repositoryPath}. Only usable for public
+   * repositories.
+   *
+   * @param repositoryPath the system path of the local Repository
+   * @param repositoryUrl the remote repository Url
+   * @return returns an opened Git {@link Repository}
+   * @throws IOException     gets thrown if the path is not accessible or does not point to a
+   *                         folder
+   * @throws GitAPIException gets thrown if the git api encounters an error
+   */
+  public Repository getGitRepository(final String repositoryPath, final String repositoryUrl)
+      throws GitAPIException, IOException {
+    return getGitRepository(repositoryPath, repositoryUrl, "", "");
+
+  }
+
+  /**
+   * Returns a Git {@link Repository} object by opening the repository found at
+   * {@code repositoryPath}.
+   *
+   * @param repositoryPath the system path of the local Repository
+   * @return returns an opened Git {@link Repository}
+   * @throws IOException     gets thrown if the path is not accessible or does not point to a
+   *                         folder
+   * @throws GitAPIException gets thrown if the git api encounters an error
+   */
+  public Repository getGitRepository(final String repositoryPath)
+      throws GitAPIException, IOException {
+    return getGitRepository(repositoryPath, "", "", "");
+
   }
 
   /**
@@ -247,7 +292,7 @@ public class GitRepositoryLoader {
    * @return The stringified file content.
    * @throws IOException Thrown if JGit cannot open the Git repo.
    */
-  public String getContent(final ObjectId blobId, final Repository repo) throws IOException {
+  public static String getContent(final ObjectId blobId, final Repository repo) throws IOException {
     try (ObjectReader objectReader = repo.newObjectReader()) {
       final ObjectLoader objectLoader = objectReader.open(blobId);
       final byte[] bytes = objectLoader.getBytes();
