@@ -17,8 +17,6 @@ import org.eclipse.jgit.api.PullCommand;
 import org.eclipse.jgit.api.errors.GitAPIException;
 import org.eclipse.jgit.api.errors.InvalidRemoteException;
 import org.eclipse.jgit.api.errors.TransportException;
-import org.eclipse.jgit.internal.storage.dfs.DfsRepositoryDescription;
-import org.eclipse.jgit.internal.storage.dfs.InMemoryRepository;
 import org.eclipse.jgit.lib.ObjectId;
 import org.eclipse.jgit.lib.ObjectLoader;
 import org.eclipse.jgit.lib.ObjectReader;
@@ -116,30 +114,11 @@ public class GitRepositoryLoader {
   }
 
   /**
-   * Returns a Git {@link Repository} as an {@link InMemoryRepository}.
-   *
-   * @param remoteUrl the remote Url of the repository
-   * @param credentialsProvider the credential provider to access the repository
-   * @return returns an opened git repository
-   * @throws GitAPIException gets thrown if the git api encounters an error
-   */
-  public Repository getInMemoryRepository(final String remoteUrl,
-                                          final CredentialsProvider credentialsProvider)
-      throws GitAPIException {
-    final DfsRepositoryDescription repositoryDescription = new DfsRepositoryDescription();
-    final Git git = new Git(new InMemoryRepository(repositoryDescription)); // NOPMD
-    git.fetch().setRemote(remoteUrl).setCredentialsProvider(credentialsProvider).call();
-    return git.getRepository();
-  }
-
-  /**
    * Returns a Git {@link Repository} object by opening the repository found at
    * {@code repositoryPath}. If {@code repositoryUrl} is the same (or empty) as the local
    * repository's remote Url, the repository will be updated. If {@code repositoryUrl} is specified
    * and differs from the local repository's remote Url, the local repository gets deleted and the
-   * remote repository will be cloned to the given {@code repositoryPath}. If {@code repositoryPath}
-   * is empty, {@code repositoryUrl} must be present and the {@link Repository} is created as a pure
-   * {@link InMemoryRepository}.
+   * remote repository will be cloned to the given {@code repositoryPath}.
    *
    * @param repositoryPath the system path of the local Repository
    * @param repositoryUrl the remote repository Url
@@ -163,7 +142,7 @@ public class GitRepositoryLoader {
     }
 
     if (repositoryPath.isBlank()) {
-      return getInMemoryRepository(repositoryUrl, credentialsProvider);
+      throw new IOException("The given repository path is empty!");
     }
 
     Repository localRepository = this.openGitRepository(repositoryPath);

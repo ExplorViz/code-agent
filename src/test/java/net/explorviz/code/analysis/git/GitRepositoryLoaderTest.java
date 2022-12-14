@@ -89,15 +89,6 @@ public class GitRepositoryLoaderTest {
   }
 
   @Test
-  void testInMemoryRepository() throws GitAPIException, IOException {
-    final CredentialsProvider provider = CredentialsProvider.getDefault();
-    try (Repository repository = this.gitRepositoryLoader.getInMemoryRepository(httpsUrl,
-        provider)) {
-      repository.getFullBranch();
-    }
-  }
-
-  @Test
   void openRepository() throws IOException {
     final CredentialsProvider provider = CredentialsProvider.getDefault();
     try (Repository repository = this.gitRepositoryLoader.downloadGitRepository(
