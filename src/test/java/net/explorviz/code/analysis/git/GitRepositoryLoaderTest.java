@@ -5,6 +5,7 @@ import java.io.File;
 import java.io.IOException;
 import java.net.MalformedURLException;
 import java.nio.file.Files;
+import java.nio.file.NotDirectoryException;
 import java.nio.file.Path;
 import java.util.Comparator;
 import java.util.Map;
@@ -39,6 +40,9 @@ public class GitRepositoryLoaderTest {
   private final String sshUrl = "git@gitlab.com:0xhexdec/busydoingnothing.git";
   private final String httpsUrl = "https://gitlab.com/0xhexdec/busydoingnothing.git";
 
+  private final String gitlabUserName = "privateTestConnector";
+  private final String gitlabUserPassword = "_QGDgx@2!sD/y!Y";
+
 
   @BeforeEach
   void setup() throws IOException {
@@ -47,12 +51,9 @@ public class GitRepositoryLoaderTest {
 
   @AfterEach
   void tearDown() throws IOException {
-    // Files.delete(tmpGitLocation.toPath());
     try (Stream<Path> walk = Files.walk(tempGitLocation.toPath())) {
       walk.sorted(Comparator.reverseOrder()).map(Path::toFile)
           .forEach(File::delete);
-
-      System.out.println("TEARDOWN");
     }
   }
 
@@ -78,15 +79,62 @@ public class GitRepositoryLoaderTest {
     });
   }
 
+  @Test
+  void testFileInsteadDirectory() throws IOException {
+    File file = new File(tempGitLocation.getAbsolutePath() + "/file");
+    Assertions.assertTrue(file.createNewFile());
+    Assertions.assertThrows(NotDirectoryException.class, () -> {
+      this.gitRepositoryLoader.openGitRepository(file.getAbsolutePath());
+    });
+  }
+
+  @Test
+  void testInMemoryRepository() throws GitAPIException, IOException {
+    final CredentialsProvider provider = CredentialsProvider.getDefault();
+    try (Repository repository = this.gitRepositoryLoader.getInMemoryRepository(httpsUrl,
+        provider)) {
+      repository.getFullBranch();
+    }
+  }
+
+  @Test
+  void openRepository() throws IOException {
+    final CredentialsProvider provider = CredentialsProvider.getDefault();
+    try (Repository repository = this.gitRepositoryLoader.downloadGitRepository(
+        tempGitLocation.getAbsolutePath(), httpsUrl, provider)) {
+      // call is here to satisfy checkstyle by not having empty try block
+      repository.getBranch();
+    } catch (Exception e) {
+      Assertions.fail();
+    }
+
+    try (Repository repository = this.gitRepositoryLoader.openGitRepository(
+        tempGitLocation.getAbsolutePath())) {
+      // call is here to satisfy checkstyle by not having empty try block
+      repository.getBranch();
+    } catch (Exception e) {
+      Assertions.fail();
+    }
+
+  }
+
   @Test()
   void testPrivateRemote() throws GitAPIException, IOException {
-    final CredentialsProvider provider = CredentialsProvider.getDefault();
-    final String url = "https://gitlab.com/0xhexdec/interpreter.git";
+    final String url = "https://gitlab.com/0xhexdec/privaterepotest.git";
 
+    // try cloning without permission
     Assertions.assertThrows(TransportException.class, () -> {
-      this.gitRepositoryLoader.downloadGitRepository(tempGitLocation.getAbsolutePath(), url,
-          provider);
+      this.gitRepositoryLoader.getGitRepository(tempGitLocation.getAbsolutePath(), url,
+          "", "");
     });
+
+    try (Repository repository = this.gitRepositoryLoader.getGitRepository(
+        tempGitLocation.getAbsolutePath(), url, gitlabUserName, gitlabUserPassword)) {
+      repository.getBranch();
+    } catch (Exception e) {
+      Assertions.fail();
+    }
+
   }
 
   @Test()
