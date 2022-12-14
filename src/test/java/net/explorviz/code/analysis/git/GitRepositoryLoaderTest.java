@@ -5,7 +5,10 @@ import java.io.File;
 import java.io.IOException;
 import java.net.MalformedURLException;
 import java.nio.file.Files;
+import java.nio.file.Path;
+import java.util.Comparator;
 import java.util.Map;
+import java.util.stream.Stream;
 import javax.inject.Inject;
 import org.eclipse.jgit.api.errors.GitAPIException;
 import org.eclipse.jgit.api.errors.InvalidRemoteException;
@@ -17,6 +20,7 @@ import org.eclipse.jgit.revwalk.RevTree;
 import org.eclipse.jgit.revwalk.RevWalk;
 import org.eclipse.jgit.transport.CredentialsProvider;
 import org.eclipse.jgit.treewalk.TreeWalk;
+import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -30,37 +34,28 @@ public class GitRepositoryLoaderTest {
   @Inject
   GitRepositoryLoader gitRepositoryLoader;  // NOCS
 
-  private File tmpGitLocation;
+  private File tempGitLocation;
 
   private final String sshUrl = "git@gitlab.com:0xhexdec/busydoingnothing.git";
+  private final String httpsUrl = "https://gitlab.com/0xhexdec/busydoingnothing.git";
 
 
   @BeforeEach
   void setup() throws IOException {
-
-    tmpGitLocation = Files.createTempDirectory("explorviz-test").toFile();
-
+    tempGitLocation = Files.createTempDirectory("explorviz-test").toFile();
   }
 
+  @AfterEach
+  void tearDown() throws IOException {
+    // Files.delete(tmpGitLocation.toPath());
+    try (Stream<Path> walk = Files.walk(tempGitLocation.toPath())) {
+      walk.sorted(Comparator.reverseOrder()).map(Path::toFile)
+          .forEach(File::delete);
 
-  //  @Test()
-  //  void testOpenRepo()
-  //      throws InvalidRemoteException, TransportException, GitAPIException, IOException {
-  //
-  //    final File tmpGitLocation = Files.createTempDirectory("explorviz-test").toFile();
-  //
-  //    OLD
-  //    try (Git result = Git.cloneRepository()
-  //    .setURI("https://github.com/Alexander-Krause-Glau/Test-JGit-Code.git")
-  //    .setDirectory(tmpGitLocation).call()) {
-  //
-  //      final Repository repo = this.gitRepositoryLoader
-  //      .openGitRepository(tmpGitLocation.getAbsolutePath());
-  //
-  //      Assertions.assertEquals(repo.getRemoteNames(), result.getRepository().getRemoteNames());
-  //    }
-  //
-  //  }
+      System.out.println("TEARDOWN");
+    }
+  }
+
 
   @Test()
   void testInvalidRemote() throws GitAPIException, IOException {
@@ -68,7 +63,7 @@ public class GitRepositoryLoaderTest {
     String url = "%%%%";
 
     Assertions.assertThrows(InvalidRemoteException.class, () -> {
-      this.gitRepositoryLoader.downloadGitRepository(tmpGitLocation.getAbsolutePath(), url,
+      this.gitRepositoryLoader.downloadGitRepository(tempGitLocation.getAbsolutePath(), url,
           provider);
     });
   }
@@ -78,42 +73,53 @@ public class GitRepositoryLoaderTest {
     CredentialsProvider provider = CredentialsProvider.getDefault();
     String url = "https://gitlab.com/0xhexdec/";
     Assertions.assertThrows(MalformedURLException.class, () -> {
-      this.gitRepositoryLoader.downloadGitRepository(tmpGitLocation.getAbsolutePath(), url,
+      this.gitRepositoryLoader.downloadGitRepository(tempGitLocation.getAbsolutePath(), url,
           provider);
     });
   }
 
   @Test()
   void testPrivateRemote() throws GitAPIException, IOException {
-    CredentialsProvider provider = CredentialsProvider.getDefault();
-    String url = "https://gitlab.com/0xhexdec/interpreter.git";
+    final CredentialsProvider provider = CredentialsProvider.getDefault();
+    final String url = "https://gitlab.com/0xhexdec/interpreter.git";
 
     Assertions.assertThrows(TransportException.class, () -> {
-      this.gitRepositoryLoader.downloadGitRepository(tmpGitLocation.getAbsolutePath(), url,
+      this.gitRepositoryLoader.downloadGitRepository(tempGitLocation.getAbsolutePath(), url,
           provider);
     });
   }
 
   @Test()
   void testSsh() throws GitAPIException, IOException {
-    CredentialsProvider provider = CredentialsProvider.getDefault();
-    try {
-      Repository repository = this.gitRepositoryLoader.downloadGitRepository(
-          tmpGitLocation.getAbsolutePath(), sshUrl, provider);
-    } catch (TransportException te) {
-      Assertions.assertTrue(te.getMessage().contains("remote hung up unexpectedly"));
+    final CredentialsProvider provider = CredentialsProvider.getDefault();
+    try (Repository repository = this.gitRepositoryLoader.downloadGitRepository(
+        tempGitLocation.getAbsolutePath(), sshUrl, provider)) {
+      // call is here to satisfy checkstyle by not having empty try block
+      repository.getBranch();
+    } catch (Exception e) {
+      Assertions.fail();
     }
+  }
 
+  @Test()
+  void testHttps() throws GitAPIException, IOException {
+    final CredentialsProvider provider = CredentialsProvider.getDefault();
+    try (Repository repository = this.gitRepositoryLoader.downloadGitRepository(
+        tempGitLocation.getAbsolutePath(), httpsUrl, provider)) {
+      // call is here to satisfy checkstyle by not having empty try block
+      // repository.getBranch();
+    } catch (Exception e) {
+      Assertions.fail();
+    }
   }
 
   @Test()
   void testSshConversion() {
-    final String urlUnderTest = "https://gitlab.com/0xhexdec/busydoingnothing.git";
-    Assertions.assertEquals(Map.entry(true, urlUnderTest),
-        GitRepositoryLoader.convertSshToHttps(urlUnderTest));
+    Assertions.assertEquals(Map.entry(true, httpsUrl),
+        GitRepositoryLoader.convertSshToHttps(httpsUrl));
 
 
-    Assertions.assertEquals(Map.entry(true, urlUnderTest),
+    Assertions.assertEquals(Map.entry(true, httpsUrl),
         GitRepositoryLoader.convertSshToHttps(sshUrl));
 
     // if the url looks off, assume the user wants it that way
@@ -124,12 +130,21 @@ public class GitRepositoryLoaderTest {
   }
 
 
+  @Test
+  void testRemoteLookup() throws GitAPIException, MalformedURLException {
+    final CredentialsProvider provider = CredentialsProvider.getDefault();
+    try (Repository repository = this.gitRepositoryLoader.downloadGitRepository(
+        tempGitLocation.getAbsolutePath(), httpsUrl, provider)) {
+      Assertions.assertEquals(GitRepositoryLoader.getRemoteOriginUrl(repository), httpsUrl);
+    }
+  }
+
   @Test()
   void testGetStringifiedFileInCommit()
       throws InvalidRemoteException, TransportException, GitAPIException, IOException {
 
     try (final Repository repository = this.gitRepositoryLoader.getGitRepository(
-        tmpGitLocation.getAbsolutePath(),
+        tempGitLocation.getAbsolutePath(),
         "https://github.com/Alexander-Krause-Glau/Test-JGit-Code.git", "", "")) {
 
       try (RevWalk walk = new RevWalk(repository)) {

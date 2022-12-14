@@ -67,6 +67,7 @@ public class GitRepositoryLoader {
   public Repository downloadGitRepository(final String repositoryPath, final String repositoryUrl,
                                           final CredentialsProvider credentialsProvider)
       throws GitAPIException, MalformedURLException {
+
     final Map.Entry<Boolean, String> checkedRepositoryUrl = convertSshToHttps(repositoryUrl);
 
     try {
