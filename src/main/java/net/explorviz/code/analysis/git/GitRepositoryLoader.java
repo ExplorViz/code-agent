@@ -7,16 +7,13 @@ import java.net.MalformedURLException;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.NotDirectoryException;
-import java.nio.file.Path;
-import java.util.Comparator;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
-import java.util.stream.Stream;
 import javax.enterprise.context.ApplicationScoped;
 import net.explorviz.code.analysis.exceptions.PropertyNotDefinedException;
+import net.explorviz.code.analysis.types.RemoteRepositoryObject;
 import org.eclipse.jgit.api.Git;
-import org.eclipse.jgit.api.PullCommand;
 import org.eclipse.jgit.api.errors.GitAPIException;
 import org.eclipse.jgit.api.errors.InvalidRemoteException;
 import org.eclipse.jgit.api.errors.TransportException;
@@ -44,14 +41,14 @@ public class GitRepositoryLoader {
   @ConfigProperty(name = "explorviz.gitanalysis.remote.url")
   /* default */ Optional<String> repoUrlProperty; // NOCS
 
+  @ConfigProperty(name = "explorviz.gitanalysis.remote.localstoragepath")
+  /* default */ Optional<String> repoLocalStoragePathProperty; // NOCS
+
   @ConfigProperty(name = "explorviz.gitanalysis.remote.username")
   /* default */ Optional<String> usernameProperty;  // NOCS
 
   @ConfigProperty(name = "explorviz.gitanalysis.remote.password")
   /* default */ Optional<String> passwordProperty;  // NOCS
-
-  @ConfigProperty(name = "explorviz.gitanalysis.fullanalysis", defaultValue = "true")
-  /* default */ boolean fullAnalysis; // NOCS
 
   @ConfigProperty(name = "explorviz.gitanalysis.branch", defaultValue = "master")
   /* default */ String repositoryBranch;  // NOCS
@@ -59,24 +56,30 @@ public class GitRepositoryLoader {
   /**
    * Tries to download the Git {@link Repository} based on a given Url to the given.
    *
-   * @param repositoryPath the system path of the local Repository
-   * @param repositoryUrl the remote repository Url
-   * @param credentialsProvider the credential provider to access the repository
+   * @param remoteRepositoryObject the {@link RemoteRepositoryObject} object containing the path
+   *     and url
    * @return returns an opened git repository
    * @throws GitAPIException gets thrown if the git api encounters an error
    */
-  private Repository downloadGitRepository(final String repositoryPath, final String repositoryUrl,
-                                           final CredentialsProvider credentialsProvider)
-      throws GitAPIException, MalformedURLException {
+  private Repository downloadGitRepository(final RemoteRepositoryObject remoteRepositoryObject)
+      throws GitAPIException, IOException {
 
-    final Map.Entry<Boolean, String> checkedRepositoryUrl = convertSshToHttps(repositoryUrl);
+    final Map.Entry<Boolean, String> checkedRepositoryUrl = convertSshToHttps(
+        remoteRepositoryObject.getUrl());
+
+    String repoPath = remoteRepositoryObject.getStoragePath();
+    if (remoteRepositoryObject.getStoragePath().isBlank()) {
+      repoPath = Files.createTempDirectory("TemporaryRepository").toAbsolutePath().toString();
+    }
 
     try {
       if (LOGGER.isInfoEnabled()) {
         LOGGER.info("Cloning repository from " + checkedRepositoryUrl.getValue());
       }
       return Git.cloneRepository().setURI(checkedRepositoryUrl.getValue()).setCredentialsProvider(
-          credentialsProvider).setDirectory(new File(repositoryPath)).call().getRepository();
+              remoteRepositoryObject.getCredentialsProvider()).setDirectory(new File(repoPath))
+          .call()
+          .getRepository();
     } catch (TransportException te) {
       if (!checkedRepositoryUrl.getKey()) {
         throw (MalformedURLException) new MalformedURLException(
@@ -106,7 +109,7 @@ public class GitRepositoryLoader {
     final File localRepositoryDirectory = new File(repositoryPath);
 
     if (!localRepositoryDirectory.isDirectory()) {
-      LOGGER.error("Given path is not a directory");
+      LOGGER.error("Given path is not a directory.");
       throw new NotDirectoryException(repositoryPath);
     }
 
@@ -118,106 +121,33 @@ public class GitRepositoryLoader {
 
   /**
    * Returns a Git {@link Repository} object by opening the repository found at
-   * {@code repositoryPath}. If {@code repositoryUrl} is the same (or empty) as the local
-   * repository's remote Url, the repository will be updated. If {@code repositoryUrl} is specified
-   * and differs from the local repository's remote Url, the local repository gets deleted and the
-   * remote repository will be cloned to the given {@code repositoryPath}.
+   * {@code localRepositoryPath}. If {@code localRepositoryPath} is empty, the repository gets
+   * cloned from {@code remoteRepositoryUrl} to {@code remoteRepositoryPath} and the opened
+   * repository gets returned.
    *
-   * @param repositoryPath the system path of the local Repository
-   * @param repositoryUrl the remote repository Url
-   * @param username username to clone private repositories
-   * @param password password to clone private repositories
+   * @param localRepositoryPath the system path of the local Repository
+   * @param remoteRepositoryObject the {@link RemoteRepositoryObject} object containing the path
+   *     and url
    * @return returns an opened Git {@link Repository}
    * @throws IOException     gets thrown if the path is not accessible or does not point to a
    *                         folder
    * @throws GitAPIException gets thrown if the git api encounters an error
    */
-  public Repository getGitRepository(final String repositoryPath, // NOPMD
-                                     final String repositoryUrl,
-                                     final String username, final String password)
+  public Repository getGitRepository(final String localRepositoryPath, // NOPMD
+                                     final RemoteRepositoryObject remoteRepositoryObject)
       throws IOException, GitAPIException {
 
-    if (repositoryPath.isBlank()) {
-      throw new IOException("The given repository path is empty!");
+    if (localRepositoryPath.isBlank() && LOGGER.isInfoEnabled()) {
+      LOGGER.info("No local repository given, using remote");
+
+      return this.downloadGitRepository(remoteRepositoryObject);
     }
 
-    CredentialsProvider credentialsProvider;
-    if (username.isBlank() || password.isBlank()) {
-      credentialsProvider = CredentialsProvider.getDefault();
-    } else {
-      credentialsProvider = new UsernamePasswordCredentialsProvider(username, password);
+    if (!localRepositoryPath.isBlank()) {
+      return this.openGitRepository(localRepositoryPath);
     }
 
-
-    Repository localRepository = this.openGitRepository(repositoryPath);
-    if (localRepository == null) {
-      localRepository = this.downloadGitRepository(repositoryPath, repositoryUrl, // NOPMD
-          credentialsProvider);
-    } else if (Objects.equals(getRemoteOriginUrl(localRepository), repositoryUrl)
-        || repositoryUrl.isBlank()) {
-      // TODO: repoUrl need to begin with http
-      // seems like, at least with gitlab, jgit does not like the ssh style git@... url
-      // produces -remote hung up unexpectedly- even with cloned repo, pulls are not doable
-      // with ssh, maybe check here if it is http and try, or throw exception if the url
-      // is http style.
-
-      if (LOGGER.isInfoEnabled()) {
-        LOGGER.info("Pulling latests commits...");
-      }
-      try (Git git = new Git(localRepository)) {
-        final PullCommand pullCommand = git.pull();
-        pullCommand.call();
-      }
-    } else {
-      if (LOGGER.isWarnEnabled()) {
-        LOGGER.warn("Local repository does not match with remote, local will be overwritten.");
-      }
-      localRepository.close();
-      try (Stream<Path> walk = Files.walk(new File(repositoryPath).toPath())) {
-        walk.sorted(Comparator.reverseOrder()).map(Path::toFile)
-            .forEach(File::delete);
-      }
-      localRepository = this.downloadGitRepository(repositoryPath, repositoryUrl,
-          credentialsProvider);
-    }
-    return localRepository;
-  }
-
-  /**
-   * Returns a Git {@link Repository} object by opening the repository found at
-   * {@code repositoryPath}. If {@code repositoryUrl} is the same (or empty) as the local
-   * repository's remote Url, the repository will be updated. If {@code repositoryUrl} is specified
-   * and differs from the local repository's remote Url, the local repository gets deleted and the
-   * remote repository will be cloned to the given {@code repositoryPath}. Only usable for public
-   * repositories.
-   *
-   * @param repositoryPath the system path of the local Repository
-   * @param repositoryUrl the remote repository Url
-   * @return returns an opened Git {@link Repository}
-   * @throws IOException     gets thrown if the path is not accessible or does not point to a
-   *                         folder
-   * @throws GitAPIException gets thrown if the git api encounters an error
-   */
-  public Repository getGitRepository(final String repositoryPath, final String repositoryUrl)
-      throws GitAPIException, IOException {
-    return getGitRepository(repositoryPath, repositoryUrl, "", "");
-
-  }
-
-  /**
-   * Returns a Git {@link Repository} object by opening the repository found at
-   * {@code repositoryPath}.
-   *
-   * @param repositoryPath the system path of the local Repository
-   * @return returns an opened Git {@link Repository}
-   * @throws IOException     gets thrown if the path is not accessible or does not point to a
-   *                         folder
-   * @throws GitAPIException gets thrown if the git api encounters an error
-   */
-  public Repository getGitRepository(final String repositoryPath)
-      throws GitAPIException, IOException {
-    return getGitRepository(repositoryPath, "", "", "");
-
+    return null;
   }
 
   /**
@@ -231,16 +161,22 @@ public class GitRepositoryLoader {
    */
   public Repository getGitRepository()
       throws PropertyNotDefinedException, GitAPIException, IOException {
-    if (repoUrlProperty.isEmpty()) {
-      throw new PropertyNotDefinedException("explorviz.gitanalysis.remote.url");
-    }
-
-    if (repoPathProperty.isEmpty()) {
+    if (repoUrlProperty.isEmpty() && repoPathProperty.isEmpty()) {
       throw new PropertyNotDefinedException("explorviz.gitanalysis.local.folder.path");
     }
 
-    return getGitRepository(this.repoPathProperty.get(), this.repoUrlProperty.get(),
-        this.usernameProperty.orElse(""), this.passwordProperty.orElse(""));
+    CredentialsProvider credentialsProvider;
+    if (usernameProperty.isEmpty() || passwordProperty.isEmpty()) {
+      credentialsProvider = CredentialsProvider.getDefault();
+    } else {
+      credentialsProvider = new UsernamePasswordCredentialsProvider(usernameProperty.get(),
+          passwordProperty.get());
+    }
+
+    return getGitRepository(this.repoPathProperty.orElse(""),
+        new RemoteRepositoryObject(this.repoUrlProperty.orElse(""),
+            repoLocalStoragePathProperty.orElse(""),
+            credentialsProvider));
   }
 
   /**
@@ -300,6 +236,4 @@ public class GitRepositoryLoader {
     }
 
   }
-
-
 }

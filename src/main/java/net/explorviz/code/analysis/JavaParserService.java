@@ -36,7 +36,7 @@ public class JavaParserService {
   // private final VoidVisitor<List<String>> inheritanceCollector = new InheritanceVisitor();
   // private final VoidVisitor<List<String>> implementedInterfacesCollector =
   // new ImplementedInterfaceVisitor();
-  // private final VoidVisitor<List<String>> methodCallCollector = new MethocCallVisitor();
+  // private final VoidVisitor<List<String>> methodCallCollector = new MethodCallVisitor();
   // private final VoidVisitor<List<String>> importVisitor = new ImportVisitor();
   // private final GenericVisitorAdapter<String, String> packageCollector = new
   // PackageNameVisitor();
@@ -48,7 +48,7 @@ public class JavaParserService {
    * @param stringifiedClass The stringified class that will be analyzed by the JavaParser.
    * @return List of StructureFileEvent. Often contains only one element, i.e., multiple elements
    *     indicate a nested class.
-   * @throws IOException Throwed if the parsing of the stringified class fails.
+   * @throws IOException Thrown if the parsing of the stringified class fails.
    */
   public List<StructureFileEvent> processStringifiedClass(final String stringifiedClass)
       throws IOException {
