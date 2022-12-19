@@ -5,15 +5,14 @@ import io.quarkus.runtime.StartupEvent;
 import java.io.IOException;
 import java.util.Collection;
 import java.util.Date;
-import java.util.List;
 import java.util.Optional;
 import javax.enterprise.context.ApplicationScoped;
 import javax.enterprise.event.Observes;
 import javax.inject.Inject;
 import net.explorviz.code.analysis.JavaParserService;
+import net.explorviz.code.analysis.Parser;
 import net.explorviz.code.analysis.exceptions.PropertyNotDefinedException;
 import net.explorviz.code.proto.StructureEventServiceGrpc;
-import net.explorviz.code.proto.StructureFileEvent;
 import org.eclipse.jgit.api.errors.GitAPIException;
 import org.eclipse.jgit.api.errors.NoHeadException;
 import org.eclipse.jgit.lib.PersonIdent;
@@ -46,6 +45,9 @@ public class GitAnalysis {
 
   @Inject
   /* package */ JavaParserService parserService; // NOCS
+
+  @Inject
+  /* package */ Parser parser; // NOCS
 
   @GrpcClient("structureevent")
   /* package */ StructureEventServiceGrpc.StructureEventServiceBlockingStub grpcClient; // NOCS
@@ -103,21 +105,26 @@ public class GitAnalysis {
               final String fileContent =
                   this.gitRepositoryLoader.getContent(treeWalk.getObjectId(0), repository);
 
-              final List<StructureFileEvent> classes =
-                  this.parserService.processStringifiedClass(fileContent);
+              // TODO: original parser
+              // final List<StructureFileEvent> classes =
+              //     this.parserService.processStringifiedClass(fileContent);
 
-              for (int i = 0; i < classes.size(); i++) {
-                final StructureFileEvent event = classes.get(i);
-                final StructureFileEvent eventWithTiming = StructureFileEvent.newBuilder(event)
-                    .setEpochMilli(authorIdent.getWhen().getTime()).build();
-                classes.set(i, eventWithTiming);
-                // grpcClient.sendStructureFileEvent(event).await().indefinitely();
-                grpcClient.sendStructureFileEvent(event);
-              }
+              // TODO: new parser
+              this.parser.fullParse(fileContent);
 
-              if (LOGGER.isDebugEnabled()) {
-                LOGGER.debug("Classes names: {}", classes);
-              }
+              // TODO: enable GRPC again
+              // for (int i = 0; i < classes.size(); i++) {
+              //   final StructureFileEvent event = classes.get(i);
+              //   final StructureFileEvent eventWithTiming = StructureFileEvent.newBuilder(event)
+              //       .setEpochMilli(authorIdent.getWhen().getTime()).build();
+              //   classes.set(i, eventWithTiming);
+              //   // grpcClient.sendStructureFileEvent(event).await().indefinitely();
+              //   grpcClient.sendStructureFileEvent(event);
+              // }
+
+              // if (LOGGER.isDebugEnabled()) {
+              //   LOGGER.debug("Classes names: {}", classes);
+              // }
 
 
             }
