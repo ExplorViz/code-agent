@@ -1,13 +1,16 @@
 package net.explorviz.code.analysis.visitor;
 
+import com.github.javaparser.ast.CompilationUnit;
 import com.github.javaparser.ast.ImportDeclaration;
 import com.github.javaparser.ast.Modifier;
+import com.github.javaparser.ast.Node;
 import com.github.javaparser.ast.PackageDeclaration;
 import com.github.javaparser.ast.body.ClassOrInterfaceDeclaration;
 import com.github.javaparser.ast.body.ConstructorDeclaration;
 import com.github.javaparser.ast.body.FieldDeclaration;
 import com.github.javaparser.ast.body.MethodDeclaration;
 import com.github.javaparser.ast.body.VariableDeclarator;
+import com.github.javaparser.ast.comments.Comment;
 import com.github.javaparser.ast.visitor.VoidVisitorAdapter;
 import com.github.javaparser.resolution.UnsolvedSymbolException;
 import java.util.List;
@@ -48,7 +51,7 @@ public class MultiCollectorVisitor extends VoidVisitorAdapter<FileData> {
                     final FileData data) {
 
     data.enterClass(n.getFullyQualifiedName().orElse("UNKNOWN"));
-    // data.getCurrentClassData().
+    data.getCurrentClassData().setLoc(getLoc(n));
 
     if (n.isInterface()) {
       data.getCurrentClassData().setIsInterface();
@@ -98,13 +101,20 @@ public class MultiCollectorVisitor extends VoidVisitorAdapter<FileData> {
 
   @Override
   public void visit(final MethodDeclaration n, final FileData data) {
-    data.getCurrentClassData().addMethod(n.getNameAsString());
+
+    data.getCurrentClassData().addMethod(data.getCurrentClassName() + "." + n.getNameAsString());
     super.visit(n, data);
   }
 
   @Override
   public void visit(final ConstructorDeclaration n, final FileData data) {
     data.getCurrentClassData().addConstructor(n.getNameAsString());
+    super.visit(n, data);
+  }
+
+  @Override
+  public void visit(final CompilationUnit n, final FileData data) {
+    data.setLoc(getLoc(n));
     super.visit(n, data);
   }
 
@@ -126,5 +136,22 @@ public class MultiCollectorVisitor extends VoidVisitorAdapter<FileData> {
           "Unable to get FQN for <" + type + ">");
     }
     return type;
+  }
+
+
+  private int getLoc(Node node) {
+    if (node.getRange().isPresent()) {
+      int linesOfComments = 0;
+      for (final Comment commentNode : node.getAllContainedComments()) {
+        if (commentNode.getRange().isPresent()) {
+          linesOfComments += commentNode.getRange().get().getLineCount();
+        }
+      }
+      return node.getRange().get().getLineCount() - linesOfComments;
+    }
+    if (LOGGER.isErrorEnabled()) {
+      LOGGER.error("Getting the lines of code failed!");
+    }
+    return 0;
   }
 }

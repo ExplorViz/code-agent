@@ -10,12 +10,13 @@ import java.util.Stack;
  * FileData object holds data from a analyzed .java file.
  */
 public class FileData {
-  private static final int CAPACITY = 300;
+  private static final int STRING_BUILDER_CAPACITY = 300;
   private final Stack<String> classStack;
 
+  private int loc;
   private String packageName;
   private final List<String> importNames;
-  private final Map<String, ClassData> classDataHashMap;
+  private final Map<String, ClassData> classDataMap;
 
 
   /**
@@ -24,7 +25,7 @@ public class FileData {
   public FileData() {
     this.classStack = new Stack<>();
     this.importNames = new ArrayList<>();
-    this.classDataHashMap = new HashMap<>();
+    this.classDataMap = new HashMap<>();
   }
 
   /**
@@ -34,7 +35,7 @@ public class FileData {
    */
   public void enterClass(final String className) {
     this.classStack.push(className);
-    this.classDataHashMap.put(className, new ClassData());
+    this.classDataMap.put(className, new ClassData());
 
     // check if stack has at least 2 entries
     if (this.classStack.size() > 1) { // NOPMD
@@ -42,6 +43,10 @@ public class FileData {
       final ClassData parent = this.getClassData(this.classStack.get(this.classStack.size() - 2));
       parent.addInnerClass(className);
     }
+  }
+
+  public void setLoc(int loc) {
+    this.loc = loc;
   }
 
   public void addImport(final String importName) {
@@ -61,11 +66,11 @@ public class FileData {
   }
 
   private ClassData getClassData(final String className) {
-    return this.classDataHashMap.get(className);
+    return this.classDataMap.get(className);
   }
 
   public ClassData getCurrentClassData() {
-    return this.classDataHashMap.get(getCurrentClassName());
+    return this.classDataMap.get(getCurrentClassName());
   }
 
   public void leaveClass() {
@@ -79,7 +84,7 @@ public class FileData {
    */
   public int getMethodCount() {
     int methodCount = 0;
-    for (final Map.Entry<String, ClassData> entry : this.classDataHashMap.entrySet()) {
+    for (final Map.Entry<String, ClassData> entry : this.classDataMap.entrySet()) {
       methodCount += entry.getValue().getMethodCount();
     }
     return methodCount;
@@ -87,13 +92,13 @@ public class FileData {
 
   @Override
   public String toString() {
-    final StringBuilder classDataString = new StringBuilder(CAPACITY);
-    for (final Map.Entry<String, ClassData> entry : this.classDataHashMap.entrySet()) {
+    final StringBuilder classDataString = new StringBuilder(STRING_BUILDER_CAPACITY);
+    for (final Map.Entry<String, ClassData> entry : this.classDataMap.entrySet()) {
       classDataString.append(entry.getKey()).append(": \n");
       classDataString.append(entry.getValue().toString());
       classDataString.append('\n');
     }
-    return "stats: methodCount=" + this.getMethodCount() + "\n"
+    return "stats: methodCount=" + this.getMethodCount() + "  loc=" + this.loc + "\n"
         + "package: " + this.packageName + "\n"
         + "imports: " + importNames.toString() + "\n"
         + classDataString;

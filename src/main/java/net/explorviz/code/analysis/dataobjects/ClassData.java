@@ -1,7 +1,9 @@
 package net.explorviz.code.analysis.dataobjects;
 
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 /**
  * ClassData object holds data from analyzed classes.
@@ -23,7 +25,10 @@ public class ClassData {
   private final List<String> innerClasses;
   private final List<String> constructorList;
   private final List<String> methodList;
+  private final Map<String, MethodData> methodDataMap;
   private final List<String> variableList;
+
+  private int loc = 0;
 
   /**
    * Creates a blank ClassData object.
@@ -36,6 +41,7 @@ public class ClassData {
     this.innerClasses = new ArrayList<>();
     this.constructorList = new ArrayList<>();
     this.methodList = new ArrayList<>();
+    this.methodDataMap = new HashMap<>();
     this.variableList = new ArrayList<>();
   }
 
@@ -57,21 +63,6 @@ public class ClassData {
 
   public void addModifier(final String modifier) {
     this.modifiers.add(modifier);
-  }
-
-  @Override
-  public String toString() {
-    return "{ \n"
-        + "type: " + type.toString() + "\n"
-        + "modifier: " + modifiers.toString() + "\n"
-        + "superClass: " + this.superClass + "\n"
-        + "interfaces: " + this.interfaces.toString() + "\n"
-        + "fields: " + this.fields.toString() + "\n"
-        + "innerClasses: " + this.innerClasses.toString() + "\n"
-        + "constructor: " + this.constructorList.toString() + "\n"
-        + "methods: " + this.methodList.toString() + "\n"
-        + "variables: " + this.variableList.toString() + "\n"
-        + "\n}";
   }
 
   public void addInnerClass(final String name) {
@@ -96,5 +87,24 @@ public class ClassData {
 
   public void setIsClass() {
     this.type = ClassType.CLASS;
+  }
+
+  public void setLoc(int loc) {
+    this.loc = loc;
+  }
+
+  @Override
+  public String toString() {
+    return "{ \n"
+        + "type: " + type.toString() + "\n"
+        + "modifier: " + modifiers.toString() + "\n"
+        + "superClass: " + this.superClass + "\n"
+        + "interfaces: " + this.interfaces.toString() + "\n"
+        + "fields: " + this.fields.toString() + "\n"
+        + "innerClasses: " + this.innerClasses.toString() + "\n"
+        + "constructor: " + this.constructorList.toString() + "\n"
+        + "methods: " + this.methodList.toString() + "\n"
+        + "variables: " + this.variableList.toString() + "\n"
+        + "loc: " + this.loc + "\n}";
   }
 }
