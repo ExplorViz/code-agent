@@ -9,51 +9,65 @@ import com.github.javaparser.symbolsolver.resolution.typesolvers.JavaParserTypeS
 import com.github.javaparser.symbolsolver.resolution.typesolvers.ReflectionTypeSolver;
 import java.io.File;
 import java.io.IOException;
-import java.nio.file.Files;
 import java.nio.file.Path;
 import javax.enterprise.context.ApplicationScoped;
-import net.explorviz.code.analysis.DataObjects.FileData;
+import net.explorviz.code.analysis.dataobjects.FileData;
 import net.explorviz.code.analysis.visitor.MultiCollectorVisitor;
 
-
+/**
+ * Parser Object loads and parses .java files.
+ */
 @ApplicationScoped
 public class Parser {
+  private static final String FILE_PATH =
+      "C:\\Users\\Julian\\projects\\Bachelor\\Fooling\\src\\main\\java";
 
-  private void parse(CompilationUnit compilationUnit) {
+  private FileData parse(final CompilationUnit compilationUnit) {
     final FileData data = new FileData();
-    MultiCollectorVisitor multiCollectorVisitor = new MultiCollectorVisitor();
+    final MultiCollectorVisitor multiCollectorVisitor = new MultiCollectorVisitor();
     multiCollectorVisitor.visit(compilationUnit, data);
-    System.out.println(data);
+    // TODO: for testing only!
+    return data;
   }
 
-  public void fullParse(String fileContent) {
-    TypeSolver typeSolver = new CombinedTypeSolver(
+  /**
+   * Parses a given file completely. HARDCODED TEST!! DO NOT USE NOW!
+   *
+   * @param fileContent stringified java file
+   */
+  public FileData fullParse(final String fileContent) {
+    final TypeSolver typeSolver = new CombinedTypeSolver(
         new ReflectionTypeSolver(),
         new JavaParserTypeSolver(
-            new File("C:\\Users\\Julian\\projects\\Bachelor\\Fooling\\src\\main\\java"))
+            new File(FILE_PATH))
     );
-    JavaSymbolSolver symbolSolver = new JavaSymbolSolver(typeSolver);
+    final JavaSymbolSolver symbolSolver = new JavaSymbolSolver(typeSolver);
     // StaticJavaParser.getParserConfiguration().setSymbolResolver(symbolSolver);
     StaticJavaParser.getConfiguration().setSymbolResolver(symbolSolver);
-    CompilationUnit compilationUnit = StaticJavaParser.parse(fileContent);
-    parse(compilationUnit);
+    final CompilationUnit compilationUnit = StaticJavaParser.parse(fileContent);
+    return parse(compilationUnit);
 
   }
 
-  public void fullParse() throws IOException {
-    Path path = Path.of(
+  /**
+   * Parses a test file completely. HARDCODED TEST!! DO NOT USE NOW!
+   *
+   * @throws IOException Gets thrown if the file is not reachable
+   */
+  public FileData fullParse() throws IOException {
+    final Path path = Path.of(
         "C:\\Users\\Julian\\projects\\Bachelor\\Fooling\\src\\main\\java\\org\\example\\Main.java");
-    final String classContent = Files.readString(path);
-    TypeSolver typeSolver = new CombinedTypeSolver(
+    // final String classContent = Files.readString(path);
+    final TypeSolver typeSolver = new CombinedTypeSolver(
         new ReflectionTypeSolver(),
         new JavaParserTypeSolver(
-            new File("C:\\Users\\Julian\\projects\\Bachelor\\Fooling\\src\\main\\java"))
+            new File(FILE_PATH))
     );
-    JavaSymbolSolver symbolSolver = new JavaSymbolSolver(typeSolver);
+    final JavaSymbolSolver symbolSolver = new JavaSymbolSolver(typeSolver);
     // StaticJavaParser.getParserConfiguration().setSymbolResolver(symbolSolver);
     StaticJavaParser.getConfiguration().setSymbolResolver(symbolSolver);
-    CompilationUnit compilationUnit = StaticJavaParser.parse(path);
-    parse(compilationUnit);
+    final CompilationUnit compilationUnit = StaticJavaParser.parse(path);
+    return parse(compilationUnit);
   }
 
 }
