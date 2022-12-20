@@ -9,6 +9,7 @@ import java.util.Map;
  * ClassData object holds data from analyzed classes.
  */
 public class ClassData {
+  private static final int STRING_BUILDER_CAPACITY = 300;
 
   /**
    * Enum to differentiate the types of java "classes".
@@ -24,11 +25,10 @@ public class ClassData {
   private final List<String> fields;
   private final List<String> innerClasses;
   private final List<String> constructorList;
-  private final List<String> methodList;
   private final Map<String, MethodData> methodDataMap;
   private final List<String> variableList;
 
-  private int loc = 0;
+  private int loc;
 
   /**
    * Creates a blank ClassData object.
@@ -40,13 +40,20 @@ public class ClassData {
     this.fields = new ArrayList<>();
     this.innerClasses = new ArrayList<>();
     this.constructorList = new ArrayList<>();
-    this.methodList = new ArrayList<>();
     this.methodDataMap = new HashMap<>();
     this.variableList = new ArrayList<>();
   }
 
-  public void addMethod(final String methodName) {
-    this.methodList.add(methodName);
+  /**
+   * Adds a methodData object.
+   *
+   * @param methodFqn the method's fully qualified name
+   * @param returnType the return type of the method
+   * @return the created methodData object
+   */
+  public MethodData addMethod(final String methodFqn, final String returnType) {
+    this.methodDataMap.put(methodFqn, new MethodData(returnType));
+    return methodDataMap.get(methodFqn);
   }
 
   public void setSuperClass(final String superClass) {
@@ -70,7 +77,7 @@ public class ClassData {
   }
 
   public int getMethodCount() {
-    return this.methodList.size();
+    return this.methodDataMap.size();
   }
 
   public void addImplementedInterface(final String implementedInterfaceName) {
@@ -89,12 +96,18 @@ public class ClassData {
     this.type = ClassType.CLASS;
   }
 
-  public void setLoc(int loc) {
+  public void setLoc(final int loc) {
     this.loc = loc;
   }
 
   @Override
   public String toString() {
+    final StringBuilder methodDataString = new StringBuilder(STRING_BUILDER_CAPACITY);
+    for (final Map.Entry<String, MethodData> entry : this.methodDataMap.entrySet()) {
+      methodDataString.append(entry.getKey()).append(": \n");
+      methodDataString.append(entry.getValue().toString());
+      methodDataString.append('\n');
+    }
     return "{ \n"
         + "type: " + type.toString() + "\n"
         + "modifier: " + modifiers.toString() + "\n"
@@ -103,8 +116,10 @@ public class ClassData {
         + "fields: " + this.fields.toString() + "\n"
         + "innerClasses: " + this.innerClasses.toString() + "\n"
         + "constructor: " + this.constructorList.toString() + "\n"
-        + "methods: " + this.methodList.toString() + "\n"
+        + "methods: \n" + methodDataString + "\n"
         + "variables: " + this.variableList.toString() + "\n"
         + "loc: " + this.loc + "\n}";
   }
+
+
 }

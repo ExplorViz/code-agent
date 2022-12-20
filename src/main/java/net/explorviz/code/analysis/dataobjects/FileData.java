@@ -45,7 +45,7 @@ public class FileData {
     }
   }
 
-  public void setLoc(int loc) {
+  public void setLoc(final int loc) {
     this.loc = loc;
   }
 

@@ -9,12 +9,15 @@ import com.github.javaparser.ast.body.ClassOrInterfaceDeclaration;
 import com.github.javaparser.ast.body.ConstructorDeclaration;
 import com.github.javaparser.ast.body.FieldDeclaration;
 import com.github.javaparser.ast.body.MethodDeclaration;
+import com.github.javaparser.ast.body.Parameter;
 import com.github.javaparser.ast.body.VariableDeclarator;
 import com.github.javaparser.ast.comments.Comment;
 import com.github.javaparser.ast.visitor.VoidVisitorAdapter;
 import com.github.javaparser.resolution.UnsolvedSymbolException;
+import com.github.javaparser.resolution.types.ResolvedType;
 import java.util.List;
 import net.explorviz.code.analysis.dataobjects.FileData;
+import net.explorviz.code.analysis.dataobjects.MethodData;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -65,6 +68,7 @@ public class MultiCollectorVisitor extends VoidVisitorAdapter<FileData> {
       data.getCurrentClassData().addModifier(modifier.getKeyword().asString());
     }
 
+    // TODO: more than one if interface?
     if (n.getExtendedTypes().getFirst().isPresent()) {
       try {
         final String fqn = n.getExtendedTypes().getFirst().get().resolve().asReferenceType()
@@ -77,7 +81,6 @@ public class MultiCollectorVisitor extends VoidVisitorAdapter<FileData> {
       }
     }
 
-
     for (int i = 0; i < n.getImplementedTypes().size(); i++) {
       try {
         final String fqn = n.getImplementedTypes().get(i).getElementType().resolve()
@@ -89,10 +92,8 @@ public class MultiCollectorVisitor extends VoidVisitorAdapter<FileData> {
             .addImplementedInterface(
                 findFqnInImports(n.getImplementedTypes().get(i).getNameAsString(),
                     data.getImportNames()));
-
       }
     }
-
 
     super.visit(n, data);
     data.leaveClass();
@@ -101,8 +102,27 @@ public class MultiCollectorVisitor extends VoidVisitorAdapter<FileData> {
 
   @Override
   public void visit(final MethodDeclaration n, final FileData data) {
-
-    data.getCurrentClassData().addMethod(data.getCurrentClassName() + "." + n.getNameAsString());
+    final String methodsFullyQualifiedName = data.getCurrentClassName() + "." + n.getNameAsString();
+    final String returnType = n.getType().asString();
+    final MethodData method = data.getCurrentClassData()
+        .addMethod(methodsFullyQualifiedName, returnType);
+    for (final Modifier modifier : n.getModifiers()) {
+      method.addModifier(modifier.getKeyword().toString());
+    }
+    for (final Parameter parameter : n.getParameters()) {
+      try {
+        final ResolvedType type = parameter.getType().resolve();
+        if (type.isReferenceType()) {
+          method.addParameter(type.asReferenceType().getQualifiedName());
+        } else {
+          method.addParameter(parameter.getType().toString());
+        }
+      } catch (UnsolvedSymbolException unsolvedSymbolException) {
+        method.addParameter(findFqnInImports(parameter.getType().asString(),
+            data.getImportNames()));
+      }
+      // method.addParameter(parameter.getType().asString());
+    }
     super.visit(n, data);
   }
 
@@ -139,7 +159,7 @@ public class MultiCollectorVisitor extends VoidVisitorAdapter<FileData> {
   }
 
 
-  private int getLoc(Node node) {
+  private int getLoc(final Node node) {
     if (node.getRange().isPresent()) {
       int linesOfComments = 0;
       for (final Comment commentNode : node.getAllContainedComments()) {
