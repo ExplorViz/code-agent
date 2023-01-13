@@ -70,8 +70,9 @@ public class GitAnalysis {
       // a RevWalk allows to walk over commits based on some filtering that is defined
       try (RevWalk revWalk = new RevWalk(repository)) {
 
+        // revWalk.sort(RevSort.COMMIT_TIME_DESC, true);
         revWalk.sort(RevSort.COMMIT_TIME_DESC, true);
-        revWalk.sort(RevSort.REVERSE, true);
+        // revWalk.sort(RevSort.REVERSE, true);
 
         for (final Ref ref : allRefs) {
           revWalk.markStart(revWalk.parseCommit(ref.getObjectId()));
@@ -80,6 +81,7 @@ public class GitAnalysis {
           LOGGER.debug("Walking all commits starting with {}, refs: {}", allRefs.size(), allRefs);
         }
         int count = 0;
+        int files = 0;
         for (final RevCommit commit : revWalk) {
 
           final PersonIdent authorIdent = commit.getAuthorIdent();
@@ -110,7 +112,11 @@ public class GitAnalysis {
               //     this.parserService.processStringifiedClass(fileContent);
 
               // TODO: new parser
+              LOGGER.info("analyze: " + treeWalk.getPathString());
               this.parser.fullParse(fileContent);
+              files++;
+              // System.out.println(this.parser.fullParse(fileContent));
+              // break;
 
               // TODO: enable GRPC again
               // for (int i = 0; i < classes.size(); i++) {
@@ -129,21 +135,27 @@ public class GitAnalysis {
 
             }
           }
+          break;
         }
         if (LOGGER.isDebugEnabled()) {
           LOGGER.debug("Analyzed {} commits", count);
+          LOGGER.debug("Analyzed {} files", files);
         }
       }
     }
+  }
+
+  public void run() throws GitAPIException, IOException, PropertyNotDefinedException {
+    this.analyzeAndSendRepo();
   }
 
 
   /* package */ void onStart(@Observes final StartupEvent ev)
       throws IOException, NoHeadException, GitAPIException, PropertyNotDefinedException {
     // TODO: delete, but currently needed for testing
-    if (repoPathProperty.isEmpty()) {
-      return;
-    }
+    // if (repoPathProperty.isEmpty()) {
+    //   return;
+    // }
     this.analyzeAndSendRepo();
   }
 

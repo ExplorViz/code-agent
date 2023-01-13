@@ -19,13 +19,10 @@ dependencies {
     implementation 'io.quarkus:quarkus-vertx'
     implementation 'io.quarkus:quarkus-resteasy-reactive'
     implementation 'io.quarkus:quarkus-grpc'
-    	
-	implementation 'com.github.javaparser:javaparser-symbol-solver-core:3.24.7'
-	
-	implementation 'org.eclipse.jgit:org.eclipse.jgit:6.3.0.202209071007-r'
-    implementation 'org.jetbrains:annotations:20.1.0'
-    implementation 'org.jetbrains:annotations:20.1.0'
-    implementation 'org.jetbrains:annotations:20.1.0'
+
+    implementation 'com.github.javaparser:javaparser-symbol-solver-core:3.24.7'
+
+    implementation 'org.eclipse.jgit:org.eclipse.jgit:6.3.0.202209071007-r'
 
     testImplementation 'io.quarkus:quarkus-junit5'
     testImplementation 'io.quarkus:quarkus-junit5-mockito'

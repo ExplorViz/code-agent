@@ -1,6 +1,5 @@
 package net.explorviz.code.analysis.exceptions;
 
-import org.jetbrains.annotations.NotNull;
 
 /**
  * Exception regarding program error based on wrong property.
@@ -25,8 +24,8 @@ public class PropertyFaultException extends Exception {
     super(PropertyFaultException.toMessage(propertyNames, errorMessage));
   }
 
-  private static @NotNull String toMessage(final String @NotNull [] propertyNames,
-                                           final String errorMessage) {
+  private static String toMessage(final String[] propertyNames,
+                                  final String errorMessage) {
     final StringBuilder message = new StringBuilder(150);
     message.append("Properties ");
     for (final String item : propertyNames) {

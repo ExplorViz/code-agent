@@ -8,6 +8,12 @@ import java.util.List;
  */
 public class MethodData {
 
+  public enum Locality {
+    CLASS_WIDE,
+    FILE_WIDE,
+    PACKAGE_WIDE
+  }
+
   private final String returnType;
   private final List<String> modifiers;
   private final List<String> parameterList;
@@ -42,6 +48,6 @@ public class MethodData {
     return "  type: " + this.returnType + "\n"
         + "  modifiers: " + this.modifiers + "\n"
         + "  parameters: " + this.parameterList + "\n"
-        + "  outgoing calls: " + this.outgoingMethodCalls + "\n";
+        + "  outgoing calls: " + this.outgoingMethodCalls;
   }
 }

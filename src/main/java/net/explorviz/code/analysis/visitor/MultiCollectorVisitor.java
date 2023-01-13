@@ -78,6 +78,10 @@ public class MultiCollectorVisitor extends VoidVisitorAdapter<FileData> {
         data.getCurrentClassData()
             .setSuperClass(findFqnInImports(n.getExtendedTypes().getFirst().get().getNameAsString(),
                 data.getImportNames()));
+      } catch (IllegalStateException e) {
+        data.getCurrentClassData()
+            .setSuperClass(findFqnInImports(n.getExtendedTypes().getFirst().get().getNameAsString(),
+                data.getImportNames()));
       }
     }
 
@@ -88,6 +92,11 @@ public class MultiCollectorVisitor extends VoidVisitorAdapter<FileData> {
             .getQualifiedName();
         data.getCurrentClassData().addImplementedInterface(fqn);
       } catch (UnsolvedSymbolException unsolvedSymbolException) {
+        data.getCurrentClassData()
+            .addImplementedInterface(
+                findFqnInImports(n.getImplementedTypes().get(i).getNameAsString(),
+                    data.getImportNames()));
+      } catch (IllegalStateException e) {
         data.getCurrentClassData()
             .addImplementedInterface(
                 findFqnInImports(n.getImplementedTypes().get(i).getNameAsString(),
@@ -118,6 +127,10 @@ public class MultiCollectorVisitor extends VoidVisitorAdapter<FileData> {
           method.addParameter(parameter.getType().toString());
         }
       } catch (UnsolvedSymbolException unsolvedSymbolException) {
+        method.addParameter(findFqnInImports(parameter.getType().asString(),
+            data.getImportNames()));
+        // Only used if no resolver present
+      } catch (IllegalStateException e) {
         method.addParameter(findFqnInImports(parameter.getType().asString(),
             data.getImportNames()));
       }
@@ -151,10 +164,10 @@ public class MultiCollectorVisitor extends VoidVisitorAdapter<FileData> {
         return importEntry;
       }
     }
-    if (LOGGER.isWarnEnabled()) {
-      LOGGER.warn(
-          "Unable to get FQN for <" + type + ">");
-    }
+    // if (LOGGER.isWarnEnabled()) {
+    //   LOGGER.warn(
+    //       "Unable to get FQN for <" + type + ">");
+    // }
     return type;
   }
 
