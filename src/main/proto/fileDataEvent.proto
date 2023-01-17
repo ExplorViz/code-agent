@@ -1,0 +1,47 @@
+syntax = "proto3";
+
+option java_multiple_files = true;
+option java_package = "net.explorviz.code.proto";
+option java_outer_classname = "FileDataEvent";
+
+import "google/protobuf/empty.proto";
+
+service FileDataService {
+  rpc sendFileData (FileData) returns (google.protobuf.Empty) {}
+}
+
+message  MethodData {
+  string returnType = 1;
+  repeated string modifiers = 2;
+  repeated string parameterList = 3;
+  repeated string outgoingMethodCalls = 4;
+}
+
+enum ClassType {
+  INTERFACE = 0;
+  ABSTRACT_CLASS = 1;
+  CLASS = 2;
+}
+
+message ClassData {
+  ClassType type = 1;
+  repeated string modifiers = 2;
+  repeated string interfaces = 3;
+  repeated string fields = 4;
+  repeated string innerClasses = 5;
+  repeated string constructorList = 6;
+  map<string, MethodData>  methodData = 7;
+  repeated string variableList = 8;
+  string superClass = 9;
+
+  int32 loc = 10;
+}
+
+message FileData {
+  string commitID = 1;
+  string fileName = 2;
+  string packageName = 3;
+  repeated string importNames = 4;
+  map<string, ClassData> classData = 5;
+  int32 loc = 6;
+}

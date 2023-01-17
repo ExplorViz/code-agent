@@ -16,32 +16,32 @@ import com.github.javaparser.ast.visitor.VoidVisitorAdapter;
 import com.github.javaparser.resolution.UnsolvedSymbolException;
 import com.github.javaparser.resolution.types.ResolvedType;
 import java.util.List;
-import net.explorviz.code.analysis.dataobjects.FileData;
-import net.explorviz.code.analysis.dataobjects.MethodData;
+import net.explorviz.code.analysis.handler.FileDataHandler;
+import net.explorviz.code.analysis.handler.MethodDataHandler;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 /**
  * Visitor filling a FileData object.
  */
-public class MultiCollectorVisitor extends VoidVisitorAdapter<FileData> {
+public class MultiCollectorVisitor extends VoidVisitorAdapter<FileDataHandler> {
 
   private static final Logger LOGGER = LoggerFactory.getLogger(MultiCollectorVisitor.class);
 
   @Override
-  public void visit(final PackageDeclaration n, final FileData data) {
+  public void visit(final PackageDeclaration n, final FileDataHandler data) {
     data.setPackageName(n.getNameAsString());
     super.visit(n, data);
   }
 
   @Override
-  public void visit(final ImportDeclaration n, final FileData data) {
+  public void visit(final ImportDeclaration n, final FileDataHandler data) {
     data.addImport(n.getNameAsString());
     super.visit(n, data);
   }
 
   @Override
-  public void visit(final FieldDeclaration n, final FileData data) {
+  public void visit(final FieldDeclaration n, final FileDataHandler data) {
     // System.out.println(n.getVariables());
     for (final VariableDeclarator declarator : n.getVariables()) {
       data.getCurrentClassData().addField(declarator.getNameAsString());
@@ -51,7 +51,7 @@ public class MultiCollectorVisitor extends VoidVisitorAdapter<FileData> {
 
   @Override
   public void visit(final ClassOrInterfaceDeclaration n,
-                    final FileData data) {
+                    final FileDataHandler data) {
 
     data.enterClass(n.getFullyQualifiedName().orElse("UNKNOWN"));
     data.getCurrentClassData().setLoc(getLoc(n));
@@ -74,15 +74,17 @@ public class MultiCollectorVisitor extends VoidVisitorAdapter<FileData> {
         final String fqn = n.getExtendedTypes().getFirst().get().resolve().asReferenceType()
             .getQualifiedName();
         data.getCurrentClassData().setSuperClass(fqn);
-      } catch (UnsolvedSymbolException unsolvedSymbolException) {
-        data.getCurrentClassData()
-            .setSuperClass(findFqnInImports(n.getExtendedTypes().getFirst().get().getNameAsString(),
-                data.getImportNames()));
-      } catch (IllegalStateException e) {
+      } catch (UnsolvedSymbolException | IllegalStateException e) {
         data.getCurrentClassData()
             .setSuperClass(findFqnInImports(n.getExtendedTypes().getFirst().get().getNameAsString(),
                 data.getImportNames()));
       }
+      // } catch (IllegalStateException e) {
+      //   data.getCurrentClassData()
+      //       .setSuperClass(findFqnInImports(n.getExtendedTypes()
+      //       .getFirst().get().getNameAsString(),
+      //           data.getImportNames()));
+      // }
     }
 
     for (int i = 0; i < n.getImplementedTypes().size(); i++) {
@@ -91,17 +93,18 @@ public class MultiCollectorVisitor extends VoidVisitorAdapter<FileData> {
             .asReferenceType()
             .getQualifiedName();
         data.getCurrentClassData().addImplementedInterface(fqn);
-      } catch (UnsolvedSymbolException unsolvedSymbolException) {
-        data.getCurrentClassData()
-            .addImplementedInterface(
-                findFqnInImports(n.getImplementedTypes().get(i).getNameAsString(),
-                    data.getImportNames()));
-      } catch (IllegalStateException e) {
+      } catch (UnsolvedSymbolException | IllegalStateException e) {
         data.getCurrentClassData()
             .addImplementedInterface(
                 findFqnInImports(n.getImplementedTypes().get(i).getNameAsString(),
                     data.getImportNames()));
       }
+      // } catch (IllegalStateException e) {
+      //   data.getCurrentClassData()
+      //       .addImplementedInterface(
+      //           findFqnInImports(n.getImplementedTypes().get(i).getNameAsString(),
+      //               data.getImportNames()));
+      // }
     }
 
     super.visit(n, data);
@@ -110,10 +113,10 @@ public class MultiCollectorVisitor extends VoidVisitorAdapter<FileData> {
 
 
   @Override
-  public void visit(final MethodDeclaration n, final FileData data) {
+  public void visit(final MethodDeclaration n, final FileDataHandler data) {
     final String methodsFullyQualifiedName = data.getCurrentClassName() + "." + n.getNameAsString();
     final String returnType = n.getType().asString();
-    final MethodData method = data.getCurrentClassData()
+    final MethodDataHandler method = data.getCurrentClassData()
         .addMethod(methodsFullyQualifiedName, returnType);
     for (final Modifier modifier : n.getModifiers()) {
       method.addModifier(modifier.getKeyword().toString());
@@ -126,27 +129,28 @@ public class MultiCollectorVisitor extends VoidVisitorAdapter<FileData> {
         } else {
           method.addParameter(parameter.getType().toString());
         }
-      } catch (UnsolvedSymbolException unsolvedSymbolException) {
+      } catch (UnsolvedSymbolException | IllegalStateException e) {
         method.addParameter(findFqnInImports(parameter.getType().asString(),
             data.getImportNames()));
         // Only used if no resolver present
-      } catch (IllegalStateException e) {
-        method.addParameter(findFqnInImports(parameter.getType().asString(),
-            data.getImportNames()));
       }
+      // } catch (IllegalStateException e) {
+      //   method.addParameter(findFqnInImports(parameter.getType().asString(),
+      //       data.getImportNames()));
+      // }
       // method.addParameter(parameter.getType().asString());
     }
     super.visit(n, data);
   }
 
   @Override
-  public void visit(final ConstructorDeclaration n, final FileData data) {
+  public void visit(final ConstructorDeclaration n, final FileDataHandler data) {
     data.getCurrentClassData().addConstructor(n.getNameAsString());
     super.visit(n, data);
   }
 
   @Override
-  public void visit(final CompilationUnit n, final FileData data) {
+  public void visit(final CompilationUnit n, final FileDataHandler data) {
     data.setLoc(getLoc(n));
     super.visit(n, data);
   }

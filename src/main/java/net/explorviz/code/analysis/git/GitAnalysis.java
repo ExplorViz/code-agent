@@ -10,7 +10,6 @@ import javax.enterprise.context.ApplicationScoped;
 import javax.enterprise.event.Observes;
 import javax.inject.Inject;
 import net.explorviz.code.analysis.JavaParserService;
-import net.explorviz.code.analysis.Parser;
 import net.explorviz.code.analysis.exceptions.PropertyNotDefinedException;
 import net.explorviz.code.proto.StructureEventServiceGrpc;
 import org.eclipse.jgit.api.errors.GitAPIException;
@@ -43,11 +42,11 @@ public class GitAnalysis {
   @Inject
   /* package */ GitRepositoryLoader gitRepositoryLoader; // NOCS
 
-  @Inject
-  /* package */ JavaParserService parserService; // NOCS
+  // @Inject
+  // /* package */ OldJavaParserService parserService; // NOCS
 
   @Inject
-  /* package */ Parser parser; // NOCS
+  /* package */ JavaParserService javaParserService; // NOCS
 
   @GrpcClient("structureevent")
   /* package */ StructureEventServiceGrpc.StructureEventServiceBlockingStub grpcClient; // NOCS
@@ -112,8 +111,10 @@ public class GitAnalysis {
               //     this.parserService.processStringifiedClass(fileContent);
 
               // TODO: new parser
-              LOGGER.info("analyze: " + treeWalk.getPathString());
-              this.parser.fullParse(fileContent);
+              if (LOGGER.isInfoEnabled()) {
+                LOGGER.info("analyze: " + treeWalk.getPathString());
+              }
+              this.javaParserService.fullParse(fileContent, treeWalk.getNameString());
               files++;
               // System.out.println(this.parser.fullParse(fileContent));
               // break;
@@ -135,7 +136,7 @@ public class GitAnalysis {
 
             }
           }
-          break;
+          // break;
         }
         if (LOGGER.isDebugEnabled()) {
           LOGGER.debug("Analyzed {} commits", count);
@@ -153,9 +154,9 @@ public class GitAnalysis {
   /* package */ void onStart(@Observes final StartupEvent ev)
       throws IOException, NoHeadException, GitAPIException, PropertyNotDefinedException {
     // TODO: delete, but currently needed for testing
-    // if (repoPathProperty.isEmpty()) {
-    //   return;
-    // }
+    if (repoPathProperty.isEmpty()) {
+      return;
+    }
     this.analyzeAndSendRepo();
   }
 
