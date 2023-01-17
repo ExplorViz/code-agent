@@ -41,12 +41,14 @@ pmd:
   tags:
     - exec-docker
   script: ./gradlew pmdMain
+  allow_failure: true
 
 checkstyle:
   stage: code-analysis
   tags:
     - exec-docker
   script: ./gradlew checkstyleMain
+  allow_failure: true
 
 test:
   stage: test

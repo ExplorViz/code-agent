@@ -13,10 +13,10 @@ import org.junit.jupiter.api.Test;
  * Collects class names.
  */
 @QuarkusTest
-public class JavaParserServiceTest {
+public class OldJavaJavaParserServiceTestService {
 
   @Inject
-  JavaParserService parserService;  // NOCS
+  OldJavaParserService parserService;  // NOCS
 
   @ConfigProperty(name = "explorviz.landscape.token")
   /* default */ String landscapeToken; // NOCS
