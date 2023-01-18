@@ -133,12 +133,17 @@ public class MultiCollectorVisitor extends VoidVisitorAdapter<FileDataHandler> {
         method.addParameter(findFqnInImports(parameter.getType().asString(),
             data.getImportNames()));
         // Only used if no resolver present
+      } catch (UnsupportedOperationException e) {
+        if (LOGGER.isWarnEnabled()) {
+          LOGGER.warn(
+              "UnsupportedOperationException encountered, "
+                  + "not sure why this happens, resolved for now.");
+        }
+        if (e.getMessage().contains("CorrespondingDeclaration")) {
+          method.addParameter(findFqnInImports(parameter.getType().asString(),
+              data.getImportNames()));
+        }
       }
-      // } catch (IllegalStateException e) {
-      //   method.addParameter(findFqnInImports(parameter.getType().asString(),
-      //       data.getImportNames()));
-      // }
-      // method.addParameter(parameter.getType().asString());
     }
     super.visit(n, data);
   }
