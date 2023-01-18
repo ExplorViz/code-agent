@@ -1,10 +1,12 @@
 package net.explorviz.code.analysis.git;
 
+import com.github.javaparser.utils.Pair;
 import io.quarkus.grpc.GrpcClient;
 import io.quarkus.runtime.StartupEvent;
 import java.io.IOException;
 import java.util.Collection;
 import java.util.Date;
+import java.util.List;
 import java.util.Optional;
 import javax.enterprise.context.ApplicationScoped;
 import javax.enterprise.event.Observes;
@@ -14,15 +16,12 @@ import net.explorviz.code.analysis.exceptions.PropertyNotDefinedException;
 import net.explorviz.code.proto.StructureEventServiceGrpc;
 import org.eclipse.jgit.api.errors.GitAPIException;
 import org.eclipse.jgit.api.errors.NoHeadException;
-import org.eclipse.jgit.lib.PersonIdent;
+import org.eclipse.jgit.lib.ObjectId;
 import org.eclipse.jgit.lib.Ref;
 import org.eclipse.jgit.lib.Repository;
 import org.eclipse.jgit.revwalk.RevCommit;
 import org.eclipse.jgit.revwalk.RevSort;
-import org.eclipse.jgit.revwalk.RevTree;
 import org.eclipse.jgit.revwalk.RevWalk;
-import org.eclipse.jgit.treewalk.TreeWalk;
-import org.eclipse.jgit.treewalk.filter.PathSuffixFilter;
 import org.eclipse.microprofile.config.inject.ConfigProperty;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -54,93 +53,82 @@ public class GitAnalysis {
   private void analyzeAndSendRepo()
       throws IOException, GitAPIException, PropertyNotDefinedException { // NOPMD
     // steps:
-    // open or download repository
-    // get remote state of the analyzed data
-    // loop for missing commits
-    //  - find difference between last and "current" commit
-    //  - analyze differences
-    //  - send data chunk
+    // open or download repository                          - Done
+    // get remote state of the analyzed data                - @see GrpcHandler
+    // loop for missing commits                             - Done
+    //  - find difference between last and "current" commit - Done
+    //  - analyze differences                               - Done
+    //  - send data chunk                                   - TODO
 
     try (Repository repository = this.gitRepositoryLoader.getGitRepository()) {
+      final String branch = GitRepositoryLoader.getCurrentBranch(repository);
 
       // get a list of all known heads, tags, remotes, ...
       final Collection<Ref> allRefs = repository.getRefDatabase().getRefs();
-
       // a RevWalk allows to walk over commits based on some filtering that is defined
       try (RevWalk revWalk = new RevWalk(repository)) {
 
-        // revWalk.sort(RevSort.COMMIT_TIME_DESC, true);
+        // sort the commits in ascending order by the commit time (the oldest first)
         revWalk.sort(RevSort.COMMIT_TIME_DESC, true);
-        // revWalk.sort(RevSort.REVERSE, true);
-
+        revWalk.sort(RevSort.REVERSE, true);
+        LOGGER.info("analyzing branch " + branch);
         for (final Ref ref : allRefs) {
-          revWalk.markStart(revWalk.parseCommit(ref.getObjectId()));
+          // find the branch we are interested in
+          if (ref.getName().equals(branch)) {
+            revWalk.markStart(revWalk.parseCommit(ref.getObjectId()));
+            break;
+          }
         }
-        if (LOGGER.isDebugEnabled()) {
-          LOGGER.debug("Walking all commits starting with {}, refs: {}", allRefs.size(), allRefs);
-        }
-        int count = 0;
-        int files = 0;
-        for (final RevCommit commit : revWalk) {
 
-          final PersonIdent authorIdent = commit.getAuthorIdent();
-          final Date commitDate = authorIdent.getWhen();
+        int count = 0;
+        RevCommit old = null;
+        for (final RevCommit commit : revWalk) {
+          LOGGER.info(commit.toString());
+          List<Pair<ObjectId, String>> objectIdList = gitRepositoryLoader.listDiff(repository,
+              Optional.ofNullable(old),
+              commit);
+
+          if (objectIdList.isEmpty()) {
+            LOGGER.info("Skip this commit, no changes in java files");
+            count++;
+            old = commit;
+            continue;
+          }
+
+          final Date commitDate = commit.getAuthorIdent().getWhen();
 
           if (LOGGER.isDebugEnabled()) {
             LOGGER.debug("LogCommitDate: {}", commitDate);
           }
-          count++;
 
-          final RevTree tree = commit.getTree();
-          // System.out.println("Having tree: " + tree);
+          for (Pair<ObjectId, String> pair : objectIdList) {
+            final String fileContent =
+                GitRepositoryLoader.getContent(pair.a, repository);
+            // TODO: new parser
+            LOGGER.info("analyze: " + pair.b);
+            javaParserService.fullParse(fileContent, pair.b)
+                .getProtoBufObject();
 
-          // now use a TreeWalk to iterate over all files in the Tree recursively
-          // you can set Filters to narrow down the results if needed
-          try (final TreeWalk treeWalk = new TreeWalk(repository)) { // NOPMD
-            treeWalk.addTree(tree);
-            treeWalk.setRecursive(true);
-            treeWalk.setFilter(PathSuffixFilter.create(".java"));
-            while (treeWalk.next()) {
-              // System.out.println("found: " + treeWalk.getPathString());
+            // TODO: enable GRPC again
+            // for (int i = 0; i < classes.size(); i++) {
+            //   final StructureFileEvent event = classes.get(i);
+            //   final StructureFileEvent eventWithTiming = StructureFileEvent.newBuilder(event)
+            //       .setEpochMilli(authorIdent.getWhen().getTime()).build();
+            //   classes.set(i, eventWithTiming);
+            //   // grpcClient.sendStructureFileEvent(event).await().indefinitely();
+            //   grpcClient.sendStructureFileEvent(event);
+            // }
 
-              final String fileContent =
-                  this.gitRepositoryLoader.getContent(treeWalk.getObjectId(0), repository);
-
-              // TODO: original parser
-              // final List<StructureFileEvent> classes =
-              //     this.parserService.processStringifiedClass(fileContent);
-
-              // TODO: new parser
-              if (LOGGER.isInfoEnabled()) {
-                LOGGER.info("analyze: " + treeWalk.getPathString());
-              }
-              this.javaParserService.fullParse(fileContent, treeWalk.getNameString());
-              files++;
-              // System.out.println(this.parser.fullParse(fileContent));
-              // break;
-
-              // TODO: enable GRPC again
-              // for (int i = 0; i < classes.size(); i++) {
-              //   final StructureFileEvent event = classes.get(i);
-              //   final StructureFileEvent eventWithTiming = StructureFileEvent.newBuilder(event)
-              //       .setEpochMilli(authorIdent.getWhen().getTime()).build();
-              //   classes.set(i, eventWithTiming);
-              //   // grpcClient.sendStructureFileEvent(event).await().indefinitely();
-              //   grpcClient.sendStructureFileEvent(event);
-              // }
-
-              // if (LOGGER.isDebugEnabled()) {
-              //   LOGGER.debug("Classes names: {}", classes);
-              // }
-
-
-            }
+            // if (LOGGER.isDebugEnabled()) {
+            //   LOGGER.debug("Classes names: {}", classes);
+            // }
           }
-          // break;
+
+          count++;
+          old = commit;
         }
         if (LOGGER.isDebugEnabled()) {
           LOGGER.debug("Analyzed {} commits", count);
-          LOGGER.debug("Analyzed {} files", files);
         }
       }
     }

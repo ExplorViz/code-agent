@@ -1,0 +1,20 @@
+syntax = "proto3";
+
+option java_multiple_files = true;
+option java_package = "net.explorviz.code.proto";
+option java_outer_classname = "StateHandler";
+
+//import "google/protobuf/empty.proto";
+
+service StateHandlerDataService {
+  rpc RequestStateData (StateDataRequest) returns (StateData) {}
+}
+
+message StateData {
+  string CommitID = 1;
+  string BranchName = 2;
+}
+
+message StateDataRequest {
+  optional string BranchName = 1;
+}

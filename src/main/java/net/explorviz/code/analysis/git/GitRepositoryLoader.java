@@ -1,12 +1,15 @@
 package net.explorviz.code.analysis.git;
 
 
+import com.github.javaparser.utils.Pair;
 import java.io.File;
 import java.io.IOException;
 import java.net.MalformedURLException;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.NotDirectoryException;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
@@ -17,12 +20,19 @@ import org.eclipse.jgit.api.Git;
 import org.eclipse.jgit.api.errors.GitAPIException;
 import org.eclipse.jgit.api.errors.InvalidRemoteException;
 import org.eclipse.jgit.api.errors.TransportException;
+import org.eclipse.jgit.diff.DiffEntry;
 import org.eclipse.jgit.lib.ObjectId;
 import org.eclipse.jgit.lib.ObjectLoader;
 import org.eclipse.jgit.lib.ObjectReader;
 import org.eclipse.jgit.lib.Repository;
+import org.eclipse.jgit.revwalk.RevCommit;
+import org.eclipse.jgit.revwalk.RevTree;
 import org.eclipse.jgit.transport.CredentialsProvider;
 import org.eclipse.jgit.transport.UsernamePasswordCredentialsProvider;
+import org.eclipse.jgit.treewalk.AbstractTreeIterator;
+import org.eclipse.jgit.treewalk.CanonicalTreeParser;
+import org.eclipse.jgit.treewalk.TreeWalk;
+import org.eclipse.jgit.treewalk.filter.PathSuffixFilter;
 import org.eclipse.microprofile.config.inject.ConfigProperty;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -34,6 +44,7 @@ import org.slf4j.LoggerFactory;
 public class GitRepositoryLoader {
 
   private static final Logger LOGGER = LoggerFactory.getLogger(GitRepositoryLoader.class);
+  private Git git = null;
 
   @ConfigProperty(name = "explorviz.gitanalysis.local.folder.path")
   /* default */ Optional<String> repoPathProperty; // NOCS
@@ -52,6 +63,7 @@ public class GitRepositoryLoader {
 
   @ConfigProperty(name = "explorviz.gitanalysis.branch", defaultValue = "master")
   /* default */ String repositoryBranch;  // NOCS
+
 
   /**
    * Tries to download the Git {@link Repository} based on a given Url to the given.
@@ -79,13 +91,14 @@ public class GitRepositoryLoader {
       if (LOGGER.isInfoEnabled()) {
         LOGGER.info("Cloning repository from " + checkedRepositoryUrl.getValue());
       }
-      return Git.cloneRepository().setURI(checkedRepositoryUrl.getValue())
+      this.git = Git.cloneRepository().setURI(checkedRepositoryUrl.getValue())
           .setCredentialsProvider(remoteRepositoryObject.getCredentialsProvider())
           .setDirectory(new File(repoPath))
           .setBranchesToClone(remoteRepositoryObject.getBranchNameAsListOrNull())
           .setBranch(remoteRepositoryObject.getBranchNameOrNull())
-          .call()
-          .getRepository();
+          .call();
+
+      return this.git.getRepository();
     } catch (TransportException te) {
       if (!checkedRepositoryUrl.getKey()) {
         throw (MalformedURLException) new MalformedURLException(
@@ -123,11 +136,11 @@ public class GitRepositoryLoader {
     if (Objects.requireNonNull(localRepositoryDirectory.listFiles()).length == 0) {
       return null;
     }
-    Git git = Git.open(localRepositoryDirectory);
+    this.git = Git.open(localRepositoryDirectory);
     if (!branchName.isBlank()) {
-      git.checkout().setName(branchName).call();
+      this.git.checkout().setName(branchName).call();
     }
-    return git.getRepository();
+    return this.git.getRepository();
   }
 
   /**
@@ -196,6 +209,51 @@ public class GitRepositoryLoader {
             credentialsProvider));
   }
 
+  public List<Pair<ObjectId, String>> listDiff(Repository repository, Optional<RevCommit> oldCommit,
+                                               RevCommit newCommit)
+      throws GitAPIException, IOException {
+    List<Pair<ObjectId, String>> objectIdList = new ArrayList<>();
+
+    if (oldCommit.isEmpty()) {
+      try (final TreeWalk treeWalk = new TreeWalk(repository)) { // NOPMD
+        treeWalk.addTree(newCommit.getTree());
+        treeWalk.setRecursive(true);
+        treeWalk.setFilter(PathSuffixFilter.create(".java"));
+        while (treeWalk.next()) {
+          objectIdList.add(new Pair<>(treeWalk.getObjectId(0), treeWalk.getNameString()));
+        }
+      }
+    } else {
+      final List<DiffEntry> diffs = this.git.diff()
+          .setOldTree(prepareTreeParser(repository, oldCommit.get().getTree()))
+          .setNewTree(prepareTreeParser(repository, newCommit.getTree()))
+          .setPathFilter(PathSuffixFilter.create(".java"))
+          .call();
+
+      for (DiffEntry diff : diffs) {
+        if (diff.getChangeType().equals(DiffEntry.ChangeType.DELETE)) {
+          LOGGER.error("DELETE!!!");
+        }
+        String[] parts = diff.getNewPath().split("/");
+        objectIdList.add(new Pair<>(diff.getNewId().toObjectId(), parts[parts.length - 1]));
+      }
+    }
+    return objectIdList;
+  }
+
+  public static String getCurrentBranch(Repository repository) throws IOException {
+    return repository.getFullBranch();
+  }
+
+  private static AbstractTreeIterator prepareTreeParser(Repository repository, RevTree tree)
+      throws IOException {
+    CanonicalTreeParser treeParser = new CanonicalTreeParser();
+    try (ObjectReader reader = repository.newObjectReader()) {
+      treeParser.reset(reader, tree.getId());
+    }
+    return treeParser;
+  }
+
   /**
    * Converts a git ssh url to a https url and returns it as well as if the conversion is usable. If
    * the given url is already in https format, it will be returned as-is and the flag is set to
@@ -245,7 +303,8 @@ public class GitRepositoryLoader {
    * @return The stringified file content.
    * @throws IOException Thrown if JGit cannot open the Git repo.
    */
-  public static String getContent(final ObjectId blobId, final Repository repo) throws IOException {
+  public static String getContent(final ObjectId blobId, final Repository repo) throws
+      IOException {
     try (ObjectReader objectReader = repo.newObjectReader()) {
       final ObjectLoader objectLoader = objectReader.open(blobId);
       final byte[] bytes = objectLoader.getBytes();
@@ -253,4 +312,5 @@ public class GitRepositoryLoader {
     }
 
   }
+
 }
