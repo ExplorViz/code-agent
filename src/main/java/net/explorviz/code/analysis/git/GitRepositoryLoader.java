@@ -70,14 +70,20 @@ public class GitRepositoryLoader {
     String repoPath = remoteRepositoryObject.getStoragePath();
     if (remoteRepositoryObject.getStoragePath().isBlank()) {
       repoPath = Files.createTempDirectory("TemporaryRepository").toAbsolutePath().toString();
+      if (LOGGER.isInfoEnabled()) {
+        LOGGER.info("The repository will be cloned to " + repoPath);
+      }
     }
 
     try {
       if (LOGGER.isInfoEnabled()) {
         LOGGER.info("Cloning repository from " + checkedRepositoryUrl.getValue());
       }
-      return Git.cloneRepository().setURI(checkedRepositoryUrl.getValue()).setCredentialsProvider(
-              remoteRepositoryObject.getCredentialsProvider()).setDirectory(new File(repoPath))
+      return Git.cloneRepository().setURI(checkedRepositoryUrl.getValue())
+          .setCredentialsProvider(remoteRepositoryObject.getCredentialsProvider())
+          .setDirectory(new File(repoPath))
+          .setBranchesToClone(remoteRepositoryObject.getBranchNameAsListOrNull())
+          .setBranch(remoteRepositoryObject.getBranchNameOrNull())
           .call()
           .getRepository();
     } catch (TransportException te) {
@@ -104,7 +110,8 @@ public class GitRepositoryLoader {
    * @return returns an opened git {@link Repository}
    * @throws IOException gets thrown if JGit cannot open the Git repository.
    */
-  private Repository openGitRepository(final String repositoryPath) throws IOException {
+  private Repository openGitRepository(final String repositoryPath, final String branchName)
+      throws IOException, GitAPIException {
 
     final File localRepositoryDirectory = new File(repositoryPath);
 
@@ -116,14 +123,18 @@ public class GitRepositoryLoader {
     if (Objects.requireNonNull(localRepositoryDirectory.listFiles()).length == 0) {
       return null;
     }
-    return Git.open(localRepositoryDirectory).getRepository();
+    Git git = Git.open(localRepositoryDirectory);
+    if (!branchName.isBlank()) {
+      git.checkout().setName(branchName).call();
+    }
+    return git.getRepository();
   }
 
   /**
    * Returns a Git {@link Repository} object by opening the repository found at
-   * {@code localRepositoryPath}. If {@code localRepositoryPath} is empty, the repository gets
-   * cloned from {@code remoteRepositoryUrl} to {@code remoteRepositoryPath} and the opened
-   * repository gets returned.
+   * {@code localRepositoryPath}. <br> If {@code localRepositoryPath} is empty, the repository gets
+   * cloned based on data defined in {@code remoteRepositoryObject} and the opened repository gets
+   * returned.
    *
    * @param localRepositoryPath the system path of the local Repository
    * @param remoteRepositoryObject the {@link RemoteRepositoryObject} object containing the path
@@ -133,26 +144,32 @@ public class GitRepositoryLoader {
    *                         folder
    * @throws GitAPIException gets thrown if the git api encounters an error
    */
-  public Repository getGitRepository(final String localRepositoryPath, // NOPMD
+  public Repository getGitRepository(final String localRepositoryPath,
                                      final RemoteRepositoryObject remoteRepositoryObject)
       throws IOException, GitAPIException {
 
-    if (localRepositoryPath.isBlank() && LOGGER.isInfoEnabled()) {
-      LOGGER.info("No local repository given, using remote");
+    if (localRepositoryPath.isBlank()) {
+      if (LOGGER.isInfoEnabled()) {
+        LOGGER.info("No local repository given, using remote");
+      }
 
       return this.downloadGitRepository(remoteRepositoryObject);
+    } else {
+      return this.openGitRepository(localRepositoryPath, remoteRepositoryObject.getBranchName());
     }
-
-    if (!localRepositoryPath.isBlank()) {
-      return this.openGitRepository(localRepositoryPath);
-    }
-
-    return null;
   }
 
   /**
    * Returns a Git {@link Repository} object by using the parameters set in the
-   * application.properties.
+   * application.properties.<br> The local repository defined in
+   * {@code  explorviz.gitanalysis.local.folder.path} will be used.
+   * <br>
+   * If {@code  explorviz.gitanalysis.local.folder.path} is empty, the repository defined in
+   * {@code  explorviz.gitanalysis.remote.url} will be cloned to the location
+   * {@code explorviz.gitanalysis.remote.localstoragepath}.<br> If no storage path is given, a
+   * temporary directory will be created. <br> The branch given in
+   * {@code explorviz.gitanalysis.branch} will be used if present, otherwise the default (remote) or
+   * current (local) will be used.
    *
    * @return an opened Git {@link Repository}
    * @throws PropertyNotDefinedException gets thrown if a needed property is not present

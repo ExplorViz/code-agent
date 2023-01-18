@@ -1,5 +1,7 @@
 package net.explorviz.code.analysis.types;
 
+import java.util.Collections;
+import java.util.List;
 import org.eclipse.jgit.transport.CredentialsProvider;
 
 /**
@@ -8,6 +10,7 @@ import org.eclipse.jgit.transport.CredentialsProvider;
 public class RemoteRepositoryObject {
   private String url;
   private String storagePath;
+  private String branchName = "";
   private CredentialsProvider credentialsProvider;
 
   /**
@@ -46,6 +49,22 @@ public class RemoteRepositoryObject {
 
   public void setStoragePath(final String storagePath) {
     this.storagePath = storagePath;
+  }
+
+  public String getBranchName() {
+    return branchName;
+  }
+
+  public void setBranchName(String branchName) {
+    this.branchName = branchName;
+  }
+
+  public String getBranchNameOrNull() {
+    return branchName.isBlank() ? null : branchName;
+  }
+
+  public List<String> getBranchNameAsListOrNull() {
+    return branchName.isBlank() ? null : Collections.singletonList(branchName);
   }
 
   public CredentialsProvider getCredentialsProvider() {
