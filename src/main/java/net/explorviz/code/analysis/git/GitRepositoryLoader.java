@@ -232,7 +232,11 @@ public class GitRepositoryLoader {
 
       for (DiffEntry diff : diffs) {
         if (diff.getChangeType().equals(DiffEntry.ChangeType.DELETE)) {
-          LOGGER.error("DELETE!!!");
+          continue;
+        } else if (diff.getChangeType().equals(DiffEntry.ChangeType.RENAME)) {
+          LOGGER.warn("File Renamed");
+        } else if (diff.getChangeType().equals(DiffEntry.ChangeType.COPY)) {
+          LOGGER.warn("File Copied");
         }
         String[] parts = diff.getNewPath().split("/");
         objectIdList.add(new Pair<>(diff.getNewId().toObjectId(), parts[parts.length - 1]));

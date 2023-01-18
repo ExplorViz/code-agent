@@ -106,8 +106,8 @@ public class GitAnalysis {
                 GitRepositoryLoader.getContent(pair.a, repository);
             // TODO: new parser
             LOGGER.info("analyze: " + pair.b);
-            javaParserService.fullParse(fileContent, pair.b)
-                .getProtoBufObject();
+            javaParserService.fullParse(fileContent, pair.b).getProtoBufObject();
+
 
             // TODO: enable GRPC again
             // for (int i = 0; i < classes.size(); i++) {

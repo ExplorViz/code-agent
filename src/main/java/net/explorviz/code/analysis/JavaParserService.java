@@ -5,9 +5,7 @@ import com.github.javaparser.ast.CompilationUnit;
 import com.github.javaparser.symbolsolver.JavaSymbolSolver;
 import com.github.javaparser.symbolsolver.model.resolution.TypeSolver;
 import com.github.javaparser.symbolsolver.resolution.typesolvers.CombinedTypeSolver;
-import com.github.javaparser.symbolsolver.resolution.typesolvers.JavaParserTypeSolver;
 import com.github.javaparser.symbolsolver.resolution.typesolvers.ReflectionTypeSolver;
-import java.io.File;
 import java.io.IOException;
 import java.nio.file.Path;
 import java.util.NoSuchElementException;
@@ -37,7 +35,6 @@ public class JavaParserService {
   }
 
   /**
-   * Parses a given file completely. HARDCODED TEST!! DO NOT USE NOW!
    *
    * @param fileContent stringified java file
    */
@@ -53,9 +50,7 @@ public class JavaParserService {
     final JavaSymbolSolver symbolSolver = new JavaSymbolSolver(typeSolver);
     StaticJavaParser.getConfiguration().setSymbolResolver(symbolSolver);
     final CompilationUnit compilationUnit = StaticJavaParser.parse(fileContent);
-    // LOGGER.info();
     FileDataHandler fileData = null;
-    // fileData = parse(compilationUnit);
     try {
       fileData = parse(compilationUnit, fileName);
     } catch (NoSuchElementException e) {
@@ -78,24 +73,44 @@ public class JavaParserService {
   }
 
   /**
-   * Parses a test file completely. HARDCODED TEST!! DO NOT USE NOW!
+   * Parses a test file completely.
    *
    * @throws IOException Gets thrown if the file is not reachable
    */
-  public FileDataHandler fullParse() throws IOException {
-    final Path path = Path.of(
-        "C:\\Users\\Julian\\projects\\Bachelor\\Fooling\\src\\main\\java\\org\\example\\Main.java");
+  public FileDataHandler fullParse(final String pathToFile) throws IOException {
+    final Path path = Path.of(pathToFile);
     // final String classContent = Files.readString(path);
+    // final TypeSolver typeSolver = new CombinedTypeSolver(
+    //     new ReflectionTypeSolver(),
+    //     new JavaParserTypeSolver(
+    //         new File(FILE_PATH))
+    // );
     final TypeSolver typeSolver = new CombinedTypeSolver(
-        new ReflectionTypeSolver(),
-        new JavaParserTypeSolver(
-            new File(FILE_PATH))
+        new ReflectionTypeSolver()
     );
     final JavaSymbolSolver symbolSolver = new JavaSymbolSolver(typeSolver);
-    // StaticJavaParser.getParserConfiguration().setSymbolResolver(symbolSolver);
     StaticJavaParser.getConfiguration().setSymbolResolver(symbolSolver);
     final CompilationUnit compilationUnit = StaticJavaParser.parse(path);
-    return parse(compilationUnit, "");
+    FileDataHandler fileData = null;
+    try {
+      fileData = parse(compilationUnit, path.getFileName().toString());
+    } catch (NoSuchElementException e) {
+      if (LOGGER.isErrorEnabled()) {
+        LOGGER.error("NoSuchElementException: \n" + compilationUnit.toString());
+      }
+    } catch (NoSuchFieldError e) {
+      if (LOGGER.isErrorEnabled()) {
+        LOGGER.error("NoSuchFieldError: \n" + compilationUnit.toString());
+      }
+    } catch (Exception | Error e) { // NOPMD
+      // LOGGER.error("ERROR!");
+      // if (LOGGER.isErrorEnabled()) {
+      //   LOGGER.error(e.getClass().toString());
+      // }
+      // LOGGER.error( e.getClass().toString() + ": \n" + compilationUnit.toString());
+      throw e;
+    }
+    return fileData;
   }
 
 }
