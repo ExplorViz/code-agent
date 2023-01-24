@@ -3,6 +3,7 @@ package net.explorviz.code.analysis.handler;
 import java.util.HashMap;
 import java.util.Map;
 import net.explorviz.code.proto.ClassData;
+import net.explorviz.code.proto.ClassType;
 
 /**
  * ClassData object holds data from analyzed classes.
@@ -84,23 +85,37 @@ public class ClassDataHandler implements ProtoBufConvertable<ClassData> {
   }
 
   public void setIsInterface() {
-    this.builder.setType(net.explorviz.code.proto.ClassType.INTERFACE);
-    // this.type = ClassType.INTERFACE;
+    this.builder.setType(ClassType.INTERFACE);
+  }
+
+  public boolean isInterface() {
+    return this.builder.getType() == ClassType.INTERFACE;
   }
 
   public void setIsAbstractClass() {
-    this.builder.setType(net.explorviz.code.proto.ClassType.ABSTRACT_CLASS);
-    // this.type = ClassType.ABSTRACT_CLASS;
+    this.builder.setType(ClassType.ABSTRACT_CLASS);
+  }
+
+  public boolean isAbstractClass() {
+    return this.builder.getType() == ClassType.ABSTRACT_CLASS;
   }
 
   public void setIsClass() {
-    this.builder.setType(net.explorviz.code.proto.ClassType.CLASS);
-    // this.type = ClassType.CLASS;
+    this.builder.setType(ClassType.CLASS);
+  }
+
+  public boolean isClass() {
+    return this.builder.getType() == ClassType.CLASS;
   }
 
   public void setIsEnum() {
-    this.builder.setType(net.explorviz.code.proto.ClassType.ENUM);
+    this.builder.setType(ClassType.ENUM);
   }
+
+  public boolean isEnum() {
+    return this.builder.getType() == ClassType.ENUM;
+  }
+
 
   public void setLoc(final int loc) {
     this.builder.setLoc(loc);

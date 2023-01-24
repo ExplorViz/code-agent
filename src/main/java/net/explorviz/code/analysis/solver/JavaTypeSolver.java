@@ -1,5 +1,7 @@
 package net.explorviz.code.analysis.solver;
 
+import com.github.javaparser.ast.type.Type;
+import java.util.List;
 import java.util.Optional;
 import javax.annotation.Nonnull;
 import net.explorviz.code.analysis.exceptions.UnsolvedTypeException;
@@ -12,6 +14,9 @@ public class JavaTypeSolver implements TypeSolver {
 
   public JavaTypeSolver(final String path) {
     this.path = path;
+  }
+
+  public JavaTypeSolver() {
   }
 
   @Override
@@ -27,6 +32,11 @@ public class JavaTypeSolver implements TypeSolver {
     throw new UnsolvedTypeException(typeName);
   }
 
+  @Override
+  public String solveType(@Nonnull Type type) throws UnsolvedTypeException {
+    throw new UnsolvedTypeException(type.asString());
+  }
+
   private Optional<String> checkPrimitive(final String typeName) {
     for (final String primitive : primitives) {
       if (typeName.equals(primitive)) {
@@ -40,6 +50,15 @@ public class JavaTypeSolver implements TypeSolver {
     for (final String built_in : built_ins) {
       if (typeName.equals(built_in)) {
         return Optional.of("java.lang." + typeName);
+      }
+    }
+    return Optional.empty();
+  }
+
+  private Optional<String> checkImports(final String typeName, final List<String> imports) {
+    for (final String importEntry : imports) {
+      if (importEntry.endsWith(typeName)) {
+        return Optional.of(importEntry);
       }
     }
     return Optional.empty();
