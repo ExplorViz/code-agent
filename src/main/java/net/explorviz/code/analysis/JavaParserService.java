@@ -10,8 +10,11 @@ import java.io.IOException;
 import java.nio.file.Path;
 import java.util.NoSuchElementException;
 import javax.enterprise.context.ApplicationScoped;
+import net.explorviz.code.analysis.exceptions.DebugFileWriter;
 import net.explorviz.code.analysis.handler.FileDataHandler;
+import net.explorviz.code.analysis.solver.CustomSolver;
 import net.explorviz.code.analysis.visitor.MultiCollectorVisitor;
+import org.eclipse.microprofile.config.inject.ConfigProperty;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -21,54 +24,54 @@ import org.slf4j.LoggerFactory;
 @ApplicationScoped
 public class JavaParserService {
 
+  @ConfigProperty(name = "explorviz.gitanalysis.debug.filepath", defaultValue = "")
+  /* default */ String debugFilePath;  // NOCS
+
+  @ConfigProperty(name = "explorviz.gitanalysis.debug", defaultValue = "false")
+  /* default */ boolean isDebugMode;  // NOCS
+
 
   public static final Logger LOGGER = LoggerFactory.getLogger(JavaParserService.class);
-  private static final String FILE_PATH =
-      "C:\\Users\\Julian\\projects\\Bachelor\\Fooling\\src\\main\\java";
 
   private FileDataHandler parse(final CompilationUnit compilationUnit, final String fileName) {
     final FileDataHandler data = new FileDataHandler(fileName);
     final MultiCollectorVisitor multiCollectorVisitor = new MultiCollectorVisitor();
-    multiCollectorVisitor.visit(compilationUnit, data);
-    // TODO: for testing only!
+    try {
+      multiCollectorVisitor.visit(compilationUnit, data);
+    } catch (NoSuchElementException | NoSuchFieldError e) {
+      if (LOGGER.isErrorEnabled()) {
+        LOGGER.error(e.getClass().getName() + " in " + fileName);
+        System.out.println(e.getClass().getName() + " in " + fileName);
+      }
+      if (isDebugMode) {
+        DebugFileWriter.saveDebugFile(debugFilePath, compilationUnit.toString(), fileName);
+      }
+      throw e;
+    } catch (Exception | Error e) { // NOPMD
+      if (isDebugMode) {
+        DebugFileWriter.saveDebugFile(debugFilePath, compilationUnit.toString(), fileName);
+      } else {
+        if (LOGGER.isErrorEnabled()) {
+          LOGGER.error(e.getClass().toString());
+          System.out.println(e.getClass().toString());
+        }
+        throw e;
+      }
+      // LOGGER.error( e.getClass().toString() + ": \n" + compilationUnit.toString());
+    }
     return data;
   }
 
   /**
-   *
    * @param fileContent stringified java file
    */
   public FileDataHandler fullParse(final String fileContent, final String fileName) {
-    // final TypeSolver typeSolver = new CombinedTypeSolver(
-    //     new ReflectionTypeSolver(),
-    //     new JavaParserTypeSolver(
-    //         new File(FILE_PATH))
-    // );
-    final TypeSolver typeSolver = new CombinedTypeSolver(
-        new ReflectionTypeSolver()
-    );
+    final TypeSolver typeSolver = new CombinedTypeSolver(new ReflectionTypeSolver());
     final JavaSymbolSolver symbolSolver = new JavaSymbolSolver(typeSolver);
     StaticJavaParser.getConfiguration().setSymbolResolver(symbolSolver);
     final CompilationUnit compilationUnit = StaticJavaParser.parse(fileContent);
-    FileDataHandler fileData = null;
-    try {
-      fileData = parse(compilationUnit, fileName);
-    } catch (NoSuchElementException e) {
-      if (LOGGER.isErrorEnabled()) {
-        LOGGER.error("NoSuchElementException: \n" + compilationUnit.toString());
-      }
-    } catch (NoSuchFieldError e) {
-      if (LOGGER.isErrorEnabled()) {
-        LOGGER.error("NoSuchFieldError: \n" + compilationUnit.toString());
-      }
-    } catch (Exception | Error e) { // NOPMD
-      // LOGGER.error("ERROR!");
-      if (LOGGER.isErrorEnabled()) {
-        LOGGER.error(e.getClass().toString());
-      }
-      // LOGGER.error( e.getClass().toString() + ": \n" + compilationUnit.toString());
-    }
-    return fileData;
+
+    return parse(compilationUnit, fileName);
 
   }
 
@@ -79,38 +82,31 @@ public class JavaParserService {
    */
   public FileDataHandler fullParse(final String pathToFile) throws IOException {
     final Path path = Path.of(pathToFile);
-    // final String classContent = Files.readString(path);
-    // final TypeSolver typeSolver = new CombinedTypeSolver(
-    //     new ReflectionTypeSolver(),
-    //     new JavaParserTypeSolver(
-    //         new File(FILE_PATH))
-    // );
-    final TypeSolver typeSolver = new CombinedTypeSolver(
-        new ReflectionTypeSolver()
-    );
-    final JavaSymbolSolver symbolSolver = new JavaSymbolSolver(typeSolver);
+    // final JavaParserTypeSolver javaParserTypeSolver = new JavaParserTypeSolver(
+    //     "C:\\Users\\Julian\\projects\\Bachelor\\spring-petclinic\\src\\main\\java\\org\\springframework\\samples\\petclinic\\owner");
+    // final ReflectionTypeSolver reflectionTypeSolver = new ReflectionTypeSolver();
+    // // reflectionTypeSolver.setParent(javaParserTypeSolver);
+    // // reflectionTypeSolver.setParent();
+    // final CombinedTypeSolver typeSolver = new CombinedTypeSolver();
+    // // typeSolver.add(reflectionTypeSolver);
+    // typeSolver.add(javaParserTypeSolver);
+    // if (true) {
+    //   return null;
+    // }
+    final CustomSolver customSolver = new CustomSolver(
+        "C:\\Users\\Julian\\projects\\Bachelor\\spring-petclinic\\src\\main\\java\\org\\springframework\\samples\\petclinic\\owner");
+    final JavaSymbolSolver symbolSolver = new JavaSymbolSolver(customSolver);
+    // final JavaSymbolSolver symbolSolver = new JavaSymbolSolver(typeSolver);
+    try {
+      // System.out.println(reflectionTypeSolver.solveType("Owner").getQualifiedName());
+    } catch (Exception e) {
+      // System.out.println("Catch!");
+      // System.out.println(typeSolver.solveType("Owner").getQualifiedName());
+    }
     StaticJavaParser.getConfiguration().setSymbolResolver(symbolSolver);
     final CompilationUnit compilationUnit = StaticJavaParser.parse(path);
-    FileDataHandler fileData = null;
-    try {
-      fileData = parse(compilationUnit, path.getFileName().toString());
-    } catch (NoSuchElementException e) {
-      if (LOGGER.isErrorEnabled()) {
-        LOGGER.error("NoSuchElementException: \n" + compilationUnit.toString());
-      }
-    } catch (NoSuchFieldError e) {
-      if (LOGGER.isErrorEnabled()) {
-        LOGGER.error("NoSuchFieldError: \n" + compilationUnit.toString());
-      }
-    } catch (Exception | Error e) { // NOPMD
-      // LOGGER.error("ERROR!");
-      // if (LOGGER.isErrorEnabled()) {
-      //   LOGGER.error(e.getClass().toString());
-      // }
-      // LOGGER.error( e.getClass().toString() + ": \n" + compilationUnit.toString());
-      throw e;
-    }
-    return fileData;
+
+    return parse(compilationUnit, path.getFileName().toString());
   }
 
 }
