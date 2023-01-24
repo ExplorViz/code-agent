@@ -7,12 +7,14 @@ import java.io.IOException;
 import java.util.Collection;
 import java.util.Date;
 import java.util.List;
+import java.util.NoSuchElementException;
 import java.util.Optional;
 import javax.enterprise.context.ApplicationScoped;
 import javax.enterprise.event.Observes;
 import javax.inject.Inject;
 import net.explorviz.code.analysis.JavaParserService;
 import net.explorviz.code.analysis.exceptions.PropertyNotDefinedException;
+import net.explorviz.code.proto.FileData;
 import net.explorviz.code.proto.StructureEventServiceGrpc;
 import org.eclipse.jgit.api.errors.GitAPIException;
 import org.eclipse.jgit.api.errors.NoHeadException;
@@ -66,6 +68,7 @@ public class GitAnalysis {
       // get a list of all known heads, tags, remotes, ...
       final Collection<Ref> allRefs = repository.getRefDatabase().getRefs();
       // a RevWalk allows to walk over commits based on some filtering that is defined
+
       try (RevWalk revWalk = new RevWalk(repository)) {
 
         // sort the commits in ascending order by the commit time (the oldest first)
@@ -80,10 +83,11 @@ public class GitAnalysis {
           }
         }
 
+
         int count = 0;
         RevCommit old = null;
         for (final RevCommit commit : revWalk) {
-          LOGGER.info(commit.toString());
+          LOGGER.info("{} : {}", count, commit.toString());
           List<Pair<ObjectId, String>> objectIdList = gitRepositoryLoader.listDiff(repository,
               Optional.ofNullable(old),
               commit);
@@ -104,9 +108,13 @@ public class GitAnalysis {
           for (Pair<ObjectId, String> pair : objectIdList) {
             final String fileContent =
                 GitRepositoryLoader.getContent(pair.a, repository);
-            // TODO: new parser
-            LOGGER.info("analyze: " + pair.b);
-            javaParserService.fullParse(fileContent, pair.b).getProtoBufObject();
+            LOGGER.info("analyze: {}", pair.b);
+            try {
+              FileData fileData = javaParserService.fullParse(fileContent, pair.b)
+                  .getProtoBufObject();
+            } catch (NoSuchElementException | NoSuchFieldError e) {
+              // e.printStackTrace();
+            }
 
 
             // TODO: enable GRPC again

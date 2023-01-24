@@ -7,6 +7,8 @@ import com.github.javaparser.ast.Node;
 import com.github.javaparser.ast.PackageDeclaration;
 import com.github.javaparser.ast.body.ClassOrInterfaceDeclaration;
 import com.github.javaparser.ast.body.ConstructorDeclaration;
+import com.github.javaparser.ast.body.EnumConstantDeclaration;
+import com.github.javaparser.ast.body.EnumDeclaration;
 import com.github.javaparser.ast.body.FieldDeclaration;
 import com.github.javaparser.ast.body.MethodDeclaration;
 import com.github.javaparser.ast.body.Parameter;
@@ -18,6 +20,8 @@ import com.github.javaparser.resolution.types.ResolvedType;
 import java.util.List;
 import net.explorviz.code.analysis.handler.FileDataHandler;
 import net.explorviz.code.analysis.handler.MethodDataHandler;
+import static net.explorviz.code.analysis.types.JavaTypes.built_ins;
+import static net.explorviz.code.analysis.types.JavaTypes.primitives;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -27,6 +31,15 @@ import org.slf4j.LoggerFactory;
 public class MultiCollectorVisitor extends VoidVisitorAdapter<FileDataHandler> {
 
   private static final Logger LOGGER = LoggerFactory.getLogger(MultiCollectorVisitor.class);
+  // private final TypeSolver solver;
+  //
+  // public MultiCollectorVisitor() {
+  //   this.solver = null;
+  // }
+  //
+  // public MultiCollectorVisitor(TypeSolver solver) {
+  //   this.solver = solver;
+  // }
 
   @Override
   public void visit(final PackageDeclaration n, final FileDataHandler data) {
@@ -41,6 +54,18 @@ public class MultiCollectorVisitor extends VoidVisitorAdapter<FileDataHandler> {
   }
 
   @Override
+  public void visit(EnumDeclaration n, FileDataHandler data) {
+    data.enterClass(n.getFullyQualifiedName().orElse("UNKNOWN"));
+    data.getCurrentClassData().setLoc(getLoc(n));
+    data.getCurrentClassData().setIsEnum();
+    for (final Modifier modifier : n.getModifiers()) {
+      data.getCurrentClassData().addModifier(modifier.getKeyword().asString());
+    }
+    super.visit(n, data);
+    data.leaveClass();
+  }
+
+  @Override
   public void visit(final FieldDeclaration n, final FileDataHandler data) {
     // System.out.println(n.getVariables());
     for (final VariableDeclarator declarator : n.getVariables()) {
@@ -50,8 +75,7 @@ public class MultiCollectorVisitor extends VoidVisitorAdapter<FileDataHandler> {
   }
 
   @Override
-  public void visit(final ClassOrInterfaceDeclaration n,
-                    final FileDataHandler data) {
+  public void visit(final ClassOrInterfaceDeclaration n, final FileDataHandler data) {
 
     data.enterClass(n.getFullyQualifiedName().orElse("UNKNOWN"));
     data.getCurrentClassData().setLoc(getLoc(n));
@@ -75,6 +99,7 @@ public class MultiCollectorVisitor extends VoidVisitorAdapter<FileDataHandler> {
             .getQualifiedName();
         data.getCurrentClassData().setSuperClass(fqn);
       } catch (UnsolvedSymbolException | IllegalStateException e) {
+        System.out.println("Catch 93");
         data.getCurrentClassData()
             .setSuperClass(findFqnInImports(n.getExtendedTypes().getFirst().get().getNameAsString(),
                 data.getImportNames()));
@@ -94,6 +119,7 @@ public class MultiCollectorVisitor extends VoidVisitorAdapter<FileDataHandler> {
             .getQualifiedName();
         data.getCurrentClassData().addImplementedInterface(fqn);
       } catch (UnsolvedSymbolException | IllegalStateException e) {
+        System.out.println("113");
         data.getCurrentClassData()
             .addImplementedInterface(
                 findFqnInImports(n.getImplementedTypes().get(i).getNameAsString(),
@@ -123,6 +149,11 @@ public class MultiCollectorVisitor extends VoidVisitorAdapter<FileDataHandler> {
     }
     for (final Parameter parameter : n.getParameters()) {
       try {
+        // if (parameter.getType().asString().equals("Owner")) {
+        //   Type t = parameter.getType();
+        //   final ResolvedType type = t.resolve();
+        // }
+        System.out.println(parameter.getType().toString());
         final ResolvedType type = parameter.getType().resolve();
         if (type.isReferenceType()) {
           method.addParameter(type.asReferenceType().getQualifiedName());
@@ -130,10 +161,12 @@ public class MultiCollectorVisitor extends VoidVisitorAdapter<FileDataHandler> {
           method.addParameter(parameter.getType().toString());
         }
       } catch (UnsolvedSymbolException | IllegalStateException e) {
+        System.out.println("Catch 150 - " + e.getClass().toString());
         method.addParameter(findFqnInImports(parameter.getType().asString(),
             data.getImportNames()));
         // Only used if no resolver present
       } catch (UnsupportedOperationException e) {
+        System.out.println("Catch 155");
         if (LOGGER.isWarnEnabled()) {
           LOGGER.warn(
               "UnsupportedOperationException encountered, "
@@ -143,6 +176,8 @@ public class MultiCollectorVisitor extends VoidVisitorAdapter<FileDataHandler> {
           method.addParameter(findFqnInImports(parameter.getType().asString(),
               data.getImportNames()));
         }
+        // } catch (NoSuchFieldError e) {
+        //   System.out.println(parameter.getType().asString());
       }
     }
     super.visit(n, data);
@@ -151,6 +186,12 @@ public class MultiCollectorVisitor extends VoidVisitorAdapter<FileDataHandler> {
   @Override
   public void visit(final ConstructorDeclaration n, final FileDataHandler data) {
     data.getCurrentClassData().addConstructor(n.getNameAsString());
+    super.visit(n, data);
+  }
+
+  @Override
+  public void visit(EnumConstantDeclaration n, FileDataHandler data) {
+    data.getCurrentClassData().addEnumConstant(n.getNameAsString());
     super.visit(n, data);
   }
 
@@ -168,15 +209,29 @@ public class MultiCollectorVisitor extends VoidVisitorAdapter<FileDataHandler> {
    * @return the fqn or the original type
    */
   private String findFqnInImports(final String type, final List<String> imports) {
+    // check if Primitive
+    for (final String primitive : primitives) {
+      if (type.equals(primitive)) {
+        return type;
+      }
+    }
+    // check imports
     for (final String importEntry : imports) {
       if (importEntry.endsWith(type)) {
         return importEntry;
       }
     }
-    // if (LOGGER.isWarnEnabled()) {
-    //   LOGGER.warn(
-    //       "Unable to get FQN for <" + type + ">");
-    // }
+
+    // check build in types from java.lang
+    for (final String built_in : built_ins) {
+      if (type.equals(built_in)) {
+        return "java.lang." + type;
+      }
+    }
+    if (LOGGER.isErrorEnabled()) {
+      LOGGER.error("Unable to get FQN for <" + type + ">");
+      System.out.println("Unable to get FQN for <" + type + ">");
+    }
     return type;
   }
 
