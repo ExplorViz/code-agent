@@ -44,6 +44,7 @@ public class MultiCollectorVisitor extends VoidVisitorAdapter<FileDataHandler> {
   @Override
   public void visit(final ImportDeclaration n, final FileDataHandler data) {
     data.addImport(n.getNameAsString());
+    solver.addImport(n.getNameAsString());
     super.visit(n, data);
   }
 
@@ -96,6 +97,7 @@ public class MultiCollectorVisitor extends VoidVisitorAdapter<FileDataHandler> {
         } else if (data.getCurrentClassData().isInterface()) {
           data.getCurrentClassData().addImplementedInterface(fqn);
         } else {
+          System.out.println("No Interface, Class, or AbastractClass");
           if (LOGGER.isErrorEnabled()) {
             LOGGER.error(
                 "Unexpected Error, Declaration is neither Interface, AbstractClass nor Class but"
@@ -105,12 +107,14 @@ public class MultiCollectorVisitor extends VoidVisitorAdapter<FileDataHandler> {
       } catch (UnsolvedTypeException e) {
         if (LOGGER.isWarnEnabled()) {
           LOGGER.warn(e.getMessage());
+          System.out.println(e.getMessage());
         }
         if (data.getCurrentClassData().isClass() || data.getCurrentClassData().isAbstractClass()) {
           data.getCurrentClassData().setSuperClass(type.asString());
         } else if (data.getCurrentClassData().isInterface()) {
           data.getCurrentClassData().addImplementedInterface(type.asString());
         } else {
+          System.out.println("No Interface, Class, or AbastractClass");
           if (LOGGER.isErrorEnabled()) {
             LOGGER.error(
                 "Unexpected Error, Declaration is neither Interface, AbstractClass nor Class but"
@@ -127,6 +131,7 @@ public class MultiCollectorVisitor extends VoidVisitorAdapter<FileDataHandler> {
       } catch (UnsolvedTypeException e) {
         if (LOGGER.isWarnEnabled()) {
           LOGGER.warn(e.getMessage());
+          System.out.println(e.getMessage());
         }
         data.getCurrentClassData()
             .addImplementedInterface(type.asString());
@@ -154,6 +159,7 @@ public class MultiCollectorVisitor extends VoidVisitorAdapter<FileDataHandler> {
       } catch (UnsolvedTypeException e) {
         if (LOGGER.isWarnEnabled()) {
           LOGGER.warn(e.getMessage());
+          System.out.println(e.getMessage());
         }
         method.addParameter(parameter.getType().asString());
       }
