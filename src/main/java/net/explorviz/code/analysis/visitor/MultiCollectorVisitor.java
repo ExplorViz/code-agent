@@ -18,7 +18,9 @@ import com.github.javaparser.ast.type.ClassOrInterfaceType;
 import com.github.javaparser.ast.type.Type;
 import com.github.javaparser.ast.visitor.VoidVisitorAdapter;
 import com.github.javaparser.resolution.UnsolvedSymbolException;
+import com.github.javaparser.resolution.types.ResolvedReferenceType;
 import com.github.javaparser.resolution.types.ResolvedType;
+import java.util.ArrayList;
 import java.util.List;
 import net.explorviz.code.analysis.handler.FileDataHandler;
 import net.explorviz.code.analysis.handler.MethodDataHandler;
@@ -59,9 +61,14 @@ public class MultiCollectorVisitor extends VoidVisitorAdapter<FileDataHandler> {
 
   @Override
   public void visit(final FieldDeclaration n, final FileDataHandler data) {
-    // System.out.println(n.getVariables());
+    List<String> modifierList = new ArrayList<>();
+    for (final Modifier modifier : n.getModifiers()) {
+      modifierList.add(modifier.getKeyword().asString());
+    }
     for (final VariableDeclarator declarator : n.getVariables()) {
-      data.getCurrentClassData().addField(declarator.getNameAsString());
+      data.getCurrentClassData().addField(declarator.getNameAsString(),
+          resolveFqn(declarator.getType(), data),
+          modifierList);
     }
     super.visit(n, data);
   }
@@ -116,7 +123,7 @@ public class MultiCollectorVisitor extends VoidVisitorAdapter<FileDataHandler> {
     final MethodDataHandler method = data.getCurrentClassData()
         .addMethod(methodsFullyQualifiedName, returnType);
     for (final Modifier modifier : n.getModifiers()) {
-      method.addModifier(modifier.getKeyword().toString());
+      method.addModifier(modifier.getKeyword().asString());
     }
     for (final Parameter parameter : n.getParameters()) {
       method.addParameter(resolveFqn(parameter.getType(), data));
@@ -146,12 +153,12 @@ public class MultiCollectorVisitor extends VoidVisitorAdapter<FileDataHandler> {
     try {
       final ResolvedType resolvedType = type.resolve();
       if (resolvedType.isReferenceType()) {
-        return resolvedType.asReferenceType().getQualifiedName();
+        return buildResolvedTypeFullDepthType(resolvedType.asReferenceType());
       } else {
         return type.toString();
       }
     } catch (UnsolvedSymbolException | IllegalStateException e) {
-      return findFqnInImports(type.asString(), data.getImportNames());
+      return findFqnInImports(type, data);
     } catch (UnsupportedOperationException e) {
       if (LOGGER.isWarnEnabled()) {
         LOGGER.warn(
@@ -160,10 +167,24 @@ public class MultiCollectorVisitor extends VoidVisitorAdapter<FileDataHandler> {
       }
       // TODO why this? Still some debugging code?
       if (e.getMessage().contains("CorrespondingDeclaration")) {
-        return findFqnInImports(type.asString(), data.getImportNames());
+        return findFqnInImports(type, data);
       }
-      return findFqnInImports(type.asString(), data.getImportNames());
+      return findFqnInImports(type, data);
     }
+  }
+
+  private String buildResolvedTypeFullDepthType(ResolvedReferenceType resolvedType) {
+    List<String> genericList = new ArrayList<>();
+    for (ResolvedType rt : resolvedType.typeParametersValues()) {
+      if (rt.isReferenceType()) {
+        genericList.add(buildResolvedTypeFullDepthType(rt.asReferenceType()));
+      } else if (rt.isTypeVariable()) {
+        genericList.add(rt.asTypeParameter().getName()); // Does not work!
+      } else {
+        genericList.add(rt.toString());
+      }
+    }
+    return resolvedType.asReferenceType().getQualifiedName() + typeListToGeneric(genericList);
   }
 
   /**
@@ -173,19 +194,46 @@ public class MultiCollectorVisitor extends VoidVisitorAdapter<FileDataHandler> {
    * @param type the type of the Object
    * @return the fqn or the original type
    */
-  private String findFqnInImports(final String type, final List<String> imports) {
-
+  private String findFqnInImports(Type type, final FileDataHandler data) {
+    final List<String> imports = data.getImportNames();
+    String attachedGenerics = "";
+    if (type instanceof ClassOrInterfaceType) {
+      ClassOrInterfaceType classOrInterfaceType = type.asClassOrInterfaceType();
+      if (classOrInterfaceType.getTypeArguments().isPresent()) {
+        List<String> typeList = new ArrayList<>();
+        for (final Type localType : classOrInterfaceType.getTypeArguments().get()) {
+          typeList.add(resolveFqn(localType, data));
+        }
+        attachedGenerics = typeListToGeneric(typeList);
+      }
+      for (final String importEntry : imports) {
+        if (importEntry.endsWith(classOrInterfaceType.getName().asString())) {
+          return importEntry + attachedGenerics;
+        }
+      }
+    }
     // check imports
     for (final String importEntry : imports) {
-      if (importEntry.endsWith(type)) {
-        return importEntry;
+      if (importEntry.endsWith(type.asString())) {
+        return importEntry + attachedGenerics;
       }
     }
 
     if (LOGGER.isErrorEnabled()) {
-      LOGGER.error("Unable to get FQN for <" + type + ">");
+      LOGGER.error("Unable to get FQN for <" + type.asString() + ">");
     }
-    return type;
+    return type.asString() + attachedGenerics;
+  }
+
+  private String typeListToGeneric(List<String> typeList) {
+    if (typeList.isEmpty()) {
+      return "";
+    }
+    StringBuilder generics = new StringBuilder("<");
+    for (int i = 0; i < typeList.size(); i++) {
+      generics.append(typeList.get(i)).append(i + 1 == typeList.size() ? ">" : ", ");
+    }
+    return generics.toString();
   }
 
 

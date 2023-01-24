@@ -1,9 +1,11 @@
 package net.explorviz.code.analysis.handler;
 
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import net.explorviz.code.proto.ClassData;
 import net.explorviz.code.proto.ClassType;
+import net.explorviz.code.proto.FieldData;
 
 /**
  * ClassData object holds data from analyzed classes.
@@ -56,9 +58,10 @@ public class ClassDataHandler implements ProtoBufConvertable<ClassData> {
     // this.constructorList.add(constructor);
   }
 
-  public void addField(final String field) {
-    this.builder.addFields(field);
-    // this.fields.add(field);
+  public void addField(final String fieldName, final String fieldType,
+                       final List<String> modifiers) {
+    this.builder.addFields(
+        FieldData.newBuilder().setName(fieldName).setType(fieldType).addAllModifiers(modifiers));
   }
 
   public void addModifier(final String modifier) {

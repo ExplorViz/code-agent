@@ -25,14 +25,16 @@ enum ClassType {
 }
 
 message FieldData {
-
+  string name = 1;
+  string type = 2;
+  repeated string modifiers = 3;
 }
 
 message ClassData {
   ClassType type = 1;
   repeated string modifiers = 2;
   repeated string interfaces = 3;
-  repeated string fields = 4;
+  repeated FieldData fields = 4;
   repeated string innerClasses = 5;
   repeated string constructorList = 6;
   map<string, MethodData>  methodData = 7;
