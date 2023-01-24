@@ -70,6 +70,10 @@ public class ClassDataHandler implements ProtoBufConvertable<ClassData> {
     // this.innerClasses.add(name);
   }
 
+  public void addEnumConstant(final String name) {
+    this.builder.addEnumConstants(name);
+  }
+
   public int getMethodCount() {
     return this.methodDataMap.size();
   }
@@ -92,6 +96,10 @@ public class ClassDataHandler implements ProtoBufConvertable<ClassData> {
   public void setIsClass() {
     this.builder.setType(net.explorviz.code.proto.ClassType.CLASS);
     // this.type = ClassType.CLASS;
+  }
+
+  public void setIsEnum() {
+    this.builder.setType(net.explorviz.code.proto.ClassType.ENUM);
   }
 
   public void setLoc(final int loc) {
