@@ -91,6 +91,10 @@ public class FileDataHandler implements ProtoBufConvertable<FileData> {
     return methodCount;
   }
 
+  public String getFileName() {
+    return this.builder.getFileName();
+  }
+
   @Override
   public FileData getProtoBufObject() {
     for (final Map.Entry<String, ClassDataHandler> entry : this.classDataMap.entrySet()) {

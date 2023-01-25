@@ -14,6 +14,8 @@ import com.github.javaparser.ast.body.MethodDeclaration;
 import com.github.javaparser.ast.body.Parameter;
 import com.github.javaparser.ast.body.VariableDeclarator;
 import com.github.javaparser.ast.comments.Comment;
+import com.github.javaparser.ast.type.ClassOrInterfaceType;
+import com.github.javaparser.ast.type.Type;
 import com.github.javaparser.ast.visitor.VoidVisitorAdapter;
 import com.github.javaparser.resolution.UnsolvedSymbolException;
 import com.github.javaparser.resolution.types.ResolvedType;
@@ -31,15 +33,6 @@ import org.slf4j.LoggerFactory;
 public class MultiCollectorVisitor extends VoidVisitorAdapter<FileDataHandler> {
 
   private static final Logger LOGGER = LoggerFactory.getLogger(MultiCollectorVisitor.class);
-  // private final TypeSolver solver;
-  //
-  // public MultiCollectorVisitor() {
-  //   this.solver = null;
-  // }
-  //
-  // public MultiCollectorVisitor(TypeSolver solver) {
-  //   this.solver = solver;
-  // }
 
   @Override
   public void visit(final PackageDeclaration n, final FileDataHandler data) {
@@ -93,44 +86,24 @@ public class MultiCollectorVisitor extends VoidVisitorAdapter<FileDataHandler> {
     }
 
     // TODO: more than one if interface?
-    if (n.getExtendedTypes().getFirst().isPresent()) {
-      try {
-        final String fqn = n.getExtendedTypes().getFirst().get().resolve().asReferenceType()
-            .getQualifiedName();
+    for (ClassOrInterfaceType classOrInterfaceType : n.getExtendedTypes()) {
+      final String fqn = resolveFqn(classOrInterfaceType, data);
+      if (data.getCurrentClassData().isClass() || data.getCurrentClassData().isAbstractClass()) {
         data.getCurrentClassData().setSuperClass(fqn);
-      } catch (UnsolvedSymbolException | IllegalStateException e) {
-        System.out.println("Catch 93");
-        data.getCurrentClassData()
-            .setSuperClass(findFqnInImports(n.getExtendedTypes().getFirst().get().getNameAsString(),
-                data.getImportNames()));
+      } else if (data.getCurrentClassData().isInterface()) {
+        data.getCurrentClassData().addImplementedInterface(fqn);
+      } else {
+        System.out.println("No Interface, Class, or AbastractClass");
+        if (LOGGER.isErrorEnabled()) {
+          LOGGER.error(
+              "Unexpected Error, Declaration is neither Interface, AbstractClass nor Class but"
+                  + " has Interface(s) attached to it");
+        }
       }
-      // } catch (IllegalStateException e) {
-      //   data.getCurrentClassData()
-      //       .setSuperClass(findFqnInImports(n.getExtendedTypes()
-      //       .getFirst().get().getNameAsString(),
-      //           data.getImportNames()));
-      // }
     }
 
-    for (int i = 0; i < n.getImplementedTypes().size(); i++) {
-      try {
-        final String fqn = n.getImplementedTypes().get(i).getElementType().resolve()
-            .asReferenceType()
-            .getQualifiedName();
-        data.getCurrentClassData().addImplementedInterface(fqn);
-      } catch (UnsolvedSymbolException | IllegalStateException e) {
-        System.out.println("113");
-        data.getCurrentClassData()
-            .addImplementedInterface(
-                findFqnInImports(n.getImplementedTypes().get(i).getNameAsString(),
-                    data.getImportNames()));
-      }
-      // } catch (IllegalStateException e) {
-      //   data.getCurrentClassData()
-      //       .addImplementedInterface(
-      //           findFqnInImports(n.getImplementedTypes().get(i).getNameAsString(),
-      //               data.getImportNames()));
-      // }
+    for (ClassOrInterfaceType classOrInterfaceType : n.getImplementedTypes()) {
+      data.getCurrentClassData().addImplementedInterface(resolveFqn(classOrInterfaceType, data));
     }
 
     super.visit(n, data);
@@ -141,44 +114,15 @@ public class MultiCollectorVisitor extends VoidVisitorAdapter<FileDataHandler> {
   @Override
   public void visit(final MethodDeclaration n, final FileDataHandler data) {
     final String methodsFullyQualifiedName = data.getCurrentClassName() + "." + n.getNameAsString();
-    final String returnType = n.getType().asString();
+    // TODO get fqn here too
+    final String returnType = resolveFqn(n.getType(), data);
     final MethodDataHandler method = data.getCurrentClassData()
         .addMethod(methodsFullyQualifiedName, returnType);
     for (final Modifier modifier : n.getModifiers()) {
       method.addModifier(modifier.getKeyword().toString());
     }
     for (final Parameter parameter : n.getParameters()) {
-      try {
-        // if (parameter.getType().asString().equals("Owner")) {
-        //   Type t = parameter.getType();
-        //   final ResolvedType type = t.resolve();
-        // }
-        System.out.println(parameter.getType().toString());
-        final ResolvedType type = parameter.getType().resolve();
-        if (type.isReferenceType()) {
-          method.addParameter(type.asReferenceType().getQualifiedName());
-        } else {
-          method.addParameter(parameter.getType().toString());
-        }
-      } catch (UnsolvedSymbolException | IllegalStateException e) {
-        System.out.println("Catch 150 - " + e.getClass().toString());
-        method.addParameter(findFqnInImports(parameter.getType().asString(),
-            data.getImportNames()));
-        // Only used if no resolver present
-      } catch (UnsupportedOperationException e) {
-        System.out.println("Catch 155");
-        if (LOGGER.isWarnEnabled()) {
-          LOGGER.warn(
-              "UnsupportedOperationException encountered, "
-                  + "not sure why this happens, resolved for now.");
-        }
-        if (e.getMessage().contains("CorrespondingDeclaration")) {
-          method.addParameter(findFqnInImports(parameter.getType().asString(),
-              data.getImportNames()));
-        }
-        // } catch (NoSuchFieldError e) {
-        //   System.out.println(parameter.getType().asString());
-      }
+      method.addParameter(resolveFqn(parameter.getType(), data));
     }
     super.visit(n, data);
   }
@@ -199,6 +143,38 @@ public class MultiCollectorVisitor extends VoidVisitorAdapter<FileDataHandler> {
   public void visit(final CompilationUnit n, final FileDataHandler data) {
     data.setLoc(getLoc(n));
     super.visit(n, data);
+  }
+
+  private String resolveFqn(Type type, final FileDataHandler data) {
+    if (data.getFileName().endsWith("NamedEntity.java") || (
+        data.getFileName().endsWith("PetController.java") && type.asString().equals("Pet"))) {
+      //  && type.toString().equals("<BaseEntity>")
+      int i = 1;
+    }
+    try {
+      final ResolvedType resolvedType = type.resolve();
+      if (resolvedType.isReferenceType()) {
+        return resolvedType.asReferenceType().getQualifiedName();
+      } else {
+        return type.toString();
+      }
+    } catch (UnsolvedSymbolException | IllegalStateException e) {
+      LOGGER.warn("UnresolvedSymbolException " + type.asString());
+      return findFqnInImports(type.asString(), data.getImportNames());
+      // Only used if no resolver present
+    } catch (UnsupportedOperationException e) {
+      // System.out.println("Catch 155");
+      if (LOGGER.isWarnEnabled()) {
+        LOGGER.warn(
+            "UnsupportedOperationException encountered, "
+                + "not sure why this happens, resolved for now.");
+      }
+      // TODO why this? Still some debugging code?
+      if (e.getMessage().contains("CorrespondingDeclaration")) {
+        return findFqnInImports(type.asString(), data.getImportNames());
+      }
+      return findFqnInImports(type.asString(), data.getImportNames());
+    }
   }
 
   /**
@@ -230,8 +206,8 @@ public class MultiCollectorVisitor extends VoidVisitorAdapter<FileDataHandler> {
     }
     if (LOGGER.isErrorEnabled()) {
       LOGGER.error("Unable to get FQN for <" + type + ">");
-      System.out.println("Unable to get FQN for <" + type + ">");
     }
+    // System.out.println("Unable to get FQN for <" + type + ">");
     return type;
   }
 

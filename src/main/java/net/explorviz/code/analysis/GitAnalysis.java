@@ -1,4 +1,4 @@
-package net.explorviz.code.analysis.git;
+package net.explorviz.code.analysis;
 
 import com.github.javaparser.utils.Pair;
 import io.quarkus.grpc.GrpcClient;
@@ -12,8 +12,9 @@ import java.util.Optional;
 import javax.enterprise.context.ApplicationScoped;
 import javax.enterprise.event.Observes;
 import javax.inject.Inject;
-import net.explorviz.code.analysis.JavaParserService;
 import net.explorviz.code.analysis.exceptions.PropertyNotDefinedException;
+import net.explorviz.code.analysis.git.GitRepositoryLoader;
+import net.explorviz.code.analysis.parser.JavaParserService;
 import net.explorviz.code.proto.FileData;
 import net.explorviz.code.proto.StructureEventServiceGrpc;
 import org.eclipse.jgit.api.errors.GitAPIException;
@@ -52,7 +53,7 @@ public class GitAnalysis {
   @GrpcClient("structureevent")
   /* package */ StructureEventServiceGrpc.StructureEventServiceBlockingStub grpcClient; // NOCS
 
-  private void analyzeAndSendRepo()
+  private void analyzeAndSendRepo(boolean onlyLast)
       throws IOException, GitAPIException, PropertyNotDefinedException { // NOPMD
     // steps:
     // open or download repository                          - Done
@@ -73,7 +74,9 @@ public class GitAnalysis {
 
         // sort the commits in ascending order by the commit time (the oldest first)
         revWalk.sort(RevSort.COMMIT_TIME_DESC, true);
-        revWalk.sort(RevSort.REVERSE, true);
+        if (!onlyLast) {
+          revWalk.sort(RevSort.REVERSE, true);
+        }
         LOGGER.info("analyzing branch " + branch);
         for (final Ref ref : allRefs) {
           // find the branch we are interested in
@@ -110,7 +113,7 @@ public class GitAnalysis {
                 GitRepositoryLoader.getContent(pair.a, repository);
             LOGGER.info("analyze: {}", pair.b);
             try {
-              FileData fileData = javaParserService.fullParse(fileContent, pair.b)
+              FileData fileData = javaParserService.parseFileContent(fileContent, pair.b)
                   .getProtoBufObject();
             } catch (NoSuchElementException | NoSuchFieldError e) {
               // e.printStackTrace();
@@ -134,6 +137,9 @@ public class GitAnalysis {
 
           count++;
           old = commit;
+          if (onlyLast) {
+            return;
+          }
         }
         if (LOGGER.isDebugEnabled()) {
           LOGGER.debug("Analyzed {} commits", count);
@@ -143,7 +149,7 @@ public class GitAnalysis {
   }
 
   public void run() throws GitAPIException, IOException, PropertyNotDefinedException {
-    this.analyzeAndSendRepo();
+    this.analyzeAndSendRepo(true);
   }
 
 
@@ -153,7 +159,8 @@ public class GitAnalysis {
     if (repoPathProperty.isEmpty()) {
       return;
     }
-    this.analyzeAndSendRepo();
+    this.analyzeAndSendRepo(false);
+    // this.analyzeAndSendRepo(true);
   }
 
 }

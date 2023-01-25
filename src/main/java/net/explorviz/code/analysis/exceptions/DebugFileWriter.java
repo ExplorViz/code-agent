@@ -3,7 +3,7 @@ package net.explorviz.code.analysis.exceptions;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Paths;
-import net.explorviz.code.analysis.JavaParserService;
+import net.explorviz.code.analysis.parser.JavaParserService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
