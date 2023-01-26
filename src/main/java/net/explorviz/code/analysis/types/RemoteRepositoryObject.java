@@ -10,7 +10,7 @@ import org.eclipse.jgit.transport.CredentialsProvider;
 public class RemoteRepositoryObject {
   private String url;
   private String storagePath;
-  private String branchName = "";
+  private String branchName;
   private CredentialsProvider credentialsProvider;
 
   /**
@@ -19,20 +19,24 @@ public class RemoteRepositoryObject {
    * @param url the repository's url
    * @param storagePath where to clone the repository to
    * @param credentialsProvider the credential provider for private repositories
+   * @param branchName the name of the branch to analyze
    */
   public RemoteRepositoryObject(final String url, final String storagePath,
-                                final CredentialsProvider credentialsProvider) {
+                                final CredentialsProvider credentialsProvider,
+                                final String branchName) {
     this.url = url;
     this.storagePath = storagePath;
     this.credentialsProvider = credentialsProvider;
+    this.branchName = branchName;
   }
 
-  public RemoteRepositoryObject(final String url, final String storagePath) {
-    this(url, storagePath, CredentialsProvider.getDefault());
+  public RemoteRepositoryObject(final String url, final String storagePath,
+                                final String branchName) {
+    this(url, storagePath, CredentialsProvider.getDefault(), branchName);
   }
 
   public RemoteRepositoryObject() {
-    this("", "");
+    this("", "", "");
   }
 
   public String getUrl() {

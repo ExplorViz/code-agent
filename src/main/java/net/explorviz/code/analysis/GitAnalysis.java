@@ -17,6 +17,7 @@ import net.explorviz.code.analysis.git.GitRepositoryLoader;
 import net.explorviz.code.analysis.parser.JavaParserService;
 import net.explorviz.code.proto.FileData;
 import net.explorviz.code.proto.StructureEventServiceGrpc;
+import org.eclipse.jgit.api.Git;
 import org.eclipse.jgit.api.errors.GitAPIException;
 import org.eclipse.jgit.api.errors.NoHeadException;
 import org.eclipse.jgit.lib.ObjectId;
@@ -41,14 +42,14 @@ public class GitAnalysis {
   @ConfigProperty(name = "explorviz.gitanalysis.local.folder.path")
   /* default */ Optional<String> repoPathProperty;  // NOCS
 
+  @ConfigProperty(name = "explorviz.gitanalysis.source-directory")
+  /* default */ Optional<String> sourceDirectoryProperty;  // NOCS
+
+  @ConfigProperty(name = "explorviz.gitanalysis.restrict-to-folder")
+  /* default */ Optional<String> folderToAnalyzeProperty;  // NOCS
+
   @Inject
   /* package */ GitRepositoryLoader gitRepositoryLoader; // NOCS
-
-  // @Inject
-  // /* package */ OldJavaParserService parserService; // NOCS
-
-  @Inject
-  /* package */ JavaParserService javaParserService; // NOCS
 
   @GrpcClient("structureevent")
   /* package */ StructureEventServiceGrpc.StructureEventServiceBlockingStub grpcClient; // NOCS
@@ -90,33 +91,34 @@ public class GitAnalysis {
         int count = 0;
         RevCommit old = null;
         for (final RevCommit commit : revWalk) {
-          LOGGER.info("{} : {}", count, commit.toString());
+          // LOGGER.info("{} : {}", count, commit.toString());
           List<Pair<ObjectId, String>> objectIdList = gitRepositoryLoader.listDiff(repository,
               Optional.ofNullable(old),
               commit);
 
           if (objectIdList.isEmpty()) {
-            LOGGER.info("Skip this commit, no changes in java files");
+            LOGGER.info("Skip {}", commit.name());
             count++;
             old = commit;
             continue;
           }
 
           final Date commitDate = commit.getAuthorIdent().getWhen();
+          LOGGER.info("Commit: {}", commitDate);
+          Git.wrap(repository).checkout().setName(commit.getName()).call();
+          // TODO create string based on properties and such
+          String path = "C:\\Users\\Julian\\projects\\Bachelor\\spring-petclinic\\src\\main\\java";
+          JavaParserService javaParserService = new JavaParserService(path);
 
-          if (LOGGER.isDebugEnabled()) {
-            LOGGER.debug("LogCommitDate: {}", commitDate);
-          }
 
           for (Pair<ObjectId, String> pair : objectIdList) {
-            final String fileContent =
-                GitRepositoryLoader.getContent(pair.a, repository);
+            final String fileContent = GitRepositoryLoader.getContent(pair.a, repository);
             LOGGER.info("analyze: {}", pair.b);
             try {
               FileData fileData = javaParserService.parseFileContent(fileContent, pair.b)
                   .getProtoBufObject();
             } catch (NoSuchElementException | NoSuchFieldError e) {
-              // e.printStackTrace();
+              LOGGER.warn(e.toString());
             }
 
 

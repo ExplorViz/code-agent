@@ -46,13 +46,13 @@ public class GitRepositoryLoader {
   private static final Logger LOGGER = LoggerFactory.getLogger(GitRepositoryLoader.class);
   private Git git = null;
 
-  @ConfigProperty(name = "explorviz.gitanalysis.local.folder.path")
+  @ConfigProperty(name = "explorviz.gitanalysis.local.storage-path")
   /* default */ Optional<String> repoPathProperty; // NOCS
 
   @ConfigProperty(name = "explorviz.gitanalysis.remote.url")
   /* default */ Optional<String> repoUrlProperty; // NOCS
 
-  @ConfigProperty(name = "explorviz.gitanalysis.remote.localstoragepath")
+  @ConfigProperty(name = "explorviz.gitanalysis.remote.storage-path")
   /* default */ Optional<String> repoLocalStoragePathProperty; // NOCS
 
   @ConfigProperty(name = "explorviz.gitanalysis.remote.username")
@@ -61,8 +61,8 @@ public class GitRepositoryLoader {
   @ConfigProperty(name = "explorviz.gitanalysis.remote.password")
   /* default */ Optional<String> passwordProperty;  // NOCS
 
-  @ConfigProperty(name = "explorviz.gitanalysis.branch", defaultValue = "master")
-  /* default */ String repositoryBranch;  // NOCS
+  @ConfigProperty(name = "explorviz.gitanalysis.branch")
+  /* default */ Optional<String> repositoryBranchProperty;  // NOCS
 
 
   /**
@@ -206,7 +206,7 @@ public class GitRepositoryLoader {
     return getGitRepository(this.repoPathProperty.orElse(""),
         new RemoteRepositoryObject(this.repoUrlProperty.orElse(""),
             repoLocalStoragePathProperty.orElse(""),
-            credentialsProvider));
+            credentialsProvider, repositoryBranchProperty.orElse("")));
   }
 
   public List<Pair<ObjectId, String>> listDiff(Repository repository, Optional<RevCommit> oldCommit,

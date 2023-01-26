@@ -1,4 +1,4 @@
-package net.explorviz.code.analysis.git;
+package net.explorviz.code.analysis;
 
 import io.quarkus.test.junit.QuarkusTest;
 import org.junit.jupiter.api.AfterEach;

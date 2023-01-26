@@ -65,14 +65,14 @@ public class GitRepositoryLoaderTest {
 
     Assertions.assertThrows(InvalidRemoteException.class, () -> {
       this.gitRepositoryLoader.getGitRepository("",
-          new RemoteRepositoryObject(url, tempGitLocation.getAbsolutePath()));
+          new RemoteRepositoryObject(url, tempGitLocation.getAbsolutePath(), "master"));
     });
   }
 
   @Test
   void testInvalidParameters() {
     Assertions.assertThrows(InvalidRemoteException.class, () -> {
-      this.gitRepositoryLoader.getGitRepository("", new RemoteRepositoryObject("", ""));
+      this.gitRepositoryLoader.getGitRepository("", new RemoteRepositoryObject("", "", "master"));
     });
   }
 
@@ -81,7 +81,7 @@ public class GitRepositoryLoaderTest {
     String url = "https://gitlab.com/0xhexdec/";
     Assertions.assertThrows(MalformedURLException.class, () -> {
       this.gitRepositoryLoader.getGitRepository("",
-          new RemoteRepositoryObject(url, tempGitLocation.getAbsolutePath()));
+          new RemoteRepositoryObject(url, tempGitLocation.getAbsolutePath(), "master"));
     });
   }
 
@@ -91,7 +91,7 @@ public class GitRepositoryLoaderTest {
     Assertions.assertTrue(file.createNewFile());
     Assertions.assertThrows(NotDirectoryException.class, () -> {
       this.gitRepositoryLoader.getGitRepository(file.getAbsolutePath(),
-          new RemoteRepositoryObject("", ""));
+          new RemoteRepositoryObject("", "", "master"));
     });
   }
 
@@ -99,7 +99,7 @@ public class GitRepositoryLoaderTest {
   void openRepository() throws GitAPIException, IOException {
     // downloading the repository first
     try (Repository repository = this.gitRepositoryLoader.getGitRepository("",
-        new RemoteRepositoryObject(httpsUrl, tempGitLocation.getAbsolutePath()))) {
+        new RemoteRepositoryObject(httpsUrl, tempGitLocation.getAbsolutePath(), "master"))) {
       // call is here to satisfy checkstyle by not having empty try block
       System.out.println(GitRepositoryLoader.getRemoteOriginUrl(repository));
     } catch (Exception e) {
@@ -121,13 +121,13 @@ public class GitRepositoryLoaderTest {
     // try cloning without permission
     Assertions.assertThrows(TransportException.class, () -> {
       this.gitRepositoryLoader.getGitRepository("",
-          new RemoteRepositoryObject(url, tempGitLocation.getAbsolutePath()));
+          new RemoteRepositoryObject(url, tempGitLocation.getAbsolutePath(), "master"));
     });
 
     try (Repository repository = this.gitRepositoryLoader.getGitRepository("",
         new RemoteRepositoryObject(url, tempGitLocation.getAbsolutePath(),
             new UsernamePasswordCredentialsProvider(
-                gitlabUserName, gitlabUserPassword)))) {
+                gitlabUserName, gitlabUserPassword), "master"))) {
       repository.getBranch();
     } catch (Exception e) {
       Assertions.fail();
@@ -139,7 +139,7 @@ public class GitRepositoryLoaderTest {
   void testSsh() {
     try (Repository repository = this.gitRepositoryLoader.getGitRepository("",
         new RemoteRepositoryObject(sshUrl,
-            tempGitLocation.getAbsolutePath()))) {
+            tempGitLocation.getAbsolutePath(), "master"))) {
       // call is here to satisfy checkstyle by not having empty try block
       repository.getBranch();
     } catch (Exception e) {
@@ -151,7 +151,7 @@ public class GitRepositoryLoaderTest {
   void testHttps() {
     try (Repository repository = this.gitRepositoryLoader.getGitRepository("",
         new RemoteRepositoryObject(
-            httpsUrl, tempGitLocation.getAbsolutePath()))) {
+            httpsUrl, tempGitLocation.getAbsolutePath(), "master"))) {
       // call is here to satisfy checkstyle by not having empty try block
       repository.getBranch();
     } catch (Exception e) {
@@ -180,7 +180,7 @@ public class GitRepositoryLoaderTest {
   void testRemoteLookup() throws GitAPIException, IOException {
     try (Repository repository = this.gitRepositoryLoader.getGitRepository("",
         new RemoteRepositoryObject(httpsUrl,
-            tempGitLocation.getAbsolutePath()))) {
+            tempGitLocation.getAbsolutePath(), "master"))) {
       Assertions.assertEquals(GitRepositoryLoader.getRemoteOriginUrl(repository), httpsUrl);
     }
   }
@@ -192,7 +192,7 @@ public class GitRepositoryLoaderTest {
     try (final Repository repository = this.gitRepositoryLoader.getGitRepository("",
         new RemoteRepositoryObject(
             "https://github.com/Alexander-Krause-Glau/Test-JGit-Code.git",
-            tempGitLocation.getAbsolutePath()))) {
+            tempGitLocation.getAbsolutePath(), "master"))) {
 
       try (RevWalk walk = new RevWalk(repository)) {
         final ObjectId id = repository.resolve("8ee1f25");

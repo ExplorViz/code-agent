@@ -3,11 +3,9 @@ package net.explorviz.code.analysis.parser;
 import com.github.javaparser.StaticJavaParser;
 import com.github.javaparser.ast.CompilationUnit;
 import com.github.javaparser.symbolsolver.JavaSymbolSolver;
-import com.github.javaparser.symbolsolver.model.resolution.TypeSolver;
 import com.github.javaparser.symbolsolver.resolution.typesolvers.CombinedTypeSolver;
 import com.github.javaparser.symbolsolver.resolution.typesolvers.JavaParserTypeSolver;
 import com.github.javaparser.symbolsolver.resolution.typesolvers.ReflectionTypeSolver;
-import java.io.File;
 import java.io.IOException;
 import java.nio.file.Path;
 import java.util.NoSuchElementException;
@@ -22,6 +20,23 @@ import org.slf4j.LoggerFactory;
  */
 @ApplicationScoped
 public class JavaParserService {
+
+  private String sourcePath;
+  private JavaSymbolSolver javaSymbolSolver;
+  private CombinedTypeSolver combinedTypeSolver;
+  private ReflectionTypeSolver reflectionTypeSolver;
+  private JavaParserTypeSolver javaParserTypeSolver;
+
+
+  public JavaParserService(String sourcePath) {
+    this.sourcePath = sourcePath;
+    combinedTypeSolver = new CombinedTypeSolver();
+    reflectionTypeSolver = new ReflectionTypeSolver();
+    javaParserTypeSolver = new JavaParserTypeSolver(Path.of(sourcePath));
+    combinedTypeSolver.add(reflectionTypeSolver);
+    combinedTypeSolver.add(javaParserTypeSolver);
+    javaSymbolSolver = new JavaSymbolSolver(combinedTypeSolver);
+  }
 
 
   public static final Logger LOGGER = LoggerFactory.getLogger(JavaParserService.class);
@@ -39,16 +54,25 @@ public class JavaParserService {
     return data;
   }
 
+  public void reset() {
+    combinedTypeSolver = new CombinedTypeSolver();
+    reflectionTypeSolver = new ReflectionTypeSolver();
+    javaParserTypeSolver = new JavaParserTypeSolver(sourcePath);
+    combinedTypeSolver.add(reflectionTypeSolver);
+    combinedTypeSolver.add(javaParserTypeSolver);
+    javaSymbolSolver = new JavaSymbolSolver(combinedTypeSolver);
+  }
+
+  public void reset(String sourcePath) {
+    this.sourcePath = sourcePath;
+    reset();
+  }
+
   private FileDataHandler parseAny(final String fileContent, final String fileName, final Path path)
       throws IOException {
     // these may can be created only once per commit
     // TODO make FILE_PATH dynamic
-    final TypeSolver typeSolver = new CombinedTypeSolver(
-        new ReflectionTypeSolver(),
-        new JavaParserTypeSolver(new File(FILE_PATH))
-    );
-    final JavaSymbolSolver symbolSolver = new JavaSymbolSolver(typeSolver);
-    StaticJavaParser.getConfiguration().setSymbolResolver(symbolSolver);
+    StaticJavaParser.getConfiguration().setSymbolResolver(this.javaSymbolSolver);
     final CompilationUnit compilationUnit;
 
     if (path != null) {
