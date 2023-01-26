@@ -19,6 +19,7 @@ import net.explorviz.code.analysis.types.RemoteRepositoryObject;
 import org.eclipse.jgit.api.Git;
 import org.eclipse.jgit.api.errors.GitAPIException;
 import org.eclipse.jgit.api.errors.InvalidRemoteException;
+import org.eclipse.jgit.api.errors.RefNotFoundException;
 import org.eclipse.jgit.api.errors.TransportException;
 import org.eclipse.jgit.diff.DiffEntry;
 import org.eclipse.jgit.lib.ObjectId;
@@ -45,6 +46,7 @@ public class GitRepositoryLoader {
 
   private static final Logger LOGGER = LoggerFactory.getLogger(GitRepositoryLoader.class);
   private Git git = null;
+  private String repositoryPath;
 
   @ConfigProperty(name = "explorviz.gitanalysis.local.storage-path")
   /* default */ Optional<String> repoPathProperty; // NOCS
@@ -97,7 +99,7 @@ public class GitRepositoryLoader {
           .setBranchesToClone(remoteRepositoryObject.getBranchNameAsListOrNull())
           .setBranch(remoteRepositoryObject.getBranchNameOrNull())
           .call();
-
+      this.repositoryPath = repoPath;
       return this.git.getRepository();
     } catch (TransportException te) {
       if (!checkedRepositoryUrl.getKey()) {
@@ -138,8 +140,15 @@ public class GitRepositoryLoader {
     }
     this.git = Git.open(localRepositoryDirectory);
     if (!branchName.isBlank()) {
-      this.git.checkout().setName(branchName).call();
+      try {
+        this.git.checkout().setName(branchName).call();
+      } catch (RefNotFoundException e) {
+        if (LOGGER.isErrorEnabled()) {
+          LOGGER.error("The given branch name {} was not found", branchName);
+        }
+      }
     }
+    this.repositoryPath = repositoryPath;
     return this.git.getRepository();
   }
 
@@ -243,6 +252,10 @@ public class GitRepositoryLoader {
       }
     }
     return objectIdList;
+  }
+
+  public String getCurrentRepositoryPath() {
+    return this.repositoryPath;
   }
 
   public static String getCurrentBranch(Repository repository) throws IOException {

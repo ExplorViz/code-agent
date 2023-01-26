@@ -4,6 +4,7 @@ import com.github.javaparser.utils.Pair;
 import io.quarkus.grpc.GrpcClient;
 import io.quarkus.runtime.StartupEvent;
 import java.io.IOException;
+import java.nio.file.Path;
 import java.util.Collection;
 import java.util.Date;
 import java.util.List;
@@ -12,6 +13,7 @@ import java.util.Optional;
 import javax.enterprise.context.ApplicationScoped;
 import javax.enterprise.event.Observes;
 import javax.inject.Inject;
+import net.explorviz.code.analysis.exceptions.MalformedPathException;
 import net.explorviz.code.analysis.exceptions.PropertyNotDefinedException;
 import net.explorviz.code.analysis.git.GitRepositoryLoader;
 import net.explorviz.code.analysis.parser.JavaParserService;
@@ -39,7 +41,7 @@ public class GitAnalysis {
 
   private static final Logger LOGGER = LoggerFactory.getLogger(GitAnalysis.class);
 
-  @ConfigProperty(name = "explorviz.gitanalysis.local.folder.path")
+  @ConfigProperty(name = "explorviz.gitanalysis.local.storage-path")
   /* default */ Optional<String> repoPathProperty;  // NOCS
 
   @ConfigProperty(name = "explorviz.gitanalysis.source-directory")
@@ -47,6 +49,12 @@ public class GitAnalysis {
 
   @ConfigProperty(name = "explorviz.gitanalysis.restrict-to-folder")
   /* default */ Optional<String> folderToAnalyzeProperty;  // NOCS
+
+  @ConfigProperty(name = "explorviz.gitanalysis.full-analysis")
+  /* default */ boolean fullAnalysisProperty;  // NOCS
+
+  @ConfigProperty(name = "explorviz.gitanalysis.calculate-metrics")
+  /* default */ boolean calculateMetricsProperty;  // NOCS
 
   @Inject
   /* package */ GitRepositoryLoader gitRepositoryLoader; // NOCS
@@ -63,9 +71,10 @@ public class GitAnalysis {
     //  - find difference between last and "current" commit - Done
     //  - analyze differences                               - Done
     //  - send data chunk                                   - TODO
-
     try (Repository repository = this.gitRepositoryLoader.getGitRepository()) {
+
       final String branch = GitRepositoryLoader.getCurrentBranch(repository);
+      getSourceDirectory();
 
       // get a list of all known heads, tags, remotes, ...
       final Collection<Ref> allRefs = repository.getRefDatabase().getRefs();
@@ -104,11 +113,9 @@ public class GitAnalysis {
           }
 
           final Date commitDate = commit.getAuthorIdent().getWhen();
-          LOGGER.info("Commit: {}", commitDate);
+          LOGGER.info("Analyze {}", commitDate);
           Git.wrap(repository).checkout().setName(commit.getName()).call();
-          // TODO create string based on properties and such
-          String path = "C:\\Users\\Julian\\projects\\Bachelor\\spring-petclinic\\src\\main\\java";
-          JavaParserService javaParserService = new JavaParserService(path);
+          JavaParserService javaParserService = new JavaParserService(getSourceDirectory());
 
 
           for (Pair<ObjectId, String> pair : objectIdList) {
@@ -148,6 +155,27 @@ public class GitAnalysis {
         }
       }
     }
+  }
+
+  private String getSourceDirectory() throws MalformedPathException {
+    // sourceDirectoryProperty.orElse("");
+    // folderToAnalyzeProperty.orElse("");
+    String sourceDir = sourceDirectoryProperty.orElse("");
+    // handle the wildcard
+    if (sourceDir.contains("*")) {
+      if (sourceDir.matches("\\*[/\\\\]?$")) {
+        throw new MalformedPathException(
+            "Wildcard character can not be the last, search would not terminate! Given -> "
+                + sourceDir);
+      }
+      if (sourceDir.matches("\\\\\\\\|//")) {
+        sourceDir = sourceDir.replaceAll("\\\\", "\\").replaceAll("//", "/");
+        LOGGER.warn("found double file separator, replaced input with -> {}", sourceDir);
+      }
+      String[] parts = sourceDir.split("\\*");
+      //   TODO search folder structure for matching folder and set the sourceDir
+    }
+    return Path.of(gitRepositoryLoader.getCurrentRepositoryPath(), sourceDir).toString();
   }
 
   public void run() throws GitAPIException, IOException, PropertyNotDefinedException {

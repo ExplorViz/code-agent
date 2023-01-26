@@ -9,7 +9,6 @@ import com.github.javaparser.symbolsolver.resolution.typesolvers.ReflectionTypeS
 import java.io.IOException;
 import java.nio.file.Path;
 import java.util.NoSuchElementException;
-import javax.enterprise.context.ApplicationScoped;
 import net.explorviz.code.analysis.handler.FileDataHandler;
 import net.explorviz.code.analysis.visitor.MultiCollectorVisitor;
 import org.slf4j.Logger;
@@ -18,8 +17,8 @@ import org.slf4j.LoggerFactory;
 /**
  * Parser Object loads and parses .java files.
  */
-@ApplicationScoped
 public class JavaParserService {
+  public static final Logger LOGGER = LoggerFactory.getLogger(JavaParserService.class);
 
   private String sourcePath;
   private JavaSymbolSolver javaSymbolSolver;
@@ -37,14 +36,6 @@ public class JavaParserService {
     combinedTypeSolver.add(javaParserTypeSolver);
     javaSymbolSolver = new JavaSymbolSolver(combinedTypeSolver);
   }
-
-
-  public static final Logger LOGGER = LoggerFactory.getLogger(JavaParserService.class);
-  // private static final String FILE_PATH =
-  //     "C:\\Users\\Julian\\projects\\Bachelor\\Fooling\\src\\main\\java";
-  private static final String FILE_PATH =
-      "C:\\Users\\Julian\\projects\\Bachelor\\spring-petclinic\\src\\main\\java";
-
 
   private FileDataHandler parse(final CompilationUnit compilationUnit, final String fileName) {
     final FileDataHandler data = new FileDataHandler(fileName);
