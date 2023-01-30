@@ -15,7 +15,7 @@ import net.explorviz.code.analysis.exceptions.NotFoundException;
 import net.explorviz.code.analysis.exceptions.PropertyNotDefinedException;
 import static net.explorviz.code.analysis.git.DirectoryFinder.getDirectory;
 import static net.explorviz.code.analysis.git.DirectoryFinder.resetDirectory;
-import net.explorviz.code.analysis.git.GitRepositoryLoader;
+import net.explorviz.code.analysis.git.GitRepositoryHandler;
 import net.explorviz.code.analysis.parser.JavaParserService;
 import net.explorviz.code.proto.FileData;
 import org.eclipse.jgit.api.Git;
@@ -55,12 +55,12 @@ public class GitAnalysis {
   /* default */ boolean calculateMetricsProperty;  // NOCS
 
   @Inject
-  /* package */ GitRepositoryLoader gitRepositoryLoader; // NOCS
+  /* package */ GitRepositoryHandler gitRepositoryHandler; // NOCS
 
   // @GrpcClient("structureevent")
   // /* package */ StructureEventServiceGrpc.StructureEventServiceBlockingStub grpcClient; // NOCS
 
-  private void analyzeAndSendRepo(boolean onlyLast)
+  private void analyzeAndSendRepo(String startCommit, String endCommit)
       throws IOException, GitAPIException, PropertyNotDefinedException, NotFoundException { // NOPMD
     // steps:
     // open or download repository                          - Done
@@ -69,9 +69,21 @@ public class GitAnalysis {
     //  - find difference between last and "current" commit - Done
     //  - analyze differences                               - Done
     //  - send data chunk                                   - TODO
-    try (Repository repository = this.gitRepositoryLoader.getGitRepository()) {
+    try (Repository repository = this.gitRepositoryHandler.getGitRepository()) {
 
-      final String branch = GitRepositoryLoader.getCurrentBranch(repository);
+      final String branch = GitRepositoryHandler.getCurrentBranch(repository);
+
+      if (startCommit != null && !this.gitRepositoryHandler.isReachableCommit(startCommit,
+          branch)) {
+        throw new NotFoundException(
+            "The given start commit <" + startCommit + "> was not found in the current branch <"
+                + branch + ">");
+      } else if (endCommit != null && !this.gitRepositoryHandler.isReachableCommit(endCommit,
+          branch)) {
+        throw new NotFoundException(
+            "The given end commit <" + endCommit + "> was not found in the current branch <"
+                + branch + ">");
+      }
 
       // get a list of all known heads, tags, remotes, ...
       final Collection<Ref> allRefs = repository.getRefDatabase().getRefs();
@@ -81,9 +93,8 @@ public class GitAnalysis {
 
         // sort the commits in ascending order by the commit time (the oldest first)
         revWalk.sort(RevSort.COMMIT_TIME_DESC, true);
-        if (!onlyLast) {
-          revWalk.sort(RevSort.REVERSE, true);
-        }
+        revWalk.sort(RevSort.REVERSE, true);
+
         LOGGER.info("analyzing branch " + branch);
         for (final Ref ref : allRefs) {
           // find the branch we are interested in
@@ -93,19 +104,31 @@ public class GitAnalysis {
           }
         }
 
-
-        int count = 0;
-        RevCommit old = null;
+        int commitCount = 0;
+        RevCommit lastCheckedCommit = null;
+        boolean inAnlysisRange = startCommit == null;
         for (final RevCommit commit : revWalk) {
+
+          if (!inAnlysisRange) {
+            if (commit.name().equals(startCommit)) {
+              inAnlysisRange = true;
+            } else {
+              continue;
+            }
+          }
+
           // LOGGER.info("{} : {}", count, commit.toString());
-          List<Pair<ObjectId, String>> objectIdList = gitRepositoryLoader.listDiff(repository,
-              Optional.ofNullable(old),
+          List<Pair<ObjectId, String>> objectIdList = gitRepositoryHandler.listDiff(repository,
+              Optional.ofNullable(lastCheckedCommit),
               commit);
 
           if (objectIdList.isEmpty()) {
             LOGGER.info("Skip {}", commit.name());
-            count++;
-            old = commit;
+            commitCount++;
+            lastCheckedCommit = commit;
+            if (commit.name().equals((endCommit))) {
+              break;
+            }
             continue;
           }
           resetDirectory(sourceDirectoryProperty.orElse(""));
@@ -118,7 +141,7 @@ public class GitAnalysis {
 
 
           for (Pair<ObjectId, String> pair : objectIdList) {
-            final String fileContent = GitRepositoryLoader.getContent(pair.a, repository);
+            final String fileContent = GitRepositoryHandler.getContent(pair.a, repository);
             LOGGER.info("analyze: {}", pair.b);
             try {
               FileData fileData = javaParserService.parseFileContent(fileContent, pair.b)
@@ -143,14 +166,15 @@ public class GitAnalysis {
             // }
           }
 
-          count++;
-          old = commit;
-          if (onlyLast) {
-            return;
+          commitCount++;
+          lastCheckedCommit = commit;
+          // break if endCommit is reached, if endCommit is null, run for all commits
+          if (commit.name().equals((endCommit))) {
+            break;
           }
         }
         if (LOGGER.isDebugEnabled()) {
-          LOGGER.debug("Analyzed {} commits", count);
+          LOGGER.debug("Analyzed {} commits", commitCount);
         }
       }
     }
@@ -163,8 +187,9 @@ public class GitAnalysis {
     if (repoPathProperty.isEmpty()) {
       return;
     }
-    this.analyzeAndSendRepo(false);
-    // this.analyzeAndSendRepo(true);
+    // this.analyzeAndSendRepo(null, null);
+    this.analyzeAndSendRepo("f3a8d244b2d3c52325941d09cdeb1b07b8b37815",
+        "6580e8b6cfa246422399eb0640ef93c30396115d");
   }
 
 }

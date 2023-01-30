@@ -41,7 +41,7 @@ public class DirectoryFinder {
       }
       final String[] arr = sourceDir.split("[*\\\\/]");
       final List<String> traverseFolders = new ArrayList<>(Arrays.asList(arr));
-      final String dir = findFolder(GitRepositoryLoader.getCurrentRepositoryPath(),
+      final String dir = findFolder(GitRepositoryHandler.getCurrentRepositoryPath(),
           traverseFolders);
       if (dir.isEmpty()) {
         throw new NotFoundException("directory was not found");
@@ -49,7 +49,7 @@ public class DirectoryFinder {
       paths.put(path, new File(dir).getAbsolutePath());
 
     } else {
-      String p = Path.of(GitRepositoryLoader.getCurrentRepositoryPath(), sourceDir)
+      String p = Path.of(GitRepositoryHandler.getCurrentRepositoryPath(), sourceDir)
           .toString();
       paths.put(path, p);
     }
