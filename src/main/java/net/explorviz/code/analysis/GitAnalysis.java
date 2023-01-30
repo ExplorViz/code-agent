@@ -2,24 +2,19 @@ package net.explorviz.code.analysis;
 
 import com.github.javaparser.utils.Pair;
 import io.quarkus.runtime.StartupEvent;
-import java.io.File;
 import java.io.IOException;
-import java.nio.file.Path;
-import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.Collection;
 import java.util.Date;
 import java.util.List;
 import java.util.NoSuchElementException;
 import java.util.Optional;
-import java.util.function.Predicate;
-import java.util.stream.Collectors;
 import javax.enterprise.context.ApplicationScoped;
 import javax.enterprise.event.Observes;
 import javax.inject.Inject;
-import net.explorviz.code.analysis.exceptions.MalformedPathException;
 import net.explorviz.code.analysis.exceptions.NotFoundException;
 import net.explorviz.code.analysis.exceptions.PropertyNotDefinedException;
+import static net.explorviz.code.analysis.git.DirectoryFinder.getDirectory;
+import static net.explorviz.code.analysis.git.DirectoryFinder.resetDirectory;
 import net.explorviz.code.analysis.git.GitRepositoryLoader;
 import net.explorviz.code.analysis.parser.JavaParserService;
 import net.explorviz.code.proto.FileData;
@@ -43,7 +38,6 @@ import org.slf4j.LoggerFactory;
 public class GitAnalysis {
 
   private static final Logger LOGGER = LoggerFactory.getLogger(GitAnalysis.class);
-  private String sourceDirectory;
 
   @ConfigProperty(name = "explorviz.gitanalysis.local.storage-path")
   /* default */ Optional<String> repoPathProperty;  // NOCS
@@ -114,12 +108,13 @@ public class GitAnalysis {
             old = commit;
             continue;
           }
-          resetSourceDirectory();
+          resetDirectory(sourceDirectoryProperty.orElse(""));
 
           final Date commitDate = commit.getAuthorIdent().getWhen();
           LOGGER.info("Analyze {}", commitDate);
           Git.wrap(repository).checkout().setName(commit.getName()).call();
-          JavaParserService javaParserService = new JavaParserService(getSourceDirectory());
+          JavaParserService javaParserService = new JavaParserService(
+              getDirectory(sourceDirectoryProperty.orElse("")));
 
 
           for (Pair<ObjectId, String> pair : objectIdList) {
@@ -159,91 +154,6 @@ public class GitAnalysis {
         }
       }
     }
-  }
-
-  private void resetSourceDirectory() {
-    this.sourceDirectory = null;
-  }
-
-  private String getSourceDirectory() throws MalformedPathException, NotFoundException {
-    if (this.sourceDirectory != null) {
-      return this.sourceDirectory;
-    }
-    String sourceDir = sourceDirectoryProperty.orElse("");
-    // handle the wildcard
-    if (sourceDir.contains("*")) {
-      if (sourceDir.matches("\\*[/\\\\]?$")) {
-        throw new MalformedPathException(
-            "Wildcard character can not be the last, search would not terminate! Given -> "
-                + sourceDir);
-      }
-      if (sourceDir.matches("\\\\\\\\|//")) {
-        sourceDir = sourceDir.replaceAll("\\\\", "\\").replaceAll("//", "/");
-        LOGGER.warn("found double file separator, replaced input with -> {}", sourceDir);
-      }
-      final String[] arr = sourceDir.split("[*\\\\/]");
-      final List<String> traverseFolders = new ArrayList<>(Arrays.asList(arr));
-      final String dir = findFolder(gitRepositoryLoader.getCurrentRepositoryPath(),
-          traverseFolders);
-      if (dir.isEmpty()) {
-        throw new NotFoundException("directory was not found");
-      }
-      this.sourceDirectory = new File(dir).getAbsolutePath();
-
-    } else {
-      this.sourceDirectory = Path.of(gitRepositoryLoader.getCurrentRepositoryPath(), sourceDir)
-          .toString();
-    }
-    return this.sourceDirectory;
-  }
-
-  private static String findFolder(String currentPath, List<String> traverseFolders) {
-
-    // the current path is the folder we searched for, as the traverse folders are empty
-    if (traverseFolders.isEmpty()) {
-      return currentPath;
-    }
-    // get all directories in the current directory, so we can search for the right one
-    String[] directories = new File(currentPath).list(
-        (current, name) -> new File(current, name).isDirectory());
-    // if this folder is empty, throw an exception. we only get here if the traverse folder
-    // hierarchy is not right, or we got here through a wildcard operator
-    if (directories == null) {
-      return "";
-    }
-    // if the next traverse folder is found in the list, search there
-    if (Arrays.stream(directories)
-        .anyMatch(Predicate.isEqual(traverseFolders.get(0)))) {
-      String folderName = traverseFolders.get(0);
-      traverseFolders.remove(0);
-      return findFolder(currentPath + File.separator + folderName, traverseFolders);
-    }
-    // this is a wildcard, perform depth-first search
-    if (traverseFolders.get(0).isEmpty()) {
-      // maybe the wildcard is there, but we are already in the right directory
-      if (Arrays.stream(directories)
-          .anyMatch(Predicate.isEqual(traverseFolders.get(1)))) {
-        traverseFolders.remove(0);
-        String folderName = traverseFolders.get(0);
-        traverseFolders.remove(0);
-        return findFolder(currentPath + File.separator + folderName, traverseFolders);
-      }
-      for (String directory : directories) {
-        List<String> folders = traverseFolders.stream().skip(1).collect(Collectors.toList());
-        // search in the next level as the folder is there
-        String path = findFolder(currentPath + File.separator + directory, folders);
-        if (!path.isEmpty()) {
-          return path;
-        }
-        // search the next level with wildcard
-        path = findFolder(currentPath + File.separator + directory, traverseFolders);
-        if (!path.isEmpty()) {
-          return path;
-        }
-      }
-    }
-    // folder was not found
-    return "";
   }
 
   /* package */ void onStart(@Observes final StartupEvent ev)

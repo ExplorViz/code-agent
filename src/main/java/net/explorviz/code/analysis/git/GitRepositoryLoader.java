@@ -46,7 +46,7 @@ public class GitRepositoryLoader {
 
   private static final Logger LOGGER = LoggerFactory.getLogger(GitRepositoryLoader.class);
   private Git git = null;
-  private String repositoryPath;
+  private static String repositoryPath;
 
   @ConfigProperty(name = "explorviz.gitanalysis.local.storage-path")
   /* default */ Optional<String> repoPathProperty; // NOCS
@@ -99,7 +99,7 @@ public class GitRepositoryLoader {
           .setBranchesToClone(remoteRepositoryObject.getBranchNameAsListOrNull())
           .setBranch(remoteRepositoryObject.getBranchNameOrNull())
           .call();
-      this.repositoryPath = repoPath;
+      repositoryPath = repoPath;
       return this.git.getRepository();
     } catch (TransportException te) {
       if (!checkedRepositoryUrl.getKey()) {
@@ -148,7 +148,7 @@ public class GitRepositoryLoader {
         }
       }
     }
-    this.repositoryPath = repositoryPath;
+    GitRepositoryLoader.repositoryPath = repositoryPath;
     return this.git.getRepository();
   }
 
@@ -254,8 +254,8 @@ public class GitRepositoryLoader {
     return objectIdList;
   }
 
-  public String getCurrentRepositoryPath() {
-    return this.repositoryPath;
+  public static String getCurrentRepositoryPath() {
+    return repositoryPath;
   }
 
   public static String getCurrentBranch(Repository repository) throws IOException {
