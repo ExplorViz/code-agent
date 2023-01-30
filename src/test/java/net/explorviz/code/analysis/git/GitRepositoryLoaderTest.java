@@ -121,13 +121,26 @@ public class GitRepositoryLoaderTest {
     // try cloning without permission
     Assertions.assertThrows(TransportException.class, () -> {
       this.gitRepositoryLoader.getGitRepository("",
-          new RemoteRepositoryObject(url, tempGitLocation.getAbsolutePath(), "master"));
+          new RemoteRepositoryObject(url, tempGitLocation.getAbsolutePath(), "main"));
+    });
+
+    Assertions.assertThrows(TransportException.class, () -> {
+      this.gitRepositoryLoader.getGitRepository("",
+          new RemoteRepositoryObject(url, tempGitLocation.getAbsolutePath(),
+              new UsernamePasswordCredentialsProvider(
+                  gitlabUserName, gitlabUserPassword), "master"));
+    });
+    Assertions.assertThrows(TransportException.class, () -> {
+      this.gitRepositoryLoader.getGitRepository("",
+          new RemoteRepositoryObject(url, tempGitLocation.getAbsolutePath(),
+              new UsernamePasswordCredentialsProvider(
+                  "username", "password"), "main"));
     });
 
     try (Repository repository = this.gitRepositoryLoader.getGitRepository("",
         new RemoteRepositoryObject(url, tempGitLocation.getAbsolutePath(),
             new UsernamePasswordCredentialsProvider(
-                gitlabUserName, gitlabUserPassword), "master"))) {
+                gitlabUserName, gitlabUserPassword), "main"))) {
       repository.getBranch();
     } catch (Exception e) {
       Assertions.fail();

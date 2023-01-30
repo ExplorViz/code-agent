@@ -96,7 +96,6 @@ public class GitRepositoryLoader {
       this.git = Git.cloneRepository().setURI(checkedRepositoryUrl.getValue())
           .setCredentialsProvider(remoteRepositoryObject.getCredentialsProvider())
           .setDirectory(new File(repoPath))
-          .setBranchesToClone(remoteRepositoryObject.getBranchNameAsListOrNull())
           .setBranch(remoteRepositoryObject.getBranchNameOrNull())
           .call();
       repositoryPath = repoPath;
@@ -106,8 +105,18 @@ public class GitRepositoryLoader {
         throw (MalformedURLException) new MalformedURLException(
             checkedRepositoryUrl.getValue()).initCause(te);
       }
+
       if (LOGGER.isErrorEnabled()) {
-        LOGGER.error("The repository is private, username and password are required.");
+        if (te.getMessage().contains("not found in upstream")) {
+          LOGGER.error("Transport Exception thrown, branch not found");
+        } else if (te.getMessage()
+            .contains("no CredentialsProvider")) {
+          LOGGER.error("Transport Exception thrown, repository is private, no credentials given");
+        } else if (te.getMessage().contains("not authorized")) {
+          LOGGER.error("Transport Exception thrown, credential are wrong");
+        } else {
+          LOGGER.error("Transport Exception thrown: " + te.getMessage());
+        }
       }
       throw te;
     } catch (InvalidRemoteException e) {
