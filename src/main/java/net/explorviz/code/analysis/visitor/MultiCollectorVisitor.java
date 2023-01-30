@@ -22,8 +22,7 @@ import com.github.javaparser.resolution.types.ResolvedType;
 import java.util.List;
 import net.explorviz.code.analysis.handler.FileDataHandler;
 import net.explorviz.code.analysis.handler.MethodDataHandler;
-import static net.explorviz.code.analysis.types.JavaTypes.built_ins;
-import static net.explorviz.code.analysis.types.JavaTypes.primitives;
+import net.explorviz.code.analysis.types.JavaTypes;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -33,6 +32,7 @@ import org.slf4j.LoggerFactory;
 public class MultiCollectorVisitor extends VoidVisitorAdapter<FileDataHandler> {
 
   private static final Logger LOGGER = LoggerFactory.getLogger(MultiCollectorVisitor.class);
+  private static final String UNKNOWN = "UNKNOWN";
 
   @Override
   public void visit(final PackageDeclaration n, final FileDataHandler data) {
@@ -48,7 +48,7 @@ public class MultiCollectorVisitor extends VoidVisitorAdapter<FileDataHandler> {
 
   @Override
   public void visit(EnumDeclaration n, FileDataHandler data) {
-    data.enterClass(n.getFullyQualifiedName().orElse("UNKNOWN"));
+    data.enterClass(n.getFullyQualifiedName().orElse(UNKNOWN));
     data.getCurrentClassData().setLoc(getLoc(n));
     data.getCurrentClassData().setIsEnum();
     for (final Modifier modifier : n.getModifiers()) {
@@ -70,7 +70,7 @@ public class MultiCollectorVisitor extends VoidVisitorAdapter<FileDataHandler> {
   @Override
   public void visit(final ClassOrInterfaceDeclaration n, final FileDataHandler data) {
 
-    data.enterClass(n.getFullyQualifiedName().orElse("UNKNOWN"));
+    data.enterClass(n.getFullyQualifiedName().orElse(UNKNOWN));
     data.getCurrentClassData().setLoc(getLoc(n));
 
     if (n.isInterface()) {
@@ -85,7 +85,6 @@ public class MultiCollectorVisitor extends VoidVisitorAdapter<FileDataHandler> {
       data.getCurrentClassData().addModifier(modifier.getKeyword().asString());
     }
 
-    // TODO: more than one if interface?
     for (ClassOrInterfaceType classOrInterfaceType : n.getExtendedTypes()) {
       final String fqn = resolveFqn(classOrInterfaceType, data);
       if (data.getCurrentClassData().isClass() || data.getCurrentClassData().isAbstractClass()) {
@@ -186,7 +185,7 @@ public class MultiCollectorVisitor extends VoidVisitorAdapter<FileDataHandler> {
    */
   private String findFqnInImports(final String type, final List<String> imports) {
     // check if Primitive
-    for (final String primitive : primitives) {
+    for (final String primitive : JavaTypes.PRIMITIVES) {
       if (type.equals(primitive)) {
         return type;
       }
@@ -199,7 +198,7 @@ public class MultiCollectorVisitor extends VoidVisitorAdapter<FileDataHandler> {
     }
 
     // check build in types from java.lang
-    for (final String built_in : built_ins) {
+    for (final String built_in : JavaTypes.BUILT_INS) {
       if (type.equals(built_in)) {
         return "java.lang." + type;
       }

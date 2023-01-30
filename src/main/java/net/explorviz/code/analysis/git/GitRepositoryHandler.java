@@ -46,7 +46,7 @@ import org.slf4j.LoggerFactory;
 public class GitRepositoryHandler {
 
   private static final Logger LOGGER = LoggerFactory.getLogger(GitRepositoryHandler.class);
-  private Git git = null;
+  private static final String JAVA_PATH_SUFFIX = ".java";
   private static String repositoryPath;
 
   @ConfigProperty(name = "explorviz.gitanalysis.local.storage-path")
@@ -67,6 +67,7 @@ public class GitRepositoryHandler {
   @ConfigProperty(name = "explorviz.gitanalysis.branch")
   /* default */ Optional<String> repositoryBranchProperty;  // NOCS
 
+  private Git git = null;
 
   /**
    * Tries to download the Git {@link Repository} based on a given Url to the given.
@@ -76,7 +77,8 @@ public class GitRepositoryHandler {
    * @return returns an opened git repository
    * @throws GitAPIException gets thrown if the git api encounters an error
    */
-  private Repository downloadGitRepository(final RemoteRepositoryObject remoteRepositoryObject)
+  private Repository downloadGitRepository( // NOCS TODO fix the cyclomatic complexety later
+                                            final RemoteRepositoryObject remoteRepositoryObject)
       throws GitAPIException, IOException {
 
     final Map.Entry<Boolean, String> checkedRepositoryUrl = convertSshToHttps(
@@ -228,6 +230,16 @@ public class GitRepositoryHandler {
             credentialsProvider, repositoryBranchProperty.orElse("")));
   }
 
+  /**
+   * Returns the differences between two given commits.
+   *
+   * @param repository the current repository
+   * @param oldCommit the old commit, as a baseline for the difference calculation
+   * @param newCommit the new commit, gets checked against the old commit
+   * @return a list of pairs containing the objectsIds and filenames of all files changed files
+   * @throws GitAPIException thrown if git encounters an exception
+   * @throws IOException     thrown if files are not available
+   */
   public List<Pair<ObjectId, String>> listDiff(Repository repository, Optional<RevCommit> oldCommit,
                                                RevCommit newCommit)
       throws GitAPIException, IOException {
@@ -237,7 +249,7 @@ public class GitRepositoryHandler {
       try (final TreeWalk treeWalk = new TreeWalk(repository)) { // NOPMD
         treeWalk.addTree(newCommit.getTree());
         treeWalk.setRecursive(true);
-        treeWalk.setFilter(PathSuffixFilter.create(".java"));
+        treeWalk.setFilter(PathSuffixFilter.create(JAVA_PATH_SUFFIX));
         while (treeWalk.next()) {
           objectIdList.add(new Pair<>(treeWalk.getObjectId(0), treeWalk.getNameString()));
         }
@@ -246,7 +258,7 @@ public class GitRepositoryHandler {
       final List<DiffEntry> diffs = this.git.diff()
           .setOldTree(prepareTreeParser(repository, oldCommit.get().getTree()))
           .setNewTree(prepareTreeParser(repository, newCommit.getTree()))
-          .setPathFilter(PathSuffixFilter.create(".java"))
+          .setPathFilter(PathSuffixFilter.create(JAVA_PATH_SUFFIX))
           .call();
 
       for (DiffEntry diff : diffs) {
@@ -264,6 +276,13 @@ public class GitRepositoryHandler {
     return objectIdList;
   }
 
+  /**
+   * Checks if the given commit is reachable by the given branch (is part of the branch).
+   *
+   * @param commitId the full SHA-1 id of the commit
+   * @param branch the branch name
+   * @return if the commit is reachable by the given branch
+   */
   public boolean isReachableCommit(String commitId, String branch) {
     try {
       Map<ObjectId, String> map = this.git.nameRev().addPrefix(branch)

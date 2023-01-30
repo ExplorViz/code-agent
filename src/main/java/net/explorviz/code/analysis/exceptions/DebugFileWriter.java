@@ -7,6 +7,9 @@ import net.explorviz.code.analysis.parser.JavaParserService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+/**
+ * Simple Class to write failing file content to files.
+ */
 public class DebugFileWriter {
   public static final Logger LOGGER = LoggerFactory.getLogger(JavaParserService.class);
 

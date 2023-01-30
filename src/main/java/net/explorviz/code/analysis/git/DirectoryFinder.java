@@ -14,18 +14,34 @@ import net.explorviz.code.analysis.exceptions.NotFoundException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+/**
+ * Class to ease the finding of directories inside a local git Repository.
+ */
 public class DirectoryFinder {
-  private static Logger LOGGER = LoggerFactory.getLogger(DirectoryFinder.class);
-  private static Map<String, String> paths = new HashMap<>();
+  private static final Logger LOGGER = LoggerFactory.getLogger(DirectoryFinder.class);
+  private static final Map<String, String> PATHS = new HashMap<>();
 
+  /**
+   * Resets the given path entry, the saved value will be removed.
+   *
+   * @param path the search string for the path used to create it
+   */
   public static void resetDirectory(String path) {
-    paths.remove(path);
+    PATHS.remove(path);
   }
 
+  /**
+   * Searches and return the directory matching the search string.
+   *
+   * @param path the search string for the path.
+   * @return the directory matching the search string
+   * @throws MalformedPathException thrown if the search string is malformed and can not be used
+   * @throws NotFoundException      thrown if no directory matches the given search string
+   */
   public static String getDirectory(String path) throws MalformedPathException, NotFoundException {
     // checks if a path exists in the map and is still valid
-    if (paths.get(path) != null && new File(paths.get(path)).isDirectory()) {
-      return paths.get(path);
+    if (PATHS.get(path) != null && new File(PATHS.get(path)).isDirectory()) {
+      return PATHS.get(path);
     }
     String sourceDir = path;
     // handle the wildcard
@@ -46,14 +62,14 @@ public class DirectoryFinder {
       if (dir.isEmpty()) {
         throw new NotFoundException("directory was not found");
       }
-      paths.put(path, new File(dir).getAbsolutePath());
+      PATHS.put(path, new File(dir).getAbsolutePath());
 
     } else {
       String p = Path.of(GitRepositoryHandler.getCurrentRepositoryPath(), sourceDir)
           .toString();
-      paths.put(path, p);
+      PATHS.put(path, p);
     }
-    return paths.get(path);
+    return PATHS.get(path);
   }
 
   private static String findFolder(String currentPath, List<String> traverseFolders) {

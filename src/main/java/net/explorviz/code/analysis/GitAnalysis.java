@@ -65,7 +65,7 @@ public class GitAnalysis {
   // @GrpcClient("structureevent")
   // /* package */ StructureEventServiceGrpc.StructureEventServiceBlockingStub grpcClient; // NOCS
 
-  private void analyzeAndSendRepo(String startCommit, String endCommit)
+  private void analyzeAndSendRepo(String startCommit, String endCommit) // NOCS TODO cyclomatic
       throws IOException, GitAPIException, PropertyNotDefinedException, NotFoundException { // NOPMD
     // steps:
     // open or download repository                          - Done
@@ -80,14 +80,10 @@ public class GitAnalysis {
 
       if (startCommit != null && !this.gitRepositoryHandler.isReachableCommit(startCommit,
           branch)) {
-        throw new NotFoundException(
-            "The given start commit <" + startCommit + "> was not found in the current branch <"
-                + branch + ">");
+        throw new NotFoundException(toErrorText("start", startCommit, branch));
       } else if (endCommit != null && !this.gitRepositoryHandler.isReachableCommit(endCommit,
           branch)) {
-        throw new NotFoundException(
-            "The given end commit <" + endCommit + "> was not found in the current branch <"
-                + branch + ">");
+        throw new NotFoundException(toErrorText("end", endCommit, branch));
       }
 
       // get a list of all known heads, tags, remotes, ...
@@ -198,6 +194,11 @@ public class GitAnalysis {
     this.analyzeAndSendRepo(startCommitProperty.orElse(null), endCommitProperty.orElse(null));
     // this.analyzeAndSendRepo("f3a8d244b2d3c52325941d09cdeb1b07b8b37815",
     //     "6580e8b6cfa246422399eb0640ef93c30396115d");
+  }
+
+  private static String toErrorText(String position, String commitId, String branchName) {
+    return "The given " + position + " commit <" + commitId
+        + "> was not found in the current branch <" + branchName + ">";
   }
 
 }

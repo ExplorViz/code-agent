@@ -1,11 +1,18 @@
 package net.explorviz.code.analysis.handler;
 
-import jdk.jshell.spi.ExecutionControl;
 import net.explorviz.code.proto.StateData;
 
+/**
+ * Basic GRPC handler.
+ */
 public class GrpcHandler {
-  public static StateData requestStateData(String branchName)
-      throws ExecutionControl.NotImplementedException {
+  /**
+   * Requests the state data from the remote endpoint.
+   *
+   * @param branchName the branch for the analysis
+   * @return the state of the remote database
+   */
+  public static StateData requestStateData(String branchName) {
     // throw new ExecutionControl.NotImplementedException("Currently not Implemented");
 
     // MOCKING SOME DATA

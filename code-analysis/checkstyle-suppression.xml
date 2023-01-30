@@ -11,4 +11,5 @@
   <suppress checks="." files="[\\/]src/test[\\/]" />
   <suppress checks="." files="[\\/]src/main/java/io[\\/]" />
   <suppress checks="." files="[\\/]code-analysis[\\/]" />
+  <suppress files="Main.java" checks="[a-zA-Z0-9]*"/>
 </suppressions>

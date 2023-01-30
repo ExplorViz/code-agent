@@ -26,7 +26,11 @@ public class JavaParserService {
   private ReflectionTypeSolver reflectionTypeSolver;
   private JavaParserTypeSolver javaParserTypeSolver;
 
-
+  /**
+   * Creates a new JavaParserService with the needed TypeSolvers.
+   *
+   * @param sourcePath the path to the source code in the repository
+   */
   public JavaParserService(String sourcePath) {
     this.sourcePath = sourcePath;
     combinedTypeSolver = new CombinedTypeSolver();
@@ -45,6 +49,10 @@ public class JavaParserService {
     return data;
   }
 
+  /**
+   * Resets the state of the JavaParserService, all cached values are cleared and the parser can be
+   * reused for another task.
+   */
   public void reset() {
     combinedTypeSolver = new CombinedTypeSolver();
     reflectionTypeSolver = new ReflectionTypeSolver();
@@ -54,6 +62,11 @@ public class JavaParserService {
     javaSymbolSolver = new JavaSymbolSolver(combinedTypeSolver);
   }
 
+  /**
+   * Resets the JavaParserService but also resets the path to the source code.
+   *
+   * @param sourcePath the path to the source folder
+   */
   public void reset(String sourcePath) {
     this.sourcePath = sourcePath;
     reset();
@@ -61,8 +74,6 @@ public class JavaParserService {
 
   private FileDataHandler parseAny(final String fileContent, final String fileName, final Path path)
       throws IOException {
-    // these may can be created only once per commit
-    // TODO make FILE_PATH dynamic
     StaticJavaParser.getConfiguration().setSymbolResolver(this.javaSymbolSolver);
     final CompilationUnit compilationUnit;
 
@@ -93,6 +104,8 @@ public class JavaParserService {
   }
 
   /**
+   * Parses file content.
+   *
    * @param fileContent stringified java file
    */
   public FileDataHandler parseFileContent(final String fileContent, final String fileName) {
