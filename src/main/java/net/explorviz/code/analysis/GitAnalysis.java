@@ -13,8 +13,7 @@ import javax.enterprise.event.Observes;
 import javax.inject.Inject;
 import net.explorviz.code.analysis.exceptions.NotFoundException;
 import net.explorviz.code.analysis.exceptions.PropertyNotDefinedException;
-import static net.explorviz.code.analysis.git.DirectoryFinder.getDirectory;
-import static net.explorviz.code.analysis.git.DirectoryFinder.resetDirectory;
+import net.explorviz.code.analysis.git.DirectoryFinder;
 import net.explorviz.code.analysis.git.GitRepositoryHandler;
 import net.explorviz.code.analysis.parser.JavaParserService;
 import net.explorviz.code.proto.FileData;
@@ -48,11 +47,17 @@ public class GitAnalysis {
   @ConfigProperty(name = "explorviz.gitanalysis.restrict-to-folder")
   /* default */ Optional<String> folderToAnalyzeProperty;  // NOCS
 
-  @ConfigProperty(name = "explorviz.gitanalysis.full-analysis")
+  @ConfigProperty(name = "explorviz.gitanalysis.full-analysis", defaultValue = "false")
   /* default */ boolean fullAnalysisProperty;  // NOCS
 
-  @ConfigProperty(name = "explorviz.gitanalysis.calculate-metrics")
+  @ConfigProperty(name = "explorviz.gitanalysis.calculate-metrics", defaultValue = "true")
   /* default */ boolean calculateMetricsProperty;  // NOCS
+
+  @ConfigProperty(name = "explorviz.gitanalysis.start-commit-sha1")
+  /* default */ Optional<String> startCommitProperty;  // NOCS
+
+  @ConfigProperty(name = "explorviz.gitanalysis.end-commit-sha1")
+  /* default */ Optional<String> endCommitProperty;  // NOCS
 
   @Inject
   /* package */ GitRepositoryHandler gitRepositoryHandler; // NOCS
@@ -113,6 +118,9 @@ public class GitAnalysis {
             if (commit.name().equals(startCommit)) {
               inAnlysisRange = true;
             } else {
+              if (!fullAnalysisProperty) {
+                lastCheckedCommit = commit;
+              }
               continue;
             }
           }
@@ -131,13 +139,13 @@ public class GitAnalysis {
             }
             continue;
           }
-          resetDirectory(sourceDirectoryProperty.orElse(""));
+          DirectoryFinder.resetDirectory(sourceDirectoryProperty.orElse(""));
 
           final Date commitDate = commit.getAuthorIdent().getWhen();
           LOGGER.info("Analyze {}", commitDate);
           Git.wrap(repository).checkout().setName(commit.getName()).call();
           JavaParserService javaParserService = new JavaParserService(
-              getDirectory(sourceDirectoryProperty.orElse("")));
+              DirectoryFinder.getDirectory(sourceDirectoryProperty.orElse("")));
 
 
           for (Pair<ObjectId, String> pair : objectIdList) {
@@ -187,9 +195,9 @@ public class GitAnalysis {
     if (repoPathProperty.isEmpty()) {
       return;
     }
-    // this.analyzeAndSendRepo(null, null);
-    this.analyzeAndSendRepo("f3a8d244b2d3c52325941d09cdeb1b07b8b37815",
-        "6580e8b6cfa246422399eb0640ef93c30396115d");
+    this.analyzeAndSendRepo(startCommitProperty.orElse(null), endCommitProperty.orElse(null));
+    // this.analyzeAndSendRepo("f3a8d244b2d3c52325941d09cdeb1b07b8b37815",
+    //     "6580e8b6cfa246422399eb0640ef93c30396115d");
   }
 
 }
