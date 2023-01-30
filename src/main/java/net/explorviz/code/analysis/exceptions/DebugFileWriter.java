@@ -10,8 +10,12 @@ import org.slf4j.LoggerFactory;
 /**
  * Simple Class to write failing file content to files.
  */
-public class DebugFileWriter {
+public final class DebugFileWriter {
   public static final Logger LOGGER = LoggerFactory.getLogger(JavaParserService.class);
+
+  private DebugFileWriter() {
+
+  }
 
   /**
    * Saves the given content to a file.
@@ -20,7 +24,8 @@ public class DebugFileWriter {
    * @param content the content that should be written
    * @param filename the name of the file
    */
-  public static void saveDebugFile(String directoryPath, String content, String filename) {
+  public static void saveDebugFile(final String directoryPath, final String content,
+                                   final String filename) {
     try {
       Files.write(Paths.get(directoryPath, filename), content.getBytes());
     } catch (IOException e) {

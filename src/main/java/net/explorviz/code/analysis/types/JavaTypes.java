@@ -3,7 +3,7 @@ package net.explorviz.code.analysis.types;
 /**
  * Class for holding lists of type names.
  */
-public class JavaTypes {
+public final class JavaTypes {
   public static final String[] BUILT_INS = {"Appendable", "AutoCloseable", "CharSequence",
       "Cloneable", "Comparable", "Iterable", "Readable", "Runnable",
       "Thread.UncaughtExceptionHandler", "Boolean", "Byte", "Character", "Class", "ClassLoader",
@@ -32,4 +32,7 @@ public class JavaTypes {
 
   public static final String[] PRIMITIVES = {"void", "byte", "short", "int", "long", "float",
       "double", "boolean", "char"};
+
+  private JavaTypes() {
+  }
 }

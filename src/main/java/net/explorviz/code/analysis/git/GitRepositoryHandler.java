@@ -43,7 +43,7 @@ import org.slf4j.LoggerFactory;
  * Injectable helper class for jGit concerns.
  */
 @ApplicationScoped
-public class GitRepositoryHandler {
+public class GitRepositoryHandler { // NOPMD
 
   private static final Logger LOGGER = LoggerFactory.getLogger(GitRepositoryHandler.class);
   private static final String JAVA_PATH_SUFFIX = ".java";
@@ -67,7 +67,7 @@ public class GitRepositoryHandler {
   @ConfigProperty(name = "explorviz.gitanalysis.branch")
   /* default */ Optional<String> repositoryBranchProperty;  // NOCS
 
-  private Git git = null;
+  private Git git;
 
   /**
    * Tries to download the Git {@link Repository} based on a given Url to the given.
@@ -77,7 +77,7 @@ public class GitRepositoryHandler {
    * @return returns an opened git repository
    * @throws GitAPIException gets thrown if the git api encounters an error
    */
-  private Repository downloadGitRepository( // NOCS TODO fix the cyclomatic complexety later
+  private Repository downloadGitRepository( // NOCS NOPMD TODO fix cyclomatic complexety later
                                             final RemoteRepositoryObject remoteRepositoryObject)
       throws GitAPIException, IOException {
 
@@ -112,13 +112,12 @@ public class GitRepositoryHandler {
       if (LOGGER.isErrorEnabled()) {
         if (te.getMessage().contains("not found in upstream")) {
           LOGGER.error("Transport Exception thrown, branch not found");
-        } else if (te.getMessage()
-            .contains("no CredentialsProvider")) {
+        } else if (te.getMessage().contains("no CredentialsProvider")) {
           LOGGER.error("Transport Exception thrown, repository is private, no credentials given");
         } else if (te.getMessage().contains("not authorized")) {
           LOGGER.error("Transport Exception thrown, credential are wrong");
         } else {
-          LOGGER.error("Transport Exception thrown: " + te.getMessage());
+          LOGGER.error("Transport Exception thrown: " + te.getMessage()); // NOPMD
         }
       }
       throw te;
@@ -216,7 +215,7 @@ public class GitRepositoryHandler {
       throw new PropertyNotDefinedException("explorviz.gitanalysis.local.folder.path");
     }
 
-    CredentialsProvider credentialsProvider;
+    final CredentialsProvider credentialsProvider;
     if (usernameProperty.isEmpty() || passwordProperty.isEmpty()) {
       credentialsProvider = CredentialsProvider.getDefault();
     } else {
@@ -240,10 +239,11 @@ public class GitRepositoryHandler {
    * @throws GitAPIException thrown if git encounters an exception
    * @throws IOException     thrown if files are not available
    */
-  public List<Pair<ObjectId, String>> listDiff(Repository repository, Optional<RevCommit> oldCommit,
-                                               RevCommit newCommit)
+  public List<Pair<ObjectId, String>> listDiff(final Repository repository,
+                                               final Optional<RevCommit> oldCommit,
+                                               final RevCommit newCommit)
       throws GitAPIException, IOException {
-    List<Pair<ObjectId, String>> objectIdList = new ArrayList<>();
+    final List<Pair<ObjectId, String>> objectIdList = new ArrayList<>();
 
     if (oldCommit.isEmpty()) {
       try (final TreeWalk treeWalk = new TreeWalk(repository)) { // NOPMD
@@ -261,7 +261,7 @@ public class GitRepositoryHandler {
           .setPathFilter(PathSuffixFilter.create(JAVA_PATH_SUFFIX))
           .call();
 
-      for (DiffEntry diff : diffs) {
+      for (final DiffEntry diff : diffs) {
         if (diff.getChangeType().equals(DiffEntry.ChangeType.DELETE)) {
           continue;
         } else if (diff.getChangeType().equals(DiffEntry.ChangeType.RENAME)) {
@@ -269,11 +269,22 @@ public class GitRepositoryHandler {
         } else if (diff.getChangeType().equals(DiffEntry.ChangeType.COPY)) {
           LOGGER.warn("File Copied");
         }
-        String[] parts = diff.getNewPath().split("/");
+        final String[] parts = diff.getNewPath().split("/");
         objectIdList.add(new Pair<>(diff.getNewId().toObjectId(), parts[parts.length - 1]));
       }
     }
     return objectIdList;
+  }
+
+  /**
+   * Checks if the given commit is unreachable by the given branch (is not part of the branch).
+   *
+   * @param commitId the full SHA-1 id of the commit
+   * @param branch the branch name
+   * @return if the given commit is unreachable by the given branch
+   */
+  public boolean isUnreachableCommit(final String commitId, final String branch) {
+    return !this.isReachableCommit(commitId, branch);
   }
 
   /**
@@ -283,15 +294,15 @@ public class GitRepositoryHandler {
    * @param branch the branch name
    * @return if the commit is reachable by the given branch
    */
-  public boolean isReachableCommit(String commitId, String branch) {
+  public boolean isReachableCommit(final String commitId, final String branch) {
     try {
-      Map<ObjectId, String> map = this.git.nameRev().addPrefix(branch)
+      final Map<ObjectId, String> map = this.git.nameRev().addPrefix(branch)
           .add(ObjectId.fromString(commitId)).call();
       if (!map.isEmpty()) {
         return true;
       }
     } catch (GitAPIException | MissingObjectException e) {
-      throw new RuntimeException(e);
+      throw new RuntimeException(e);  // NOPMD
     }
     return false;
   }
@@ -300,13 +311,14 @@ public class GitRepositoryHandler {
     return repositoryPath;
   }
 
-  public static String getCurrentBranch(Repository repository) throws IOException {
+  public static String getCurrentBranch(final Repository repository) throws IOException {
     return repository.getFullBranch();
   }
 
-  private static AbstractTreeIterator prepareTreeParser(Repository repository, RevTree tree)
+  private static AbstractTreeIterator prepareTreeParser(final Repository repository,
+                                                        final RevTree tree)
       throws IOException {
-    CanonicalTreeParser treeParser = new CanonicalTreeParser();
+    final CanonicalTreeParser treeParser = new CanonicalTreeParser();
     try (ObjectReader reader = repository.newObjectReader()) {
       treeParser.reset(reader, tree.getId());
     }

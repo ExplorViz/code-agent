@@ -65,7 +65,7 @@ public class GitAnalysis {
   // @GrpcClient("structureevent")
   // /* package */ StructureEventServiceGrpc.StructureEventServiceBlockingStub grpcClient; // NOCS
 
-  private void analyzeAndSendRepo(String startCommit, String endCommit) // NOCS TODO cyclomatic
+  private void analyzeAndSendRepo(String startCommit, String endCommit)// NOCS NOPMD TODO cyclomatic
       throws IOException, GitAPIException, PropertyNotDefinedException, NotFoundException { // NOPMD
     // steps:
     // open or download repository                          - Done
@@ -78,11 +78,9 @@ public class GitAnalysis {
 
       final String branch = GitRepositoryHandler.getCurrentBranch(repository);
 
-      if (startCommit != null && !this.gitRepositoryHandler.isReachableCommit(startCommit,
-          branch)) {
+      if (this.gitRepositoryHandler.isUnreachableCommit(startCommit, branch)) {
         throw new NotFoundException(toErrorText("start", startCommit, branch));
-      } else if (endCommit != null && !this.gitRepositoryHandler.isReachableCommit(endCommit,
-          branch)) {
+      } else if (this.gitRepositoryHandler.isUnreachableCommit(endCommit, branch)) {
         throw new NotFoundException(toErrorText("end", endCommit, branch));
       }
 
@@ -96,7 +94,10 @@ public class GitAnalysis {
         revWalk.sort(RevSort.COMMIT_TIME_DESC, true);
         revWalk.sort(RevSort.REVERSE, true);
 
-        LOGGER.info("analyzing branch " + branch);
+        if (LOGGER.isInfoEnabled()) {
+          LOGGER.info("analyzing branch " + branch);
+        }
+
         for (final Ref ref : allRefs) {
           // find the branch we are interested in
           if (ref.getName().equals(branch)) {
@@ -107,7 +108,9 @@ public class GitAnalysis {
 
         int commitCount = 0;
         RevCommit lastCheckedCommit = null;
-        boolean inAnlysisRange = startCommit == null;
+        boolean inAnlysisRange = "".equals(startCommit);
+
+        JavaParserService javaParserService;
         for (final RevCommit commit : revWalk) {
 
           if (!inAnlysisRange) {
@@ -122,15 +125,19 @@ public class GitAnalysis {
           }
 
           // LOGGER.info("{} : {}", count, commit.toString());
-          List<Pair<ObjectId, String>> objectIdList = gitRepositoryHandler.listDiff(repository,
+          final List<Pair<ObjectId, String>> objectIdList = gitRepositoryHandler.listDiff(
+              repository,
               Optional.ofNullable(lastCheckedCommit),
               commit);
 
           if (objectIdList.isEmpty()) {
-            LOGGER.info("Skip {}", commit.name());
+            if (LOGGER.isInfoEnabled()) {
+              LOGGER.info("Skip {}", commit.name());
+            }
+
             commitCount++;
             lastCheckedCommit = commit;
-            if (commit.name().equals((endCommit))) {
+            if (commit.name().equals(endCommit)) {
               break;
             }
             continue;
@@ -140,18 +147,20 @@ public class GitAnalysis {
           final Date commitDate = commit.getAuthorIdent().getWhen();
           LOGGER.info("Analyze {}", commitDate);
           Git.wrap(repository).checkout().setName(commit.getName()).call();
-          JavaParserService javaParserService = new JavaParserService(
+          javaParserService = new JavaParserService(// NOPMD
               DirectoryFinder.getDirectory(sourceDirectoryProperty.orElse("")));
 
 
-          for (Pair<ObjectId, String> pair : objectIdList) {
+          for (final Pair<ObjectId, String> pair : objectIdList) {
             final String fileContent = GitRepositoryHandler.getContent(pair.a, repository);
             LOGGER.info("analyze: {}", pair.b);
             try {
-              FileData fileData = javaParserService.parseFileContent(fileContent, pair.b)
+              FileData fileData = javaParserService.parseFileContent(fileContent, pair.b) // NOPMD
                   .getProtoBufObject();
             } catch (NoSuchElementException | NoSuchFieldError e) {
-              LOGGER.warn(e.toString());
+              if (LOGGER.isWarnEnabled()) {
+                LOGGER.warn(e.toString());
+              }
             }
 
 
@@ -173,7 +182,7 @@ public class GitAnalysis {
           commitCount++;
           lastCheckedCommit = commit;
           // break if endCommit is reached, if endCommit is null, run for all commits
-          if (commit.name().equals((endCommit))) {
+          if (commit.name().equals(endCommit)) {
             break;
           }
         }
@@ -191,12 +200,13 @@ public class GitAnalysis {
     if (repoPathProperty.isEmpty()) {
       return;
     }
-    this.analyzeAndSendRepo(startCommitProperty.orElse(null), endCommitProperty.orElse(null));
+    this.analyzeAndSendRepo(startCommitProperty.orElse(""), endCommitProperty.orElse(""));
     // this.analyzeAndSendRepo("f3a8d244b2d3c52325941d09cdeb1b07b8b37815",
     //     "6580e8b6cfa246422399eb0640ef93c30396115d");
   }
 
-  private static String toErrorText(String position, String commitId, String branchName) {
+  private static String toErrorText(final String position, final String commitId,
+                                    final String branchName) {
     return "The given " + position + " commit <" + commitId
         + "> was not found in the current branch <" + branchName + ">";
   }

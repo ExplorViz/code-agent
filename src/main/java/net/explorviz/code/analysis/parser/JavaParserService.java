@@ -31,7 +31,7 @@ public class JavaParserService {
    *
    * @param sourcePath the path to the source code in the repository
    */
-  public JavaParserService(String sourcePath) {
+  public JavaParserService(final String sourcePath) {
     this.sourcePath = sourcePath;
     combinedTypeSolver = new CombinedTypeSolver();
     reflectionTypeSolver = new ReflectionTypeSolver();
@@ -67,7 +67,7 @@ public class JavaParserService {
    *
    * @param sourcePath the path to the source folder
    */
-  public void reset(String sourcePath) {
+  public void reset(final String sourcePath) {
     this.sourcePath = sourcePath;
     reset();
   }
@@ -77,10 +77,10 @@ public class JavaParserService {
     StaticJavaParser.getConfiguration().setSymbolResolver(this.javaSymbolSolver);
     final CompilationUnit compilationUnit;
 
-    if (path != null) {
-      compilationUnit = StaticJavaParser.parse(path);
-    } else {
+    if (path == null) {
       compilationUnit = StaticJavaParser.parse(fileContent);
+    } else {
+      compilationUnit = StaticJavaParser.parse(path);
     }
 
     try {
@@ -123,7 +123,7 @@ public class JavaParserService {
    * @throws IOException Gets thrown if the file is not reachable
    */
   public FileDataHandler parseFile(final String pathToFile) throws IOException {
-    Path path = Path.of(pathToFile);
+    final Path path = Path.of(pathToFile);
     return parseAny("", path.getFileName().toString(), path);
   }
 

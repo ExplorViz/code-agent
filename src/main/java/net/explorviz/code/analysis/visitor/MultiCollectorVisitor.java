@@ -29,7 +29,7 @@ import org.slf4j.LoggerFactory;
 /**
  * Visitor filling a FileData object.
  */
-public class MultiCollectorVisitor extends VoidVisitorAdapter<FileDataHandler> {
+public class MultiCollectorVisitor extends VoidVisitorAdapter<FileDataHandler> { // NOPMD
 
   private static final Logger LOGGER = LoggerFactory.getLogger(MultiCollectorVisitor.class);
   private static final String UNKNOWN = "UNKNOWN";
@@ -47,7 +47,7 @@ public class MultiCollectorVisitor extends VoidVisitorAdapter<FileDataHandler> {
   }
 
   @Override
-  public void visit(EnumDeclaration n, FileDataHandler data) {
+  public void visit(final EnumDeclaration n, final FileDataHandler data) {
     data.enterClass(n.getFullyQualifiedName().orElse(UNKNOWN));
     data.getCurrentClassData().setLoc(getLoc(n));
     data.getCurrentClassData().setIsEnum();
@@ -68,7 +68,7 @@ public class MultiCollectorVisitor extends VoidVisitorAdapter<FileDataHandler> {
   }
 
   @Override
-  public void visit(final ClassOrInterfaceDeclaration n, final FileDataHandler data) {
+  public void visit(final ClassOrInterfaceDeclaration n, final FileDataHandler data) { // NOPMD
 
     data.enterClass(n.getFullyQualifiedName().orElse(UNKNOWN));
     data.getCurrentClassData().setLoc(getLoc(n));
@@ -85,14 +85,13 @@ public class MultiCollectorVisitor extends VoidVisitorAdapter<FileDataHandler> {
       data.getCurrentClassData().addModifier(modifier.getKeyword().asString());
     }
 
-    for (ClassOrInterfaceType classOrInterfaceType : n.getExtendedTypes()) {
+    for (final ClassOrInterfaceType classOrInterfaceType : n.getExtendedTypes()) {
       final String fqn = resolveFqn(classOrInterfaceType, data);
       if (data.getCurrentClassData().isClass() || data.getCurrentClassData().isAbstractClass()) {
         data.getCurrentClassData().setSuperClass(fqn);
       } else if (data.getCurrentClassData().isInterface()) {
         data.getCurrentClassData().addImplementedInterface(fqn);
       } else {
-        System.out.println("No Interface, Class, or AbastractClass");
         if (LOGGER.isErrorEnabled()) {
           LOGGER.error(
               "Unexpected Error, Declaration is neither Interface, AbstractClass nor Class but"
@@ -101,7 +100,7 @@ public class MultiCollectorVisitor extends VoidVisitorAdapter<FileDataHandler> {
       }
     }
 
-    for (ClassOrInterfaceType classOrInterfaceType : n.getImplementedTypes()) {
+    for (final ClassOrInterfaceType classOrInterfaceType : n.getImplementedTypes()) {
       data.getCurrentClassData().addImplementedInterface(resolveFqn(classOrInterfaceType, data));
     }
 
@@ -133,7 +132,7 @@ public class MultiCollectorVisitor extends VoidVisitorAdapter<FileDataHandler> {
   }
 
   @Override
-  public void visit(EnumConstantDeclaration n, FileDataHandler data) {
+  public void visit(final EnumConstantDeclaration n, final FileDataHandler data) {
     data.getCurrentClassData().addEnumConstant(n.getNameAsString());
     super.visit(n, data);
   }
@@ -144,12 +143,12 @@ public class MultiCollectorVisitor extends VoidVisitorAdapter<FileDataHandler> {
     super.visit(n, data);
   }
 
-  private String resolveFqn(Type type, final FileDataHandler data) {
-    if (data.getFileName().endsWith("NamedEntity.java") || (
-        data.getFileName().endsWith("PetController.java") && type.asString().equals("Pet"))) {
-      //  && type.toString().equals("<BaseEntity>")
-      int i = 1;
-    }
+  private String resolveFqn(final Type type, final FileDataHandler data) {
+    // if (data.getFileName().endsWith("NamedEntity.java") || (
+    //     data.getFileName().endsWith("PetController.java") && "Pet".equals(type.asString()))) {
+    //   //  && type.toString().equals("<BaseEntity>")
+    //   int i = 1;
+    // }
     try {
       final ResolvedType resolvedType = type.resolve();
       if (resolvedType.isReferenceType()) {
@@ -158,7 +157,9 @@ public class MultiCollectorVisitor extends VoidVisitorAdapter<FileDataHandler> {
         return type.toString();
       }
     } catch (UnsolvedSymbolException | IllegalStateException e) {
-      LOGGER.warn("UnresolvedSymbolException " + type.asString());
+      if (LOGGER.isWarnEnabled()) {
+        LOGGER.warn("UnresolvedSymbolException " + type.asString());
+      }
       return findFqnInImports(type.asString(), data.getImportNames());
       // Only used if no resolver present
     } catch (UnsupportedOperationException e) {
@@ -198,8 +199,8 @@ public class MultiCollectorVisitor extends VoidVisitorAdapter<FileDataHandler> {
     }
 
     // check build in types from java.lang
-    for (final String built_in : JavaTypes.BUILT_INS) {
-      if (type.equals(built_in)) {
+    for (final String builtIn : JavaTypes.BUILT_INS) {
+      if (type.equals(builtIn)) {
         return "java.lang." + type;
       }
     }

@@ -17,16 +17,20 @@ import org.slf4j.LoggerFactory;
 /**
  * Class to ease the finding of directories inside a local git Repository.
  */
-public class DirectoryFinder {
+public final class DirectoryFinder {
   private static final Logger LOGGER = LoggerFactory.getLogger(DirectoryFinder.class);
   private static final Map<String, String> PATHS = new HashMap<>();
+
+  private DirectoryFinder() {
+
+  }
 
   /**
    * Resets the given path entry, the saved value will be removed.
    *
    * @param path the search string for the path used to create it
    */
-  public static void resetDirectory(String path) {
+  public static void resetDirectory(final String path) {
     PATHS.remove(path);
   }
 
@@ -38,7 +42,7 @@ public class DirectoryFinder {
    * @throws MalformedPathException thrown if the search string is malformed and can not be used
    * @throws NotFoundException      thrown if no directory matches the given search string
    */
-  public static String getDirectory(String path) throws MalformedPathException, NotFoundException {
+  public static String getDirectory(final String path) throws NotFoundException {
     // checks if a path exists in the map and is still valid
     if (PATHS.get(path) != null && new File(PATHS.get(path)).isDirectory()) {
       return PATHS.get(path);
@@ -65,21 +69,22 @@ public class DirectoryFinder {
       PATHS.put(path, new File(dir).getAbsolutePath());
 
     } else {
-      String p = Path.of(GitRepositoryHandler.getCurrentRepositoryPath(), sourceDir)
+      final String p = Path.of(GitRepositoryHandler.getCurrentRepositoryPath(), sourceDir)
           .toString();
       PATHS.put(path, p);
     }
     return PATHS.get(path);
   }
 
-  private static String findFolder(String currentPath, List<String> traverseFolders) {
+  private static String findFolder(final String currentPath, // NOPMD
+                                   final List<String> traverseFolders) {
 
     // the current path is the folder we searched for, as the traverse folders are empty
     if (traverseFolders.isEmpty()) {
       return currentPath;
     }
     // get all directories in the current directory, so we can search for the right one
-    String[] directories = new File(currentPath).list(
+    final String[] directories = new File(currentPath).list(
         (current, name) -> new File(current, name).isDirectory());
     // if this folder is empty, throw an exception. we only get here if the traverse folder
     // hierarchy is not right, or we got here through a wildcard operator
@@ -89,7 +94,7 @@ public class DirectoryFinder {
     // if the next traverse folder is found in the list, search there
     if (Arrays.stream(directories)
         .anyMatch(Predicate.isEqual(traverseFolders.get(0)))) {
-      String folderName = traverseFolders.get(0);
+      final String folderName = traverseFolders.get(0);
       traverseFolders.remove(0);
       return findFolder(currentPath + File.separator + folderName, traverseFolders);
     }
@@ -99,12 +104,12 @@ public class DirectoryFinder {
       if (Arrays.stream(directories)
           .anyMatch(Predicate.isEqual(traverseFolders.get(1)))) {
         traverseFolders.remove(0);
-        String folderName = traverseFolders.get(0);
+        final String folderName = traverseFolders.get(0);
         traverseFolders.remove(0);
         return findFolder(currentPath + File.separator + folderName, traverseFolders);
       }
-      for (String directory : directories) {
-        List<String> folders = traverseFolders.stream().skip(1).collect(Collectors.toList());
+      for (final String directory : directories) {
+        final List<String> folders = traverseFolders.stream().skip(1).collect(Collectors.toList());
         // search in the next level as the folder is there
         String path = findFolder(currentPath + File.separator + directory, folders);
         if (!path.isEmpty()) {
@@ -120,4 +125,5 @@ public class DirectoryFinder {
     // folder was not found
     return "";
   }
+
 }

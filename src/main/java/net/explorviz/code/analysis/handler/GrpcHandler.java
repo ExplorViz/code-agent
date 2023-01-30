@@ -5,18 +5,22 @@ import net.explorviz.code.proto.StateData;
 /**
  * Basic GRPC handler.
  */
-public class GrpcHandler {
+public final class GrpcHandler {
+
+  private GrpcHandler() {
+  }
+
   /**
    * Requests the state data from the remote endpoint.
    *
    * @param branchName the branch for the analysis
    * @return the state of the remote database
    */
-  public static StateData requestStateData(String branchName) {
+  public static StateData requestStateData(final String branchName) {
     // throw new ExecutionControl.NotImplementedException("Currently not Implemented");
 
     // MOCKING SOME DATA
-    StateData.Builder builder = StateData.newBuilder();
+    final StateData.Builder builder = StateData.newBuilder();
     builder.setBranchName(branchName);
     builder.setCommitID("");
     return builder.build();

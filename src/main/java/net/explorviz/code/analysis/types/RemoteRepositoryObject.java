@@ -59,7 +59,7 @@ public class RemoteRepositoryObject {
     return branchName;
   }
 
-  public void setBranchName(String branchName) {
+  public void setBranchName(final String branchName) {
     this.branchName = branchName;
   }
 
