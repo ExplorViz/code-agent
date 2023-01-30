@@ -22,6 +22,7 @@ import org.eclipse.jgit.api.errors.InvalidRemoteException;
 import org.eclipse.jgit.api.errors.RefNotFoundException;
 import org.eclipse.jgit.api.errors.TransportException;
 import org.eclipse.jgit.diff.DiffEntry;
+import org.eclipse.jgit.errors.MissingObjectException;
 import org.eclipse.jgit.lib.ObjectId;
 import org.eclipse.jgit.lib.ObjectLoader;
 import org.eclipse.jgit.lib.ObjectReader;
@@ -42,9 +43,9 @@ import org.slf4j.LoggerFactory;
  * Injectable helper class for jGit concerns.
  */
 @ApplicationScoped
-public class GitRepositoryLoader {
+public class GitRepositoryHandler {
 
-  private static final Logger LOGGER = LoggerFactory.getLogger(GitRepositoryLoader.class);
+  private static final Logger LOGGER = LoggerFactory.getLogger(GitRepositoryHandler.class);
   private Git git = null;
   private static String repositoryPath;
 
@@ -157,7 +158,7 @@ public class GitRepositoryLoader {
         }
       }
     }
-    GitRepositoryLoader.repositoryPath = repositoryPath;
+    GitRepositoryHandler.repositoryPath = repositoryPath;
     return this.git.getRepository();
   }
 
@@ -261,6 +262,19 @@ public class GitRepositoryLoader {
       }
     }
     return objectIdList;
+  }
+
+  public boolean isReachableCommit(String commitId, String branch) {
+    try {
+      Map<ObjectId, String> map = this.git.nameRev().addPrefix(branch)
+          .add(ObjectId.fromString(commitId)).call();
+      if (!map.isEmpty()) {
+        return true;
+      }
+    } catch (GitAPIException | MissingObjectException e) {
+      throw new RuntimeException(e);
+    }
+    return false;
   }
 
   public static String getCurrentRepositoryPath() {
