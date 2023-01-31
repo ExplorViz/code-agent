@@ -113,13 +113,13 @@ public class GitAnalysis {
 
         int commitCount = 0;
         RevCommit lastCheckedCommit = null;
-        boolean inAnlysisRange = "".equals(startCommit);
+        boolean inAnalysisRange = "".equals(startCommit);
 
         for (final RevCommit commit : revWalk) {
 
-          if (!inAnlysisRange) {
+          if (!inAnalysisRange) {
             if (commit.name().equals(startCommit)) {
-              inAnlysisRange = true;
+              inAnalysisRange = true;
             } else {
               if (!fullAnalysisProperty) {
                 lastCheckedCommit = commit;
