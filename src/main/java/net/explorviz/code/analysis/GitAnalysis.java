@@ -1,6 +1,5 @@
 package net.explorviz.code.analysis;
 
-import com.github.javaparser.utils.Pair;
 import io.quarkus.runtime.StartupEvent;
 import java.io.IOException;
 import java.util.Collection;
@@ -15,11 +14,12 @@ import net.explorviz.code.analysis.exceptions.NotFoundException;
 import net.explorviz.code.analysis.exceptions.PropertyNotDefinedException;
 import net.explorviz.code.analysis.git.DirectoryFinder;
 import net.explorviz.code.analysis.git.GitRepositoryHandler;
+import net.explorviz.code.analysis.handler.GrpcHandler;
 import net.explorviz.code.analysis.parser.JavaParserService;
+import net.explorviz.code.analysis.types.FileDescriptor;
 import net.explorviz.code.proto.FileData;
 import org.eclipse.jgit.api.Git;
 import org.eclipse.jgit.api.errors.GitAPIException;
-import org.eclipse.jgit.lib.ObjectId;
 import org.eclipse.jgit.lib.Ref;
 import org.eclipse.jgit.lib.Repository;
 import org.eclipse.jgit.revwalk.RevCommit;
@@ -62,10 +62,15 @@ public class GitAnalysis {
   @Inject
   /* package */ GitRepositoryHandler gitRepositoryHandler; // NOCS
 
-  // @GrpcClient("structureevent")
-  // /* package */ StructureEventServiceGrpc.StructureEventServiceBlockingStub grpcClient; // NOCS
+  @Inject
+  /* package */ JavaParserService javaParserService; // NOCS
 
-  private void analyzeAndSendRepo(String startCommit, String endCommit)// NOCS NOPMD TODO cyclomatic
+  // TODO maybe the string provided here is wrong
+  // @GrpcClient("fileDataEvent")
+  // /* package */ FileDataServiceGrpc.FileDataServiceBlockingStub grpcClient; // NOCS
+
+  private void analyzeAndSendRepo(final String startCommit,// NOCS NOPMD TODO cyclomatic complexity
+                                  final String endCommit)
       throws IOException, GitAPIException, PropertyNotDefinedException, NotFoundException { // NOPMD
     // steps:
     // open or download repository                          - Done
@@ -110,7 +115,6 @@ public class GitAnalysis {
         RevCommit lastCheckedCommit = null;
         boolean inAnlysisRange = "".equals(startCommit);
 
-        JavaParserService javaParserService;
         for (final RevCommit commit : revWalk) {
 
           if (!inAnlysisRange) {
@@ -124,17 +128,13 @@ public class GitAnalysis {
             }
           }
 
-          // LOGGER.info("{} : {}", count, commit.toString());
-          final List<Pair<ObjectId, String>> objectIdList = gitRepositoryHandler.listDiff(
-              repository,
-              Optional.ofNullable(lastCheckedCommit),
-              commit);
+          final List<FileDescriptor> descriptorList = gitRepositoryHandler.listDiff(repository,
+              Optional.ofNullable(lastCheckedCommit), commit);
 
-          if (objectIdList.isEmpty()) {
+          if (descriptorList.isEmpty()) {
             if (LOGGER.isInfoEnabled()) {
               LOGGER.info("Skip {}", commit.name());
             }
-
             commitCount++;
             lastCheckedCommit = commit;
             if (commit.name().equals(endCommit)) {
@@ -142,42 +142,8 @@ public class GitAnalysis {
             }
             continue;
           }
-          DirectoryFinder.resetDirectory(sourceDirectoryProperty.orElse(""));
 
-          final Date commitDate = commit.getAuthorIdent().getWhen();
-          LOGGER.info("Analyze {}", commitDate);
-          Git.wrap(repository).checkout().setName(commit.getName()).call();
-          javaParserService = new JavaParserService(// NOPMD
-              DirectoryFinder.getDirectory(sourceDirectoryProperty.orElse("")));
-
-
-          for (final Pair<ObjectId, String> pair : objectIdList) {
-            final String fileContent = GitRepositoryHandler.getContent(pair.a, repository);
-            LOGGER.info("analyze: {}", pair.b);
-            try {
-              FileData fileData = javaParserService.parseFileContent(fileContent, pair.b) // NOPMD
-                  .getProtoBufObject();
-            } catch (NoSuchElementException | NoSuchFieldError e) {
-              if (LOGGER.isWarnEnabled()) {
-                LOGGER.warn(e.toString());
-              }
-            }
-
-
-            // TODO: enable GRPC again
-            // for (int i = 0; i < classes.size(); i++) {
-            //   final StructureFileEvent event = classes.get(i);
-            //   final StructureFileEvent eventWithTiming = StructureFileEvent.newBuilder(event)
-            //       .setEpochMilli(authorIdent.getWhen().getTime()).build();
-            //   classes.set(i, eventWithTiming);
-            //   // grpcClient.sendStructureFileEvent(event).await().indefinitely();
-            //   grpcClient.sendStructureFileEvent(event);
-            // }
-
-            // if (LOGGER.isDebugEnabled()) {
-            //   LOGGER.debug("Classes names: {}", classes);
-            // }
-          }
+          commitAnalysis(repository, commit, descriptorList);
 
           commitCount++;
           lastCheckedCommit = commit;
@@ -193,6 +159,41 @@ public class GitAnalysis {
     }
   }
 
+  private void commitAnalysis(final Repository repository, final RevCommit commit,
+                              final List<FileDescriptor> descriptorList)
+      throws GitAPIException, NotFoundException, IOException {
+    DirectoryFinder.resetDirectory(sourceDirectoryProperty.orElse(""));
+
+    final Date commitDate = commit.getAuthorIdent().getWhen();
+    LOGGER.info("Analyze {}", commitDate);
+    Git.wrap(repository).checkout().setName(commit.getName()).call();
+    // parser = new JavaParserService(// NOPMD
+    //     DirectoryFinder.getDirectory(sourceDirectoryProperty.orElse("")));
+    javaParserService.reset(DirectoryFinder.getDirectory(sourceDirectoryProperty.orElse("")));
+
+    for (final FileDescriptor fileDescriptor : descriptorList) {
+      final FileData fileData = fileAnalysis(repository, fileDescriptor, javaParserService);
+      GrpcHandler.sendFileData(fileData);
+    }
+  }
+
+  private FileData fileAnalysis(final Repository repository, final FileDescriptor file,
+                                final JavaParserService parser) throws IOException {
+    final String fileContent = GitRepositoryHandler.getContent(file.objectId, repository);
+    LOGGER.info("analyze: {}", file.fileName);
+    try {
+      return parser.parseFileContent(fileContent, file.fileName) // NOPMD
+          .getProtoBufObject();
+
+    } catch (NoSuchElementException | NoSuchFieldError e) {
+      if (LOGGER.isWarnEnabled()) {
+        LOGGER.warn(e.toString());
+      }
+      // TODO Return something more reasonable, null is clearly not good
+      return null;
+    }
+  }
+
   /* package */ void onStart(@Observes final StartupEvent ev)
       throws IOException, GitAPIException, PropertyNotDefinedException,
       NotFoundException {
@@ -205,6 +206,7 @@ public class GitAnalysis {
     //     "6580e8b6cfa246422399eb0640ef93c30396115d");
   }
 
+  // only done because checkstyle does not like the duplication of literals
   private static String toErrorText(final String position, final String commitId,
                                     final String branchName) {
     return "The given " + position + " commit <" + commitId

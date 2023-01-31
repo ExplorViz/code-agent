@@ -1,7 +1,6 @@
 package net.explorviz.code.analysis.git;
 
 
-import com.github.javaparser.utils.Pair;
 import java.io.File;
 import java.io.IOException;
 import java.net.MalformedURLException;
@@ -15,6 +14,7 @@ import java.util.Objects;
 import java.util.Optional;
 import javax.enterprise.context.ApplicationScoped;
 import net.explorviz.code.analysis.exceptions.PropertyNotDefinedException;
+import net.explorviz.code.analysis.types.FileDescriptor;
 import net.explorviz.code.analysis.types.RemoteRepositoryObject;
 import org.eclipse.jgit.api.Git;
 import org.eclipse.jgit.api.errors.GitAPIException;
@@ -239,11 +239,11 @@ public class GitRepositoryHandler { // NOPMD
    * @throws GitAPIException thrown if git encounters an exception
    * @throws IOException     thrown if files are not available
    */
-  public List<Pair<ObjectId, String>> listDiff(final Repository repository,
-                                               final Optional<RevCommit> oldCommit,
-                                               final RevCommit newCommit)
+  public List<FileDescriptor> listDiff(final Repository repository,
+                                       final Optional<RevCommit> oldCommit,
+                                       final RevCommit newCommit)
       throws GitAPIException, IOException {
-    final List<Pair<ObjectId, String>> objectIdList = new ArrayList<>();
+    final List<FileDescriptor> objectIdList = new ArrayList<>();
 
     if (oldCommit.isEmpty()) {
       try (final TreeWalk treeWalk = new TreeWalk(repository)) { // NOPMD
@@ -251,7 +251,7 @@ public class GitRepositoryHandler { // NOPMD
         treeWalk.setRecursive(true);
         treeWalk.setFilter(PathSuffixFilter.create(JAVA_PATH_SUFFIX));
         while (treeWalk.next()) {
-          objectIdList.add(new Pair<>(treeWalk.getObjectId(0), treeWalk.getNameString()));
+          objectIdList.add(new FileDescriptor(treeWalk.getObjectId(0), treeWalk.getNameString()));
         }
       }
     } else {
@@ -270,7 +270,7 @@ public class GitRepositoryHandler { // NOPMD
           LOGGER.warn("File Copied");
         }
         final String[] parts = diff.getNewPath().split("/");
-        objectIdList.add(new Pair<>(diff.getNewId().toObjectId(), parts[parts.length - 1]));
+        objectIdList.add(new FileDescriptor(diff.getNewId().toObjectId(), parts[parts.length - 1]));
       }
     }
     return objectIdList;

@@ -1,5 +1,6 @@
 package net.explorviz.code.analysis.handler;
 
+import net.explorviz.code.proto.FileData;
 import net.explorviz.code.proto.StateData;
 
 /**
@@ -24,5 +25,21 @@ public final class GrpcHandler {
     builder.setBranchName(branchName);
     builder.setCommitID("");
     return builder.build();
+  }
+
+  public static void sendFileData(final FileData fileData) {
+    // TODO: enable GRPC again
+    // for (int i = 0; i < classes.size(); i++) {
+    //   final StructureFileEvent event = classes.get(i);
+    //   final StructureFileEvent eventWithTiming = StructureFileEvent.newBuilder(event)
+    //       .setEpochMilli(authorIdent.getWhen().getTime()).build();
+    //   classes.set(i, eventWithTiming);
+    //   // grpcClient.sendStructureFileEvent(event).await().indefinitely();
+    //   grpcClient.sendStructureFileEvent(event);
+    // }
+
+    // if (LOGGER.isDebugEnabled()) {
+    //   LOGGER.debug("Classes names: {}", classes);
+    // }
   }
 }
