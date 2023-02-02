@@ -4,6 +4,7 @@ import com.github.javaparser.ast.CompilationUnit;
 import com.github.javaparser.ast.ImportDeclaration;
 import com.github.javaparser.ast.Modifier;
 import com.github.javaparser.ast.Node;
+import com.github.javaparser.ast.NodeList;
 import com.github.javaparser.ast.PackageDeclaration;
 import com.github.javaparser.ast.body.ClassOrInterfaceDeclaration;
 import com.github.javaparser.ast.body.ConstructorDeclaration;
@@ -117,8 +118,9 @@ public class MultiCollectorVisitor extends VoidVisitorAdapter<FileDataHandler> {
 
   @Override
   public void visit(final MethodDeclaration n, final FileDataHandler data) {
-    final String methodsFullyQualifiedName = data.getCurrentClassName() + "." + n.getNameAsString();
-    // TODO get fqn here too
+    final String methodsFullyQualifiedName =
+        data.getCurrentClassName() + "." + n.getNameAsString() + "#" + parameterHash(
+            n.getParameters());
     final String returnType = resolveFqn(n.getType(), data);
     final MethodDataHandler method = data.getCurrentClassData()
         .addMethod(methodsFullyQualifiedName, returnType);
@@ -163,9 +165,9 @@ public class MultiCollectorVisitor extends VoidVisitorAdapter<FileDataHandler> {
       if (LOGGER.isWarnEnabled()) {
         LOGGER.warn(
             "UnsupportedOperationException encountered, "
-                + "not sure why this happens, resolved for now.");
+                + "reason currently unknown. Try to resolve but this may fail.");
       }
-      // TODO why this? Still some debugging code?
+      // TODO what happens here? Error gets thrown but I don't know the reason...
       if (e.getMessage().contains("CorrespondingDeclaration")) {
         return findFqnInImports(type, data);
       }
@@ -251,5 +253,29 @@ public class MultiCollectorVisitor extends VoidVisitorAdapter<FileDataHandler> {
       LOGGER.error("Getting the lines of code failed!");
     }
     return 0;
+  }
+
+  /**
+   * Calculates the hash for a parameter list provided as String List.
+   *
+   * @param list a list of Types
+   * @return the hash of the types as hexadecimal string
+   */
+  public static String parameterHash(List<String> list) {
+    return Integer.toHexString(list.hashCode());
+  }
+
+  /**
+   * Calculates the hash for a parameter list provided as {@link NodeList}.
+   *
+   * @param parameterList a list of Parameters
+   * @return the hash of the parameters as hexadecimal string
+   */
+  public static String parameterHash(NodeList<Parameter> parameterList) {
+    List<String> tempList = new ArrayList<>();
+    for (final Parameter parameter : parameterList) {
+      tempList.add(parameter.getName().asString());
+    }
+    return Integer.toHexString(tempList.hashCode());
   }
 }
