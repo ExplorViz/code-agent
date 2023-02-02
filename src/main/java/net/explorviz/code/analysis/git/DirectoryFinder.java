@@ -35,22 +35,46 @@ public final class DirectoryFinder {
   }
 
   /**
-   * Searches and return the directory matching the search string.
+   * Searches and return the relative path to the directory matching the search string.
    *
    * @param paths a list of search strings for the paths.
-   * @return the directory matching the search string
+   * @param relativePath the path the return should be relative to
+   * @return the directories matching the search strings
+   * @throws NotFoundException thrown if no directory matches the given search string
+   */
+  public static List<String> getRelativeDirectory(final List<String> paths,
+                                                  final String relativePath)
+      throws NotFoundException {
+    final List<String> relativePaths = new ArrayList<>();
+    for (final String path : getDirectory(paths)) {
+      relativePaths.add(path.replace(relativePath, ""));
+    }
+    return relativePaths;
+  }
+
+  /**
+   * Searches and return the absolute path to the directory matching the search string.
+   *
+   * @param paths a list of search strings for the paths.
+   * @return the directories matching the search strings
    * @throws MalformedPathException thrown if the search string is malformed and can not be used
    * @throws NotFoundException      thrown if no directory matches the given search string
    */
-  public static List<String> getDirectory(final List<String> paths) throws NotFoundException {
-    List<String> pathList = new ArrayList<>();
-    for (String path : paths) {
+  public static List<String> getDirectory(final List<String> paths) // NOPMD
+      throws NotFoundException {
+    final List<String> pathList = new ArrayList<>();
+    for (final String path : paths) {
       // checks if a path exists in the map and is still valid
-      if (PATHS.get(path) != null && new File(PATHS.get(path)).isDirectory()) {
+      if (PATHS.get(path) != null && new File(PATHS.get(path)).isDirectory()) { // NOPMD
         pathList.add(PATHS.get(path));
         continue;
       }
-      String sourceDir = path;
+      String sourceDir = path;  // NOPMD
+      boolean isOptionalPath = false;
+      if (sourceDir.matches("^\\[.*\\]$")) {
+        sourceDir = sourceDir.replaceAll("\\[|\\]", "");
+        isOptionalPath = true;
+      }
       // handle the wildcard
       if (sourceDir.contains("*")) {
         if (sourceDir.matches("\\*[/\\\\]?$")) {
@@ -63,13 +87,17 @@ public final class DirectoryFinder {
           LOGGER.warn("found double file separator, replaced input with -> {}", sourceDir);
         }
         final String[] arr = sourceDir.split("[*\\\\/]");
-        final List<String> traverseFolders = new ArrayList<>(Arrays.asList(arr));
+        final List<String> traverseFolders = new ArrayList<>(Arrays.asList(arr)); // NOPMD
         final String dir = findFolder(GitRepositoryHandler.getCurrentRepositoryPath(),
             traverseFolders);
         if (dir.isEmpty()) {
+          // skip this path if not found as it was declared as optional
+          if (isOptionalPath) {
+            continue;
+          }
           throw new NotFoundException("directory was not found");
         }
-        PATHS.put(path, new File(dir).getAbsolutePath());
+        PATHS.put(path, new File(dir).getAbsolutePath()); // NOPMD
 
       } else {
         final String p = Path.of(GitRepositoryHandler.getCurrentRepositoryPath(), sourceDir)

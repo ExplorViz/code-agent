@@ -53,8 +53,8 @@ public class JavaParserService {
     combinedTypeSolver = new CombinedTypeSolver();
     reflectionTypeSolver = new ReflectionTypeSolver();
     combinedTypeSolver.add(reflectionTypeSolver);
-    for (String path : sourcePaths) {
-      combinedTypeSolver.add(new JavaParserTypeSolver(Path.of(path)));
+    for (final String path : sourcePaths) {
+      combinedTypeSolver.add(new JavaParserTypeSolver(Path.of(path)));  // NOPMD
     }
     javaSymbolSolver = new JavaSymbolSolver(combinedTypeSolver);
   }
@@ -83,8 +83,8 @@ public class JavaParserService {
     combinedTypeSolver = new CombinedTypeSolver();
     reflectionTypeSolver = new ReflectionTypeSolver();
     combinedTypeSolver.add(reflectionTypeSolver);
-    for (String path : this.sourcePaths) {
-      combinedTypeSolver.add(new JavaParserTypeSolver(path));
+    for (final String path : this.sourcePaths) {
+      combinedTypeSolver.add(new JavaParserTypeSolver(path)); // NOPMD
     }
     javaSymbolSolver = new JavaSymbolSolver(combinedTypeSolver);
   }

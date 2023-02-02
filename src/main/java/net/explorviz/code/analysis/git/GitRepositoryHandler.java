@@ -8,11 +8,13 @@ import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.NotDirectoryException;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
 import javax.enterprise.context.ApplicationScoped;
+import net.explorviz.code.analysis.exceptions.NotFoundException;
 import net.explorviz.code.analysis.exceptions.PropertyNotDefinedException;
 import net.explorviz.code.analysis.types.FileDescriptor;
 import net.explorviz.code.analysis.types.RemoteRepositoryObject;
@@ -34,7 +36,10 @@ import org.eclipse.jgit.transport.UsernamePasswordCredentialsProvider;
 import org.eclipse.jgit.treewalk.AbstractTreeIterator;
 import org.eclipse.jgit.treewalk.CanonicalTreeParser;
 import org.eclipse.jgit.treewalk.TreeWalk;
+import org.eclipse.jgit.treewalk.filter.AndTreeFilter;
+import org.eclipse.jgit.treewalk.filter.PathFilterGroup;
 import org.eclipse.jgit.treewalk.filter.PathSuffixFilter;
+import org.eclipse.jgit.treewalk.filter.TreeFilter;
 import org.eclipse.microprofile.config.inject.ConfigProperty;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -98,10 +103,9 @@ public class GitRepositoryHandler { // NOPMD
       }
       this.git = Git.cloneRepository().setURI(checkedRepositoryUrl.getValue())
           .setCredentialsProvider(remoteRepositoryObject.getCredentialsProvider())
-          .setDirectory(new File(repoPath))
-          .setBranch(remoteRepositoryObject.getBranchNameOrNull())
+          .setDirectory(new File(repoPath)).setBranch(remoteRepositoryObject.getBranchNameOrNull())
           .call();
-      repositoryPath = repoPath;
+      repositoryPath = new File(repoPath).getAbsolutePath();
       return this.git.getRepository();
     } catch (TransportException te) {
       if (!checkedRepositoryUrl.getKey()) {
@@ -159,7 +163,7 @@ public class GitRepositoryHandler { // NOPMD
         }
       }
     }
-    GitRepositoryHandler.repositoryPath = repositoryPath;
+    GitRepositoryHandler.repositoryPath = new File(repositoryPath).getAbsolutePath();
     return this.git.getRepository();
   }
 
@@ -225,12 +229,35 @@ public class GitRepositoryHandler { // NOPMD
 
     return getGitRepository(this.repoPathProperty.orElse(""),
         new RemoteRepositoryObject(this.repoUrlProperty.orElse(""),
-            repoLocalStoragePathProperty.orElse(""),
-            credentialsProvider, repositoryBranchProperty.orElse("")));
+            repoLocalStoragePathProperty.orElse(""), credentialsProvider,
+            repositoryBranchProperty.orElse("")));
   }
 
   /**
-   * Returns the differences between two given commits.
+   * Returns the changed filenames between two given commits.
+   *
+   * @param repository the current repository
+   * @param oldCommit the old commit, as a baseline for the difference calculation
+   * @param newCommit the new commit, gets checked against the old commit
+   * @param pathRestrictions a comma separated list of search strings specifying the folders to
+   *     analyze
+   * @return a list of pairs containing the objectsIds and filenames of all files changed files
+   * @throws GitAPIException   thrown if git encounters an exception
+   * @throws IOException       thrown if files are not available
+   * @throws NotFoundException thrown if the restrictionPath was not found
+   */
+  public List<FileDescriptor> listDiff(final Repository repository,
+                                       final Optional<RevCommit> oldCommit,
+                                       final RevCommit newCommit, final String pathRestrictions)
+      throws GitAPIException, IOException, NotFoundException {
+    if (pathRestrictions == null || pathRestrictions.isEmpty()) {
+      return listDiff(repository, oldCommit, newCommit, new ArrayList<>());
+    }
+    return listDiff(repository, oldCommit, newCommit, Arrays.asList(pathRestrictions.split(",")));
+  }
+
+  /**
+   * Returns the changed filenames between two given commits.
    *
    * @param repository the current repository
    * @param oldCommit the old commit, as a baseline for the difference calculation
@@ -239,17 +266,33 @@ public class GitRepositoryHandler { // NOPMD
    * @throws GitAPIException thrown if git encounters an exception
    * @throws IOException     thrown if files are not available
    */
-  public List<FileDescriptor> listDiff(final Repository repository,
+  public List<FileDescriptor> listDiff(final Repository repository, // NOPMD
                                        final Optional<RevCommit> oldCommit,
-                                       final RevCommit newCommit)
-      throws GitAPIException, IOException {
+                                       final RevCommit newCommit,
+                                       final List<String> pathRestrictions)
+      throws GitAPIException, IOException, NotFoundException {
     final List<FileDescriptor> objectIdList = new ArrayList<>();
+
+    TreeFilter filter;
+    if (pathRestrictions.isEmpty()) {
+      filter = PathSuffixFilter.create(JAVA_PATH_SUFFIX);
+    } else {
+      final List<String> pathList = DirectoryFinder.getRelativeDirectory(pathRestrictions,
+          getCurrentRepositoryPath());
+      final List<String> newPathList = new ArrayList<>();
+      for (final String path : pathList) {
+        newPathList.add(path.replaceFirst("^\\\\|/", "").replaceAll("\\\\", "/"));
+      }
+      final TreeFilter pathFilter = PathFilterGroup.createFromStrings(newPathList);
+      final PathSuffixFilter suffixFilter = PathSuffixFilter.create(JAVA_PATH_SUFFIX);
+      filter = AndTreeFilter.create(pathFilter, suffixFilter);
+    }
 
     if (oldCommit.isEmpty()) {
       try (final TreeWalk treeWalk = new TreeWalk(repository)) { // NOPMD
         treeWalk.addTree(newCommit.getTree());
         treeWalk.setRecursive(true);
-        treeWalk.setFilter(PathSuffixFilter.create(JAVA_PATH_SUFFIX));
+        treeWalk.setFilter(filter);
         while (treeWalk.next()) {
           objectIdList.add(new FileDescriptor(treeWalk.getObjectId(0), treeWalk.getNameString()));
         }
@@ -257,8 +300,7 @@ public class GitRepositoryHandler { // NOPMD
     } else {
       final List<DiffEntry> diffs = this.git.diff()
           .setOldTree(prepareTreeParser(repository, oldCommit.get().getTree()))
-          .setNewTree(prepareTreeParser(repository, newCommit.getTree()))
-          .setPathFilter(PathSuffixFilter.create(JAVA_PATH_SUFFIX))
+          .setNewTree(prepareTreeParser(repository, newCommit.getTree())).setPathFilter(filter)
           .call();
 
       for (final DiffEntry diff : diffs) {
@@ -295,7 +337,7 @@ public class GitRepositoryHandler { // NOPMD
    * @return if the commit is reachable by the given branch
    */
   public boolean isReachableCommit(final String commitId, final String branch) {
-    if ("".equals(commitId) || commitId == null) {
+    if (commitId == null || commitId.isEmpty()) {
       return true;
     }
     try {
@@ -319,8 +361,7 @@ public class GitRepositoryHandler { // NOPMD
   }
 
   private static AbstractTreeIterator prepareTreeParser(final Repository repository,
-                                                        final RevTree tree)
-      throws IOException {
+                                                        final RevTree tree) throws IOException {
     final CanonicalTreeParser treeParser = new CanonicalTreeParser();
     try (ObjectReader reader = repository.newObjectReader()) {
       treeParser.reset(reader, tree.getId());
@@ -342,10 +383,8 @@ public class GitRepositoryHandler { // NOPMD
     if (url.matches("^git@\\S+.\\S+:\\w+(/[\\S&&[^/]]+)+.git$")) {
       final String convertedUrl = url.replace(":", "/").replace("git@", "https://");
       if (LOGGER.isWarnEnabled()) {
-        LOGGER.warn(
-            "The URL seems to be a SSH url, currently"
-                + " only HTTPS is supported, converted url now is: "
-                + convertedUrl);
+        LOGGER.warn("The URL seems to be a SSH url, currently"
+            + " only HTTPS is supported, converted url now is: " + convertedUrl);
       }
       return Map.entry(true, convertedUrl);
     } else if (url.matches("^http[s]*://\\S+.\\S+(/[\\S&&[^/]]+)+.git$")) {
@@ -377,8 +416,7 @@ public class GitRepositoryHandler { // NOPMD
    * @return The stringified file content.
    * @throws IOException Thrown if JGit cannot open the Git repo.
    */
-  public static String getContent(final ObjectId blobId, final Repository repo) throws
-      IOException {
+  public static String getContent(final ObjectId blobId, final Repository repo) throws IOException {
     try (ObjectReader objectReader = repo.newObjectReader()) {
       final ObjectLoader objectLoader = objectReader.open(blobId);
       final byte[] bytes = objectLoader.getBytes();

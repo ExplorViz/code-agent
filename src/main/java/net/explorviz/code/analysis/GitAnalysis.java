@@ -44,8 +44,8 @@ public class GitAnalysis {
   @ConfigProperty(name = "explorviz.gitanalysis.source-directory")
   /* default */ Optional<String> sourceDirectoryProperty;  // NOCS
 
-  @ConfigProperty(name = "explorviz.gitanalysis.restrict-to-folder")
-  /* default */ Optional<String> folderToAnalyzeProperty;  // NOCS
+  @ConfigProperty(name = "explorviz.gitanalysis.restrict-analysis-to-folders")
+  /* default */ Optional<String> restrictAnalysisToFoldersProperty;  // NOCS NOPMD
 
   @ConfigProperty(name = "explorviz.gitanalysis.fetch-remote-data", defaultValue = "true")
   /* default */ boolean fetchRemoteDataProperty;  // NOCS
@@ -129,7 +129,8 @@ public class GitAnalysis {
           }
 
           final List<FileDescriptor> descriptorList = gitRepositoryHandler.listDiff(repository,
-              Optional.ofNullable(lastCheckedCommit), commit);
+              Optional.ofNullable(lastCheckedCommit), commit,
+              restrictAnalysisToFoldersProperty.orElse(""));
 
           if (descriptorList.isEmpty()) {
             if (LOGGER.isInfoEnabled()) {
