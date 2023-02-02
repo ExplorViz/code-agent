@@ -295,6 +295,9 @@ public class GitRepositoryHandler { // NOPMD
    * @return if the commit is reachable by the given branch
    */
   public boolean isReachableCommit(final String commitId, final String branch) {
+    if ("".equals(commitId) || commitId == null) {
+      return true;
+    }
     try {
       final Map<ObjectId, String> map = this.git.nameRev().addPrefix(branch)
           .add(ObjectId.fromString(commitId)).call();
