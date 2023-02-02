@@ -22,7 +22,6 @@ import com.github.javaparser.resolution.types.ResolvedType;
 import java.util.List;
 import net.explorviz.code.analysis.handler.FileDataHandler;
 import net.explorviz.code.analysis.handler.MethodDataHandler;
-import net.explorviz.code.analysis.types.JavaTypes;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -144,11 +143,6 @@ public class MultiCollectorVisitor extends VoidVisitorAdapter<FileDataHandler> {
   }
 
   private String resolveFqn(final Type type, final FileDataHandler data) {
-    // if (data.getFileName().endsWith("NamedEntity.java") || (
-    //     data.getFileName().endsWith("PetController.java") && "Pet".equals(type.asString()))) {
-    //   //  && type.toString().equals("<BaseEntity>")
-    //   int i = 1;
-    // }
     try {
       final ResolvedType resolvedType = type.resolve();
       if (resolvedType.isReferenceType()) {
@@ -157,13 +151,8 @@ public class MultiCollectorVisitor extends VoidVisitorAdapter<FileDataHandler> {
         return type.toString();
       }
     } catch (UnsolvedSymbolException | IllegalStateException e) {
-      if (LOGGER.isWarnEnabled()) {
-        LOGGER.warn("UnresolvedSymbolException " + type.asString());
-      }
       return findFqnInImports(type.asString(), data.getImportNames());
-      // Only used if no resolver present
     } catch (UnsupportedOperationException e) {
-      // System.out.println("Catch 155");
       if (LOGGER.isWarnEnabled()) {
         LOGGER.warn(
             "UnsupportedOperationException encountered, "
@@ -185,12 +174,7 @@ public class MultiCollectorVisitor extends VoidVisitorAdapter<FileDataHandler> {
    * @return the fqn or the original type
    */
   private String findFqnInImports(final String type, final List<String> imports) {
-    // check if Primitive
-    for (final String primitive : JavaTypes.PRIMITIVES) {
-      if (type.equals(primitive)) {
-        return type;
-      }
-    }
+
     // check imports
     for (final String importEntry : imports) {
       if (importEntry.endsWith(type)) {
@@ -198,16 +182,9 @@ public class MultiCollectorVisitor extends VoidVisitorAdapter<FileDataHandler> {
       }
     }
 
-    // check build in types from java.lang
-    for (final String builtIn : JavaTypes.BUILT_INS) {
-      if (type.equals(builtIn)) {
-        return "java.lang." + type;
-      }
-    }
     if (LOGGER.isErrorEnabled()) {
       LOGGER.error("Unable to get FQN for <" + type + ">");
     }
-    // System.out.println("Unable to get FQN for <" + type + ">");
     return type;
   }
 

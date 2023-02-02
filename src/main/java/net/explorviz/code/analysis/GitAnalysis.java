@@ -47,8 +47,8 @@ public class GitAnalysis {
   @ConfigProperty(name = "explorviz.gitanalysis.restrict-to-folder")
   /* default */ Optional<String> folderToAnalyzeProperty;  // NOCS
 
-  @ConfigProperty(name = "explorviz.gitanalysis.full-analysis", defaultValue = "false")
-  /* default */ boolean fullAnalysisProperty;  // NOCS
+  @ConfigProperty(name = "explorviz.gitanalysis.fetch-remote-data", defaultValue = "true")
+  /* default */ boolean fetchRemoteDataProperty;  // NOCS
 
   @ConfigProperty(name = "explorviz.gitanalysis.calculate-metrics", defaultValue = "true")
   /* default */ boolean calculateMetricsProperty;  // NOCS
@@ -121,7 +121,7 @@ public class GitAnalysis {
             if (commit.name().equals(startCommit)) {
               inAnalysisRange = true;
             } else {
-              if (!fullAnalysisProperty) {
+              if (fetchRemoteDataProperty) {
                 lastCheckedCommit = commit;
               }
               continue;
@@ -173,6 +173,7 @@ public class GitAnalysis {
 
     for (final FileDescriptor fileDescriptor : descriptorList) {
       final FileData fileData = fileAnalysis(repository, fileDescriptor, javaParserService);
+      // TODO Export Alex
       GrpcHandler.sendFileData(fileData);
     }
   }
