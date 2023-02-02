@@ -37,43 +37,48 @@ public final class DirectoryFinder {
   /**
    * Searches and return the directory matching the search string.
    *
-   * @param path the search string for the path.
+   * @param paths a list of search strings for the paths.
    * @return the directory matching the search string
    * @throws MalformedPathException thrown if the search string is malformed and can not be used
    * @throws NotFoundException      thrown if no directory matches the given search string
    */
-  public static String getDirectory(final String path) throws NotFoundException {
-    // checks if a path exists in the map and is still valid
-    if (PATHS.get(path) != null && new File(PATHS.get(path)).isDirectory()) {
-      return PATHS.get(path);
-    }
-    String sourceDir = path;
-    // handle the wildcard
-    if (sourceDir.contains("*")) {
-      if (sourceDir.matches("\\*[/\\\\]?$")) {
-        throw new MalformedPathException(
-            "Wildcard character can not be the last, search would not terminate! Given -> "
-                + sourceDir);
+  public static List<String> getDirectory(final List<String> paths) throws NotFoundException {
+    List<String> pathList = new ArrayList<>();
+    for (String path : paths) {
+      // checks if a path exists in the map and is still valid
+      if (PATHS.get(path) != null && new File(PATHS.get(path)).isDirectory()) {
+        pathList.add(PATHS.get(path));
+        continue;
       }
-      if (sourceDir.matches("\\\\\\\\|//")) {
-        sourceDir = sourceDir.replaceAll("\\\\", "\\").replaceAll("//", "/");
-        LOGGER.warn("found double file separator, replaced input with -> {}", sourceDir);
-      }
-      final String[] arr = sourceDir.split("[*\\\\/]");
-      final List<String> traverseFolders = new ArrayList<>(Arrays.asList(arr));
-      final String dir = findFolder(GitRepositoryHandler.getCurrentRepositoryPath(),
-          traverseFolders);
-      if (dir.isEmpty()) {
-        throw new NotFoundException("directory was not found");
-      }
-      PATHS.put(path, new File(dir).getAbsolutePath());
+      String sourceDir = path;
+      // handle the wildcard
+      if (sourceDir.contains("*")) {
+        if (sourceDir.matches("\\*[/\\\\]?$")) {
+          throw new MalformedPathException(
+              "Wildcard character can not be the last, search would not terminate! Given -> "
+                  + sourceDir);
+        }
+        if (sourceDir.matches("\\\\\\\\|//")) {
+          sourceDir = sourceDir.replaceAll("\\\\", "\\").replaceAll("//", "/");
+          LOGGER.warn("found double file separator, replaced input with -> {}", sourceDir);
+        }
+        final String[] arr = sourceDir.split("[*\\\\/]");
+        final List<String> traverseFolders = new ArrayList<>(Arrays.asList(arr));
+        final String dir = findFolder(GitRepositoryHandler.getCurrentRepositoryPath(),
+            traverseFolders);
+        if (dir.isEmpty()) {
+          throw new NotFoundException("directory was not found");
+        }
+        PATHS.put(path, new File(dir).getAbsolutePath());
 
-    } else {
-      final String p = Path.of(GitRepositoryHandler.getCurrentRepositoryPath(), sourceDir)
-          .toString();
-      PATHS.put(path, p);
+      } else {
+        final String p = Path.of(GitRepositoryHandler.getCurrentRepositoryPath(), sourceDir)
+            .toString();
+        PATHS.put(path, p);
+      }
+      pathList.add(PATHS.get(path));
     }
-    return PATHS.get(path);
+    return pathList;
   }
 
   private static String findFolder(final String currentPath, // NOPMD

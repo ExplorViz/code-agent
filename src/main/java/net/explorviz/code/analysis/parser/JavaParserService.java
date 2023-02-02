@@ -10,6 +10,8 @@ import com.github.javaparser.symbolsolver.resolution.typesolvers.JavaParserTypeS
 import com.github.javaparser.symbolsolver.resolution.typesolvers.ReflectionTypeSolver;
 import java.io.IOException;
 import java.nio.file.Path;
+import java.util.Collections;
+import java.util.List;
 import java.util.NoSuchElementException;
 import java.util.Optional;
 import javax.enterprise.context.ApplicationScoped;
@@ -25,15 +27,14 @@ import org.slf4j.LoggerFactory;
 public class JavaParserService {
   public static final Logger LOGGER = LoggerFactory.getLogger(JavaParserService.class);
 
-  private String sourcePath;
+  private List<String> sourcePaths;
   private JavaSymbolSolver javaSymbolSolver;
   private CombinedTypeSolver combinedTypeSolver;
   private ReflectionTypeSolver reflectionTypeSolver;
-  private JavaParserTypeSolver javaParserTypeSolver;
 
   /**
    * Creates a new JavaParserService without any TypeSolvers, call {@link JavaParserService#reset()}
-   * or {@link JavaParserService#reset(String)} to get a valid JavaParserService.
+   * or {@link JavaParserService#reset(List)} to get a valid JavaParserService.
    */
   public JavaParserService() {
     combinedTypeSolver = new CombinedTypeSolver();
@@ -45,16 +46,26 @@ public class JavaParserService {
   /**
    * Creates a new JavaParserService with the needed TypeSolvers.
    *
+   * @param sourcePaths the list of paths to the source code in the repository
+   */
+  public JavaParserService(final List<String> sourcePaths) {
+    this.sourcePaths = sourcePaths;
+    combinedTypeSolver = new CombinedTypeSolver();
+    reflectionTypeSolver = new ReflectionTypeSolver();
+    combinedTypeSolver.add(reflectionTypeSolver);
+    for (String path : sourcePaths) {
+      combinedTypeSolver.add(new JavaParserTypeSolver(Path.of(path)));
+    }
+    javaSymbolSolver = new JavaSymbolSolver(combinedTypeSolver);
+  }
+
+  /**
+   * Creates a new JavaParserService with the needed TypeSolvers.
+   *
    * @param sourcePath the path to the source code in the repository
    */
   public JavaParserService(final String sourcePath) {
-    this.sourcePath = sourcePath;
-    combinedTypeSolver = new CombinedTypeSolver();
-    reflectionTypeSolver = new ReflectionTypeSolver();
-    javaParserTypeSolver = new JavaParserTypeSolver(Path.of(sourcePath));
-    combinedTypeSolver.add(reflectionTypeSolver);
-    combinedTypeSolver.add(javaParserTypeSolver);
-    javaSymbolSolver = new JavaSymbolSolver(combinedTypeSolver);
+    this(Collections.singletonList(sourcePath));
   }
 
   private FileDataHandler parse(final CompilationUnit compilationUnit, final String fileName) {
@@ -72,20 +83,19 @@ public class JavaParserService {
     combinedTypeSolver = new CombinedTypeSolver();
     reflectionTypeSolver = new ReflectionTypeSolver();
     combinedTypeSolver.add(reflectionTypeSolver);
-    if (sourcePath != null) {
-      javaParserTypeSolver = new JavaParserTypeSolver(sourcePath);
-      combinedTypeSolver.add(javaParserTypeSolver);
+    for (String path : this.sourcePaths) {
+      combinedTypeSolver.add(new JavaParserTypeSolver(path));
     }
     javaSymbolSolver = new JavaSymbolSolver(combinedTypeSolver);
   }
 
   /**
-   * Resets the JavaParserService but also resets the path to the source code.
+   * Resets the JavaParserService but also resets the paths to the source code.
    *
-   * @param sourcePath the path to the source folder
+   * @param sourcePaths the paths to the source folders
    */
-  public void reset(final String sourcePath) {
-    this.sourcePath = sourcePath;
+  public void reset(final List<String> sourcePaths) {
+    this.sourcePaths = sourcePaths;
     reset();
   }
 

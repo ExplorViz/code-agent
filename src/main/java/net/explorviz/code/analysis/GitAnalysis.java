@@ -169,7 +169,8 @@ public class GitAnalysis {
     Git.wrap(repository).checkout().setName(commit.getName()).call();
     // parser = new JavaParserService(// NOPMD
     //     DirectoryFinder.getDirectory(sourceDirectoryProperty.orElse("")));
-    javaParserService.reset(DirectoryFinder.getDirectory(sourceDirectoryProperty.orElse("")));
+    javaParserService.reset(DirectoryFinder.getDirectory(
+        List.of(sourceDirectoryProperty.orElse("").split(","))));
 
     for (final FileDescriptor fileDescriptor : descriptorList) {
       final FileData fileData = fileAnalysis(repository, fileDescriptor, javaParserService);
