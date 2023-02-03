@@ -12,9 +12,10 @@ import javax.enterprise.event.Observes;
 import javax.inject.Inject;
 import net.explorviz.code.analysis.exceptions.NotFoundException;
 import net.explorviz.code.analysis.exceptions.PropertyNotDefinedException;
+import net.explorviz.code.analysis.export.DataExporter;
+import net.explorviz.code.analysis.export.GrpcExporter;
 import net.explorviz.code.analysis.git.DirectoryFinder;
 import net.explorviz.code.analysis.git.GitRepositoryHandler;
-import net.explorviz.code.analysis.handler.GrpcHandler;
 import net.explorviz.code.analysis.parser.JavaParserService;
 import net.explorviz.code.analysis.types.FileDescriptor;
 import net.explorviz.code.proto.FileData;
@@ -65,16 +66,14 @@ public class GitAnalysis {
   @Inject
   /* package */ JavaParserService javaParserService; // NOCS
 
-  // TODO maybe the string provided here is wrong
-  // @GrpcClient("fileDataEvent")
-  // /* package */ FileDataServiceGrpc.FileDataServiceBlockingStub grpcClient; // NOCS
 
   private void analyzeAndSendRepo(final String startCommit,// NOCS NOPMD TODO cyclomatic complexity
-                                  final String endCommit)
+                                  final String endCommit,
+                                  final DataExporter exporter)
       throws IOException, GitAPIException, PropertyNotDefinedException, NotFoundException { // NOPMD
     // steps:
     // open or download repository                          - Done
-    // get remote state of the analyzed data                - @see GrpcHandler
+    // get remote state of the analyzed data                - @see GrpcExporter
     // loop for missing commits                             - Done
     //  - find difference between last and "current" commit - Done
     //  - analyze differences                               - Done
@@ -144,7 +143,7 @@ public class GitAnalysis {
             continue;
           }
 
-          commitAnalysis(repository, commit, descriptorList);
+          commitAnalysis(repository, commit, descriptorList, exporter);
 
           commitCount++;
           lastCheckedCommit = commit;
@@ -161,7 +160,8 @@ public class GitAnalysis {
   }
 
   private void commitAnalysis(final Repository repository, final RevCommit commit,
-                              final List<FileDescriptor> descriptorList)
+                              final List<FileDescriptor> descriptorList,
+                              final DataExporter exporter)
       throws GitAPIException, NotFoundException, IOException {
     DirectoryFinder.resetDirectory(sourceDirectoryProperty.orElse(""));
 
@@ -176,8 +176,9 @@ public class GitAnalysis {
     for (final FileDescriptor fileDescriptor : descriptorList) {
       final FileData fileData = fileAnalysis(repository, fileDescriptor, javaParserService);
       // TODO Export Alex
-      GrpcHandler.sendFileData(fileData);
+      exporter.sendFileData(fileData);
     }
+    exporter.sendCommitReport(null);
   }
 
   private FileData fileAnalysis(final Repository repository, final FileDescriptor file,
@@ -204,7 +205,8 @@ public class GitAnalysis {
     if (repoPathProperty.isEmpty()) {
       return;
     }
-    this.analyzeAndSendRepo(startCommitProperty.orElse(""), endCommitProperty.orElse(""));
+    this.analyzeAndSendRepo(startCommitProperty.orElse(""), endCommitProperty.orElse(""),
+        new GrpcExporter());
     // this.analyzeAndSendRepo("f3a8d244b2d3c52325941d09cdeb1b07b8b37815",
     //     "6580e8b6cfa246422399eb0640ef93c30396115d");
   }
