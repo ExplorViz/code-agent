@@ -62,7 +62,7 @@ public class MultiCollectorVisitor extends VoidVisitorAdapter<FileDataHandler> {
 
   @Override
   public void visit(final FieldDeclaration n, final FileDataHandler data) {
-    List<String> modifierList = new ArrayList<>();
+    final List<String> modifierList = new ArrayList<>();
     for (final Modifier modifier : n.getModifiers()) {
       modifierList.add(modifier.getKeyword().asString());
     }
@@ -175,9 +175,9 @@ public class MultiCollectorVisitor extends VoidVisitorAdapter<FileDataHandler> {
     }
   }
 
-  private String buildResolvedTypeFullDepthType(ResolvedReferenceType resolvedType) {
-    List<String> genericList = new ArrayList<>();
-    for (ResolvedType rt : resolvedType.typeParametersValues()) {
+  private String buildResolvedTypeFullDepthType(final ResolvedReferenceType resolvedType) {
+    final List<String> genericList = new ArrayList<>();
+    for (final ResolvedType rt : resolvedType.typeParametersValues()) {
       if (rt.isReferenceType()) {
         genericList.add(buildResolvedTypeFullDepthType(rt.asReferenceType()));
       } else if (rt.isTypeVariable()) {
@@ -196,13 +196,13 @@ public class MultiCollectorVisitor extends VoidVisitorAdapter<FileDataHandler> {
    * @param type the type of the Object
    * @return the fqn or the original type
    */
-  private String findFqnInImports(Type type, final FileDataHandler data) {
+  private String findFqnInImports(final Type type, final FileDataHandler data) {  // NOPMD
     final List<String> imports = data.getImportNames();
     String attachedGenerics = "";
     if (type instanceof ClassOrInterfaceType) {
-      ClassOrInterfaceType classOrInterfaceType = type.asClassOrInterfaceType();
+      final ClassOrInterfaceType classOrInterfaceType = type.asClassOrInterfaceType();
       if (classOrInterfaceType.getTypeArguments().isPresent()) {
-        List<String> typeList = new ArrayList<>();
+        final List<String> typeList = new ArrayList<>();
         for (final Type localType : classOrInterfaceType.getTypeArguments().get()) {
           typeList.add(resolveFqn(localType, data));
         }
@@ -227,11 +227,11 @@ public class MultiCollectorVisitor extends VoidVisitorAdapter<FileDataHandler> {
     return type.asString() + attachedGenerics;
   }
 
-  private String typeListToGeneric(List<String> typeList) {
+  private String typeListToGeneric(final List<String> typeList) {
     if (typeList.isEmpty()) {
       return "";
     }
-    StringBuilder generics = new StringBuilder("<");
+    final StringBuilder generics = new StringBuilder("<");
     for (int i = 0; i < typeList.size(); i++) {
       generics.append(typeList.get(i)).append(i + 1 == typeList.size() ? ">" : ", ");
     }
@@ -261,7 +261,7 @@ public class MultiCollectorVisitor extends VoidVisitorAdapter<FileDataHandler> {
    * @param list a list of Types
    * @return the hash of the types as hexadecimal string
    */
-  public static String parameterHash(List<String> list) {
+  public static String parameterHash(final List<String> list) {
     return Integer.toHexString(list.hashCode());
   }
 
@@ -271,8 +271,8 @@ public class MultiCollectorVisitor extends VoidVisitorAdapter<FileDataHandler> {
    * @param parameterList a list of Parameters
    * @return the hash of the parameters as hexadecimal string
    */
-  public static String parameterHash(NodeList<Parameter> parameterList) {
-    List<String> tempList = new ArrayList<>();
+  public static String parameterHash(final NodeList<Parameter> parameterList) {
+    final List<String> tempList = new ArrayList<>();
     for (final Parameter parameter : parameterList) {
       tempList.add(parameter.getName().asString());
     }
