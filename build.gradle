@@ -20,9 +20,15 @@ dependencies {
     implementation 'io.quarkus:quarkus-resteasy-reactive'
     implementation 'io.quarkus:quarkus-grpc'
 
+    // Java Parsing
     implementation 'com.github.javaparser:javaparser-symbol-solver-core:3.24.7'
 
-    implementation 'org.eclipse.jgit:org.eclipse.jgit:6.3.0.202209071007-r'
+    // Git
+    implementation 'org.eclipse.jgit:org.eclipse.jgit:6.4.0.202211300538-r'
+
+    // otel
+    implementation 'io.opentelemetry:opentelemetry-exporter-otlp-logs:1.22.0-alpha'
+    implementation 'io.opentelemetry:opentelemetry-proto:1.7.1-alpha'
 
     testImplementation 'io.quarkus:quarkus-junit5'
     testImplementation 'io.quarkus:quarkus-junit5-mockito'
