@@ -13,8 +13,12 @@ import com.github.javaparser.ast.body.EnumDeclaration;
 import com.github.javaparser.ast.body.FieldDeclaration;
 import com.github.javaparser.ast.body.MethodDeclaration;
 import com.github.javaparser.ast.body.Parameter;
+import com.github.javaparser.ast.body.RecordDeclaration;
 import com.github.javaparser.ast.body.VariableDeclarator;
 import com.github.javaparser.ast.comments.Comment;
+import com.github.javaparser.ast.expr.MethodCallExpr;
+import com.github.javaparser.ast.expr.ObjectCreationExpr;
+import com.github.javaparser.ast.modules.ModuleDeclaration;
 import com.github.javaparser.ast.type.ClassOrInterfaceType;
 import com.github.javaparser.ast.type.Type;
 import com.github.javaparser.ast.visitor.VoidVisitorAdapter;
@@ -23,17 +27,18 @@ import com.github.javaparser.resolution.types.ResolvedReferenceType;
 import com.github.javaparser.resolution.types.ResolvedType;
 import java.util.ArrayList;
 import java.util.List;
+import net.explorviz.code.analysis.handler.ConstructorDataHandler;
 import net.explorviz.code.analysis.handler.FileDataHandler;
 import net.explorviz.code.analysis.handler.MethodDataHandler;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 /**
- * Visitor filling a FileData object.
+ * Visitor filling a FileData object with typical information in java files.
  */
-public class MultiCollectorVisitor extends VoidVisitorAdapter<FileDataHandler> { // NOPMD
+public class FileDataVisitor extends VoidVisitorAdapter<FileDataHandler> { // NOPMD
 
-  private static final Logger LOGGER = LoggerFactory.getLogger(MultiCollectorVisitor.class);
+  private static final Logger LOGGER = LoggerFactory.getLogger(FileDataVisitor.class);
   private static final String UNKNOWN = "UNKNOWN";
 
   @Override
@@ -128,14 +133,28 @@ public class MultiCollectorVisitor extends VoidVisitorAdapter<FileDataHandler> {
       method.addModifier(modifier.getKeyword().asString());
     }
     for (final Parameter parameter : n.getParameters()) {
-      method.addParameter(resolveFqn(parameter.getType(), data));
+      method.addParameter(parameter.getNameAsString(), resolveFqn(parameter.getType(), data),
+          parameter.getModifiers());
     }
+    method.setLoc(getLoc(n));
     super.visit(n, data);
   }
 
   @Override
   public void visit(final ConstructorDeclaration n, final FileDataHandler data) {
-    data.getCurrentClassData().addConstructor(n.getNameAsString());
+    final String constructorsFullyQualifiedName =
+        data.getCurrentClassName() + "." + n.getNameAsString() + "#" + parameterHash(
+            n.getParameters());
+    final ConstructorDataHandler constructor = data.getCurrentClassData()
+        .addConstructor(constructorsFullyQualifiedName);
+    for (final Modifier modifier : n.getModifiers()) {
+      constructor.addModifier(modifier.getKeyword().asString());
+    }
+    for (final Parameter parameter : n.getParameters()) {
+      constructor.addParameter(parameter.getNameAsString(), resolveFqn(parameter.getType(), data),
+          parameter.getModifiers());
+    }
+    constructor.setLoc(getLoc(n));
     super.visit(n, data);
   }
 
@@ -149,6 +168,29 @@ public class MultiCollectorVisitor extends VoidVisitorAdapter<FileDataHandler> {
   public void visit(final CompilationUnit n, final FileDataHandler data) {
     data.setLoc(getLoc(n));
     super.visit(n, data);
+  }
+
+  // If FieldAccessExpr, then tight coupling
+  @Override
+  public void visit(MethodCallExpr n, FileDataHandler arg) {
+    super.visit(n, arg);
+  }
+
+  @Override
+  public void visit(ObjectCreationExpr n, FileDataHandler arg) {
+    super.visit(n, arg);
+  }
+
+  @Override
+  public void visit(ModuleDeclaration n, FileDataHandler arg) {
+    // TODO NOT SUPPORTED
+    super.visit(n, arg);
+  }
+
+  @Override
+  public void visit(RecordDeclaration n, FileDataHandler arg) {
+    // TODO NOT SUPPORTED
+    super.visit(n, arg);
   }
 
   private String resolveFqn(final Type type, final FileDataHandler data) {
@@ -181,7 +223,7 @@ public class MultiCollectorVisitor extends VoidVisitorAdapter<FileDataHandler> {
       if (rt.isReferenceType()) {
         genericList.add(buildResolvedTypeFullDepthType(rt.asReferenceType()));
       } else if (rt.isTypeVariable()) {
-        genericList.add(rt.asTypeParameter().getName()); // Does not work!
+        genericList.add(rt.asTypeParameter().getName()); // TODO Does not work!
       } else {
         genericList.add(rt.toString());
       }

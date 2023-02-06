@@ -51,11 +51,11 @@ public class FileDataHandler implements ProtoBufConvertable<FileData> {
   }
 
   public void addImport(final String importName) {
-    this.builder.addImportNames(importName);
+    this.builder.addImportName(importName);
   }
 
   public List<String> getImportNames() {
-    return this.builder.getImportNamesList();
+    return this.builder.getImportNameList();
   }
 
   public void setPackageName(final String packageName) {
@@ -113,7 +113,7 @@ public class FileDataHandler implements ProtoBufConvertable<FileData> {
     }
     return "stats: methodCount=" + this.getMethodCount() + "  loc=" + this.builder.getLoc() + "\n"
         + "package: " + this.builder.getPackageName() + "\n"
-        + "imports: " + this.builder.getImportNamesList() + "\n"
+        + "imports: " + this.builder.getImportNameList() + "\n"
         + classDataString;
   }
 }

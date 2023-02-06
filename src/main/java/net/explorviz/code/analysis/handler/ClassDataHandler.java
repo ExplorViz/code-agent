@@ -15,15 +15,8 @@ public class ClassDataHandler implements ProtoBufConvertable<ClassData> {
 
   private final ClassData.Builder builder;
 
-  // private ClassType type;
-  // private String superClass;
-  // private final List<String> modifiers;
-  // private final List<String> interfaces;
-  // private final List<String> fields;
-  // private final List<String> innerClasses;
-  // private final List<String> constructorList;
-  // private final List<String> variableList;
   private final Map<String, MethodDataHandler> methodDataMap;
+  private final Map<String, ConstructorDataHandler> constructorMap;
 
   // private int loc;
 
@@ -34,6 +27,7 @@ public class ClassDataHandler implements ProtoBufConvertable<ClassData> {
     this.builder = ClassData.newBuilder();
     this.builder.setSuperClass("");
     this.methodDataMap = new HashMap<>();
+    this.constructorMap = new HashMap<>();
   }
 
   /**
@@ -50,32 +44,29 @@ public class ClassDataHandler implements ProtoBufConvertable<ClassData> {
 
   public void setSuperClass(final String superClass) {
     this.builder.setSuperClass(superClass);
-    // this.superClass = superClass;
   }
 
-  public void addConstructor(final String constructor) {
-    this.builder.addConstructorList(constructor);
-    // this.constructorList.add(constructor);
+  public ConstructorDataHandler addConstructor(final String constructorFqn) {
+    this.constructorMap.put(constructorFqn, new ConstructorDataHandler());
+    return constructorMap.get(constructorFqn);
   }
 
   public void addField(final String fieldName, final String fieldType,
                        final List<String> modifiers) {
-    this.builder.addFields(
-        FieldData.newBuilder().setName(fieldName).setType(fieldType).addAllModifiers(modifiers));
+    this.builder.addField(
+        FieldData.newBuilder().setName(fieldName).setType(fieldType).addAllModifier(modifiers));
   }
 
   public void addModifier(final String modifier) {
-    this.builder.addModifiers(modifier);
-    // this.modifiers.add(modifier);
+    this.builder.addModifier(modifier);
   }
 
   public void addInnerClass(final String name) {
-    this.builder.addInnerClasses(name);
-    // this.innerClasses.add(name);
+    this.builder.addInnerClass(name);
   }
 
   public void addEnumConstant(final String name) {
-    this.builder.addEnumConstants(name);
+    this.builder.addEnumConstant(name);
   }
 
   public int getMethodCount() {
@@ -83,8 +74,7 @@ public class ClassDataHandler implements ProtoBufConvertable<ClassData> {
   }
 
   public void addImplementedInterface(final String implementedInterfaceName) {
-    this.builder.addInterfaces(implementedInterfaceName);
-    // this.interfaces.add(implementedInterfaceName);
+    this.builder.addInterface(implementedInterfaceName);
   }
 
   public void setIsInterface() {
@@ -122,11 +112,13 @@ public class ClassDataHandler implements ProtoBufConvertable<ClassData> {
 
   public void setLoc(final int loc) {
     this.builder.setLoc(loc);
-    // this.loc = loc;
   }
 
   @Override
   public ClassData getProtoBufObject() {
+    for (final Map.Entry<String, ConstructorDataHandler> entry : this.constructorMap.entrySet()) {
+      this.builder.addConstructor(entry.getValue().getProtoBufObject());
+    }
     for (final Map.Entry<String, MethodDataHandler> entry : this.methodDataMap.entrySet()) {
       this.builder.putMethodData(entry.getKey(), entry.getValue().getProtoBufObject());
     }
@@ -143,14 +135,14 @@ public class ClassDataHandler implements ProtoBufConvertable<ClassData> {
     }
     return "{ \n"
         + "type: " + this.builder.getType().toString() + "\n"
-        + "modifier: " + this.builder.getModifiersList() + "\n"
+        + "modifier: " + this.builder.getModifierList() + "\n"
         + "superClass: " + this.builder.getSuperClass() + "\n"
-        + "interfaces: " + this.builder.getInterfacesList() + "\n"
-        + "fields: " + this.builder.getFieldsList() + "\n"
-        + "innerClasses: " + this.builder.getInnerClassesList() + "\n"
-        + "constructors: " + this.builder.getConstructorListList() + "\n"
+        + "interfaces: " + this.builder.getInterfaceList() + "\n"
+        + "fields: " + this.builder.getFieldList() + "\n"
+        + "innerClasses: " + this.builder.getInnerClassList() + "\n"
+        + "constructors: " + this.builder.getConstructorList() + "\n"
         + "methods: \n" + methodDataString + "\n"
-        + "variables: " + this.builder.getVariableListList() + "\n"
+        + "variables: " + this.builder.getVariableList() + "\n"
         + "loc: " + this.builder.getLoc() + "\n}";
   }
 

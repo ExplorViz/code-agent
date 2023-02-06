@@ -3,25 +3,19 @@ package net.explorviz.code.analysis.handler;
 import com.github.javaparser.ast.Modifier;
 import com.github.javaparser.ast.NodeList;
 import java.util.List;
-import net.explorviz.code.proto.MethodData;
+import net.explorviz.code.proto.ConstructorData;
 import net.explorviz.code.proto.ParameterData;
 
-/**
- * MethodData object holds data from analyzed method.
- */
-public class MethodDataHandler implements ProtoBufConvertable<MethodData> {
+public class ConstructorDataHandler implements ProtoBufConvertable<ConstructorData> {
 
-  private final MethodData.Builder builder;
-
+  private final ConstructorData.Builder builder;
 
   /**
-   * Creates a new MethodData object holding data describing the method.
-   *
-   * @param returnType the return type of the method
+   * Creates a new ConstructorData object holding data describing the constructor.
    */
-  public MethodDataHandler(final String returnType) {
-    this.builder = MethodData.newBuilder();
-    this.builder.setReturnType(returnType);
+  public ConstructorDataHandler() {
+    this.builder = ConstructorData.newBuilder();
+
   }
 
   public void addModifier(final String modifier) {
@@ -56,14 +50,13 @@ public class MethodDataHandler implements ProtoBufConvertable<MethodData> {
   }
 
   @Override
-  public MethodData getProtoBufObject() {
+  public ConstructorData getProtoBufObject() {
     return this.builder.build();
   }
 
   @Override
   public String toString() {
-    return "  type: " + this.builder.getReturnType() + "\n"
-        + "  modifiers: " + this.builder.getModifierList() + "\n"
+    return "  modifiers: " + this.builder.getModifierList() + "\n"
         + "  parameters: " + this.builder.getParameterList() + "\n"
         + "  outgoing calls: " + this.builder.getOutgoingMethodCallsList();
   }

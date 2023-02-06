@@ -201,7 +201,7 @@ public class GitAnalysis {
     final String fileContent = GitRepositoryHandler.getContent(file.objectId, repository);
     LOGGER.info("analyze: {}", file.fileName);
     try {
-      return parser.parseFileContent(fileContent, file.fileName) // NOPMD
+      return parser.parseFileContent(fileContent, file.fileName, calculateMetricsProperty) // NOPMD
           .getProtoBufObject();
 
     } catch (NoSuchElementException | NoSuchFieldError e) {

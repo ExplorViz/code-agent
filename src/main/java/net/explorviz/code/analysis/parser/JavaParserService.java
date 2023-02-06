@@ -16,7 +16,8 @@ import java.util.NoSuchElementException;
 import java.util.Optional;
 import javax.enterprise.context.ApplicationScoped;
 import net.explorviz.code.analysis.handler.FileDataHandler;
-import net.explorviz.code.analysis.visitor.MultiCollectorVisitor;
+import net.explorviz.code.analysis.visitor.FileDataVisitor;
+import net.explorviz.code.analysis.visitor.MetricsVisitor;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -68,10 +69,15 @@ public class JavaParserService {
     this(Collections.singletonList(sourcePath));
   }
 
-  private FileDataHandler parse(final CompilationUnit compilationUnit, final String fileName) {
+  private FileDataHandler parse(final CompilationUnit compilationUnit, final String fileName,
+                                boolean calculateMetrics) {
     final FileDataHandler data = new FileDataHandler(fileName);
-    final MultiCollectorVisitor multiCollectorVisitor = new MultiCollectorVisitor();
+    final FileDataVisitor multiCollectorVisitor = new FileDataVisitor();
     multiCollectorVisitor.visit(compilationUnit, data);
+    if (calculateMetrics) {
+      final MetricsVisitor metricsVisitor = new MetricsVisitor();
+      metricsVisitor.visit(compilationUnit, data);
+    }
     return data;
   }
 
@@ -115,7 +121,8 @@ public class JavaParserService {
     return Optional.empty();
   }
 
-  private FileDataHandler parseAny(final String fileContent, final String fileName, final Path path)
+  private FileDataHandler parseAny(final String fileContent, final String fileName, final Path path,
+                                   boolean calculateMetrics)
       throws IOException {
     StaticJavaParser.getConfiguration().setSymbolResolver(this.javaSymbolSolver);
     final CompilationUnit compilationUnit;
@@ -127,7 +134,7 @@ public class JavaParserService {
     }
 
     try {
-      return parse(compilationUnit, fileName);
+      return parse(compilationUnit, fileName, calculateMetrics);
     } catch (NoSuchElementException e) {
       if (LOGGER.isErrorEnabled()) {
         LOGGER.error("NoSuchElementException: \n" + compilationUnit.toString());
@@ -149,9 +156,10 @@ public class JavaParserService {
    *
    * @param fileContent stringified java file
    */
-  public FileDataHandler parseFileContent(final String fileContent, final String fileName) {
+  public FileDataHandler parseFileContent(final String fileContent, final String fileName,
+                                          boolean calculateMetrics) {
     try {
-      return parseAny(fileContent, fileName, null);
+      return parseAny(fileContent, fileName, null, calculateMetrics);
     } catch (IOException e) {
       //   omit the IO Exception as the function can throw the exception only if path is not null
       return null;
@@ -163,9 +171,10 @@ public class JavaParserService {
    *
    * @throws IOException Gets thrown if the file is not reachable
    */
-  public FileDataHandler parseFile(final String pathToFile) throws IOException {
+  public FileDataHandler parseFile(final String pathToFile, boolean calculateMetrics)
+      throws IOException {
     final Path path = Path.of(pathToFile);
-    return parseAny("", path.getFileName().toString(), path);
+    return parseAny("", path.getFileName().toString(), path, calculateMetrics);
   }
 
 }
