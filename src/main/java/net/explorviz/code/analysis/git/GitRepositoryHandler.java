@@ -82,7 +82,7 @@ public class GitRepositoryHandler { // NOPMD
    * @return returns an opened git repository
    * @throws GitAPIException gets thrown if the git api encounters an error
    */
-  private Repository downloadGitRepository( // NOCS NOPMD TODO fix cyclomatic complexety later
+  private Repository downloadGitRepository( // NOCS NOPMD TODO fix cyclomatic complexety
                                             final RemoteRepositoryObject remoteRepositoryObject)
       throws GitAPIException, IOException {
 
@@ -271,32 +271,12 @@ public class GitRepositoryHandler { // NOPMD
                                        final RevCommit newCommit,
                                        final List<String> pathRestrictions)
       throws GitAPIException, IOException, NotFoundException {
-    final List<FileDescriptor> objectIdList = new ArrayList<>();
+    List<FileDescriptor> objectIdList = new ArrayList<>();
 
-    TreeFilter filter;
-    if (pathRestrictions.isEmpty()) {
-      filter = PathSuffixFilter.create(JAVA_PATH_SUFFIX);
-    } else {
-      final List<String> pathList = DirectoryFinder.getRelativeDirectory(pathRestrictions,
-          getCurrentRepositoryPath());
-      final List<String> newPathList = new ArrayList<>();
-      for (final String path : pathList) {
-        newPathList.add(path.replaceFirst("^\\\\|/", "").replaceAll("\\\\", "/"));
-      }
-      final TreeFilter pathFilter = PathFilterGroup.createFromStrings(newPathList);
-      final PathSuffixFilter suffixFilter = PathSuffixFilter.create(JAVA_PATH_SUFFIX);
-      filter = AndTreeFilter.create(pathFilter, suffixFilter);
-    }
+    TreeFilter filter = getJavaFileTreeFilter(pathRestrictions);
 
     if (oldCommit.isEmpty()) {
-      try (final TreeWalk treeWalk = new TreeWalk(repository)) { // NOPMD
-        treeWalk.addTree(newCommit.getTree());
-        treeWalk.setRecursive(true);
-        treeWalk.setFilter(filter);
-        while (treeWalk.next()) {
-          objectIdList.add(new FileDescriptor(treeWalk.getObjectId(0), treeWalk.getNameString()));
-        }
-      }
+      objectIdList = listFilesInCommit(repository, newCommit, filter);
     } else {
       final List<DiffEntry> diffs = this.git.diff()
           .setOldTree(prepareTreeParser(repository, oldCommit.get().getTree()))
@@ -307,16 +287,90 @@ public class GitRepositoryHandler { // NOPMD
         if (diff.getChangeType().equals(DiffEntry.ChangeType.DELETE)) {
           continue;
         } else if (diff.getChangeType().equals(DiffEntry.ChangeType.RENAME)) {
-          LOGGER.warn("File Renamed");
+          LOGGER.error("File Renamed");
         } else if (diff.getChangeType().equals(DiffEntry.ChangeType.COPY)) {
-          LOGGER.warn("File Copied");
+          LOGGER.error("File Copied");
         }
         final String[] parts = diff.getNewPath().split("/");
-        objectIdList.add(new FileDescriptor(diff.getNewId().toObjectId(), parts[parts.length - 1]));
+        objectIdList.add(new FileDescriptor(diff.getNewId().toObjectId(), parts[parts.length - 1],
+            diff.getNewPath()));
       }
     }
     return objectIdList;
   }
+
+  /**
+   * Returns a list of all Java Files in the repository.
+   *
+   * @param repository the current repository
+   * @param commit the commit to get the list of files for
+   * @param pathRestrictions a list of search strings specifying the folders to analyze, if
+   *     omitted, the entire repository will be searched
+   * @return returns a list of FileDescriptors of all java files within the specified folders
+   * @throws IOException       thrown if files are not available
+   * @throws NotFoundException thrown if the restrictionPath was not found
+   */
+  public List<FileDescriptor> listFilesInCommit(final Repository repository, // NOPMD
+                                                final RevCommit commit,
+                                                final List<String> pathRestrictions)
+      throws IOException, NotFoundException {
+    return listFilesInCommit(repository, commit, getJavaFileTreeFilter(pathRestrictions));
+  }
+
+  /**
+   * Returns a list of all Java Files in the repository.
+   *
+   * @param repository the current repository
+   * @param commit the commit to get the list of files for
+   * @param pathRestrictions a comma separated list of search strings specifying the folders to
+   *     analyze, if omitted, the entire repository will be searched
+   * @return returns a list of FileDescriptors of all java files within the specified folders
+   * @throws IOException       thrown if files are not available
+   * @throws NotFoundException thrown if the restrictionPath was not found
+   */
+  public List<FileDescriptor> listFilesInCommit(final Repository repository, // NOPMD
+                                                final RevCommit commit,
+                                                final String pathRestrictions)
+      throws IOException, NotFoundException {
+    return listFilesInCommit(repository, commit,
+        getJavaFileTreeFilter(Arrays.asList(pathRestrictions.split(","))));
+  }
+
+  private List<FileDescriptor> listFilesInCommit(final Repository repository, // NOPMD
+                                                 final RevCommit commit,
+                                                 final TreeFilter filter)
+      throws IOException {
+    List<FileDescriptor> objectIdList = new ArrayList<>();
+    try (final TreeWalk treeWalk = new TreeWalk(repository)) { // NOPMD
+      treeWalk.addTree(commit.getTree());
+      treeWalk.setRecursive(true);
+      treeWalk.setFilter(filter);
+      while (treeWalk.next()) {
+        objectIdList.add(new FileDescriptor(treeWalk.getObjectId(0), treeWalk.getNameString(),
+            treeWalk.getPathString()));
+      }
+    }
+    return objectIdList;
+
+  }
+
+  private TreeFilter getJavaFileTreeFilter(final List<String> pathRestrictions)
+      throws NotFoundException {
+    if (pathRestrictions.isEmpty()) {
+      return PathSuffixFilter.create(JAVA_PATH_SUFFIX);
+    } else {
+      final List<String> pathList = DirectoryFinder.getRelativeDirectory(pathRestrictions,
+          getCurrentRepositoryPath());
+      final List<String> newPathList = new ArrayList<>();
+      for (final String path : pathList) {
+        newPathList.add(path.replaceFirst("^\\\\|/", "").replaceAll("\\\\", "/"));
+      }
+      final TreeFilter pathFilter = PathFilterGroup.createFromStrings(newPathList);
+      final PathSuffixFilter suffixFilter = PathSuffixFilter.create(JAVA_PATH_SUFFIX);
+      return AndTreeFilter.create(pathFilter, suffixFilter);
+    }
+  }
+
 
   /**
    * Checks if the given commit is unreachable by the given branch (is not part of the branch).

@@ -43,6 +43,6 @@ public final class GrpcExporter implements DataExporter {
 
   @Override
   public void sendCommitReport(CommitReportData commitReportData) {
-
+    // send CommitReport
   }
 }

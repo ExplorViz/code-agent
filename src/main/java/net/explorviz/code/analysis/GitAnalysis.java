@@ -14,11 +14,14 @@ import net.explorviz.code.analysis.exceptions.NotFoundException;
 import net.explorviz.code.analysis.exceptions.PropertyNotDefinedException;
 import net.explorviz.code.analysis.export.DataExporter;
 import net.explorviz.code.analysis.export.GrpcExporter;
+import net.explorviz.code.analysis.export.JsonExporter;
 import net.explorviz.code.analysis.git.DirectoryFinder;
 import net.explorviz.code.analysis.git.GitRepositoryHandler;
+import net.explorviz.code.analysis.handler.CommitReportHandler;
 import net.explorviz.code.analysis.parser.JavaParserService;
 import net.explorviz.code.analysis.types.FileDescriptor;
 import net.explorviz.code.proto.FileData;
+import net.explorviz.code.proto.StateData;
 import org.eclipse.jgit.api.Git;
 import org.eclipse.jgit.api.errors.GitAPIException;
 import org.eclipse.jgit.lib.Ref;
@@ -48,6 +51,9 @@ public class GitAnalysis {
   @ConfigProperty(name = "explorviz.gitanalysis.restrict-analysis-to-folders")
   /* default */ Optional<String> restrictAnalysisToFoldersProperty;  // NOCS NOPMD
 
+  @ConfigProperty(name = "explorviz.gitanalysis.branch")
+  /* default */ Optional<String> repositoryBranchProperty;  // NOCS
+
   @ConfigProperty(name = "explorviz.gitanalysis.fetch-remote-data", defaultValue = "true")
   /* default */ boolean fetchRemoteDataProperty;  // NOCS
 
@@ -66,7 +72,11 @@ public class GitAnalysis {
   @Inject
   /* package */ JavaParserService javaParserService; // NOCS
 
+  @Inject
+  /* package */ CommitReportHandler commitReportHandler; // NOCS
 
+
+  // TODO change startCommit and endCommit to Optional<String>
   private void analyzeAndSendRepo(final String startCommit,// NOCS NOPMD TODO cyclomatic complexity
                                   final String endCommit,
                                   final DataExporter exporter)
@@ -164,6 +174,8 @@ public class GitAnalysis {
                               final DataExporter exporter)
       throws GitAPIException, NotFoundException, IOException {
     DirectoryFinder.resetDirectory(sourceDirectoryProperty.orElse(""));
+    commitReportHandler.init(commit.getId().getName(),
+        GitRepositoryHandler.getCurrentBranch(repository));
 
     final Date commitDate = commit.getAuthorIdent().getWhen();
     LOGGER.info("Analyze {}", commitDate);
@@ -178,7 +190,10 @@ public class GitAnalysis {
       // TODO Export Alex
       exporter.sendFileData(fileData);
     }
-    exporter.sendCommitReport(null);
+    List<FileDescriptor> files = gitRepositoryHandler.listFilesInCommit(repository, commit,
+        restrictAnalysisToFoldersProperty.orElse(""));
+    commitReportHandler.add(files);
+    exporter.sendCommitReport(commitReportHandler.getCommitReport());
   }
 
   private FileData fileAnalysis(final Repository repository, final FileDescriptor file,
@@ -205,10 +220,25 @@ public class GitAnalysis {
     if (repoPathProperty.isEmpty()) {
       return;
     }
-    this.analyzeAndSendRepo(startCommitProperty.orElse(""), endCommitProperty.orElse(""),
-        new GrpcExporter());
-    // this.analyzeAndSendRepo("f3a8d244b2d3c52325941d09cdeb1b07b8b37815",
-    //     "6580e8b6cfa246422399eb0640ef93c30396115d");
+    DataExporter exporter;
+    // check if running local or remote enabled
+    // TODO seems unclean to use this property to decide if the analysis runs locally AND if the
+    //  state should be checked. Are these always bound together?
+    if (fetchRemoteDataProperty) {
+      exporter = new GrpcExporter();
+    } else {
+      exporter = new JsonExporter("");
+      // pathToStorageDirectoryProperty.orElseThrow(
+      // () -> new PropertyNotDefinedException("pathToStorageDirectoryProperty"));
+    }
+    // get fetch data from remote
+    StateData remoteState = exporter.requestStateData(repositoryBranchProperty.orElse(""));
+    if (remoteState.getCommitID().isEmpty()) {
+      analyzeAndSendRepo(startCommitProperty.orElse(""), endCommitProperty.orElse(""),
+          exporter);
+    } else {
+      analyzeAndSendRepo(remoteState.getCommitID(), "", exporter);
+    }
   }
 
   // only done because checkstyle does not like the duplication of literals
