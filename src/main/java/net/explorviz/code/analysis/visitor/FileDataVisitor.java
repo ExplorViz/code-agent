@@ -21,12 +21,14 @@ import com.github.javaparser.ast.expr.ObjectCreationExpr;
 import com.github.javaparser.ast.modules.ModuleDeclaration;
 import com.github.javaparser.ast.type.ClassOrInterfaceType;
 import com.github.javaparser.ast.type.Type;
+import com.github.javaparser.ast.visitor.GenericVisitorAdapter;
 import com.github.javaparser.ast.visitor.VoidVisitorAdapter;
 import com.github.javaparser.resolution.UnsolvedSymbolException;
 import com.github.javaparser.resolution.types.ResolvedReferenceType;
 import com.github.javaparser.resolution.types.ResolvedType;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Optional;
 import net.explorviz.code.analysis.handler.ConstructorDataHandler;
 import net.explorviz.code.analysis.handler.FileDataHandler;
 import net.explorviz.code.analysis.handler.MethodDataHandler;
@@ -40,6 +42,14 @@ public class FileDataVisitor extends VoidVisitorAdapter<FileDataHandler> { // NO
 
   private static final Logger LOGGER = LoggerFactory.getLogger(FileDataVisitor.class);
   private static final String UNKNOWN = "UNKNOWN";
+  private final GenericVisitorAdapter<Integer, FileDataHandler> nPathVisitor;
+  // private final VoidVisitorAdapter<FileDataHandler> acPathVisitor;
+
+  public FileDataVisitor(Optional<NPathVisitor> nPathVisitor,
+                         Optional<ACPathVisitor> acPathVisitor) {
+    this.nPathVisitor = nPathVisitor.isPresent() ? nPathVisitor.get() : new EmptyGenericVisitor();
+    // this.acPathVisitor = acPathVisitor.isPresent() ? acPathVisitor.get() : new EmptyVoidVisitor();
+  }
 
   @Override
   public void visit(final PackageDeclaration n, final FileDataHandler data) {
@@ -115,7 +125,6 @@ public class FileDataVisitor extends VoidVisitorAdapter<FileDataHandler> { // NO
     for (final ClassOrInterfaceType classOrInterfaceType : n.getImplementedTypes()) {
       data.getCurrentClassData().addImplementedInterface(resolveFqn(classOrInterfaceType, data));
     }
-
     super.visit(n, data);
     data.leaveClass();
   }
@@ -137,6 +146,7 @@ public class FileDataVisitor extends VoidVisitorAdapter<FileDataHandler> { // NO
           parameter.getModifiers());
     }
     method.setLoc(getLoc(n));
+    nPathVisitor.visit(n, data);
     super.visit(n, data);
   }
 
@@ -173,11 +183,13 @@ public class FileDataVisitor extends VoidVisitorAdapter<FileDataHandler> { // NO
   // If FieldAccessExpr, then tight coupling
   @Override
   public void visit(MethodCallExpr n, FileDataHandler arg) {
+    // System.out.println(n.getNameAsString());
     super.visit(n, arg);
   }
 
   @Override
   public void visit(ObjectCreationExpr n, FileDataHandler arg) {
+    // System.out.println(n.toString());
     super.visit(n, arg);
   }
 

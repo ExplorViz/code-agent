@@ -15,9 +15,11 @@ import java.util.List;
 import java.util.NoSuchElementException;
 import java.util.Optional;
 import javax.enterprise.context.ApplicationScoped;
+import net.explorviz.code.analysis.exceptions.DebugFileWriter;
 import net.explorviz.code.analysis.handler.FileDataHandler;
+import net.explorviz.code.analysis.visitor.ACPathVisitor;
 import net.explorviz.code.analysis.visitor.FileDataVisitor;
-import net.explorviz.code.analysis.visitor.MetricsVisitor;
+import net.explorviz.code.analysis.visitor.NPathVisitor;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -72,12 +74,14 @@ public class JavaParserService {
   private FileDataHandler parse(final CompilationUnit compilationUnit, final String fileName,
                                 boolean calculateMetrics) {
     final FileDataHandler data = new FileDataHandler(fileName);
-    final FileDataVisitor multiCollectorVisitor = new FileDataVisitor();
-    multiCollectorVisitor.visit(compilationUnit, data);
+    final FileDataVisitor multiCollectorVisitor;
     if (calculateMetrics) {
-      final MetricsVisitor metricsVisitor = new MetricsVisitor();
-      metricsVisitor.visit(compilationUnit, data);
+      multiCollectorVisitor = new FileDataVisitor(Optional.of(new NPathVisitor()),
+          Optional.of(new ACPathVisitor()));
+    } else {
+      multiCollectorVisitor = new FileDataVisitor(Optional.empty(), Optional.empty());
     }
+    multiCollectorVisitor.visit(compilationUnit, data);
     return data;
   }
 
@@ -132,6 +136,9 @@ public class JavaParserService {
     } else {
       compilationUnit = StaticJavaParser.parse(path);
     }
+
+    // DEBUG CODE
+    DebugFileWriter.saveAstAsYaml(compilationUnit, "/logs/quarkus/debug.yaml");
 
     try {
       return parse(compilationUnit, fileName, calculateMetrics);

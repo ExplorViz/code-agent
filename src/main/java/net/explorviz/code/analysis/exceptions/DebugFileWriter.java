@@ -1,5 +1,7 @@
 package net.explorviz.code.analysis.exceptions;
 
+import com.github.javaparser.ast.CompilationUnit;
+import com.github.javaparser.printer.YamlPrinter;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Paths;
@@ -28,6 +30,19 @@ public final class DebugFileWriter {
                                    final String filename) {
     try {
       Files.write(Paths.get(directoryPath, filename), content.getBytes());
+    } catch (IOException e) {
+      if (LOGGER.isErrorEnabled()) {
+        // if something happens here, catch and ignore as the program can continue as normal
+        // only the debug file will not be present
+        LOGGER.error("Unable to write the content to file.");
+      }
+    }
+  }
+
+  public static void saveAstAsYaml(final CompilationUnit compilationUnit, final String path) {
+    YamlPrinter printer = new YamlPrinter(true);
+    try {
+      Files.write(Paths.get(path), printer.output(compilationUnit).getBytes());
     } catch (IOException e) {
       if (LOGGER.isErrorEnabled()) {
         // if something happens here, catch and ignore as the program can continue as normal
