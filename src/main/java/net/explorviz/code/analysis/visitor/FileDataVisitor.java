@@ -29,7 +29,6 @@ import com.github.javaparser.resolution.types.ResolvedType;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
-import net.explorviz.code.analysis.handler.ConstructorDataHandler;
 import net.explorviz.code.analysis.handler.FileDataHandler;
 import net.explorviz.code.analysis.handler.MethodDataHandler;
 import org.slf4j.Logger;
@@ -66,7 +65,8 @@ public class FileDataVisitor extends VoidVisitorAdapter<FileDataHandler> { // NO
   @Override
   public void visit(final EnumDeclaration n, final FileDataHandler data) {
     data.enterClass(n.getFullyQualifiedName().orElse(UNKNOWN));
-    data.getCurrentClassData().setLoc(getLoc(n));
+    // data.getCurrentClassData().setLoc(getLoc(n));
+    data.getCurrentClassData().addMetric("loc", String.valueOf(getLoc(n)));
     data.getCurrentClassData().setIsEnum();
     for (final Modifier modifier : n.getModifiers()) {
       data.getCurrentClassData().addModifier(modifier.getKeyword().asString());
@@ -93,7 +93,7 @@ public class FileDataVisitor extends VoidVisitorAdapter<FileDataHandler> { // NO
   public void visit(final ClassOrInterfaceDeclaration n, final FileDataHandler data) { // NOPMD
 
     data.enterClass(n.getFullyQualifiedName().orElse(UNKNOWN));
-    data.getCurrentClassData().setLoc(getLoc(n));
+    data.getCurrentClassData().addMetric("loc", String.valueOf(getLoc(n)));
 
     if (n.isInterface()) {
       data.getCurrentClassData().setIsInterface();
@@ -145,7 +145,7 @@ public class FileDataVisitor extends VoidVisitorAdapter<FileDataHandler> { // NO
       method.addParameter(parameter.getNameAsString(), resolveFqn(parameter.getType(), data),
           parameter.getModifiers());
     }
-    method.setLoc(getLoc(n));
+    method.addMetric("loc", String.valueOf(getLoc(n)));
     nPathVisitor.visit(n, data);
     super.visit(n, data);
   }
@@ -155,7 +155,7 @@ public class FileDataVisitor extends VoidVisitorAdapter<FileDataHandler> { // NO
     final String constructorsFullyQualifiedName =
         data.getCurrentClassName() + "." + n.getNameAsString() + "#" + parameterHash(
             n.getParameters());
-    final ConstructorDataHandler constructor = data.getCurrentClassData()
+    final MethodDataHandler constructor = data.getCurrentClassData()
         .addConstructor(constructorsFullyQualifiedName);
     for (final Modifier modifier : n.getModifiers()) {
       constructor.addModifier(modifier.getKeyword().asString());
@@ -164,7 +164,7 @@ public class FileDataVisitor extends VoidVisitorAdapter<FileDataHandler> { // NO
       constructor.addParameter(parameter.getNameAsString(), resolveFqn(parameter.getType(), data),
           parameter.getModifiers());
     }
-    constructor.setLoc(getLoc(n));
+    constructor.addMetric("loc", String.valueOf(getLoc(n)));
     super.visit(n, data);
   }
 
@@ -176,7 +176,7 @@ public class FileDataVisitor extends VoidVisitorAdapter<FileDataHandler> { // NO
 
   @Override
   public void visit(final CompilationUnit n, final FileDataHandler data) {
-    data.setLoc(getLoc(n));
+    data.addMetric("loc", String.valueOf(getLoc(n)));
     super.visit(n, data);
   }
 

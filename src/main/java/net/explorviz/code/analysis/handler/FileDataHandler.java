@@ -46,8 +46,18 @@ public class FileDataHandler implements ProtoBufConvertable<FileData> {
     }
   }
 
-  public void setLoc(final int loc) {
-    this.builder.setLoc(loc);
+  /**
+   * Adds a new metric entry to the FileData, returns the old value of the metric if it existed,
+   * null otherwise.
+   *
+   * @param metricName the name/idetifier of the metric
+   * @param metricValue the value of the metric
+   * @return the old value of the metric if it existed, null otherwise.
+   */
+  public String addMetric(final String metricName, final String metricValue) {
+    String oldMetricValue = builder.getMetricOrDefault(metricName, null);
+    builder.putMetric(metricName, metricValue);
+    return oldMetricValue;
   }
 
   public void addImport(final String importName) {
@@ -105,15 +115,19 @@ public class FileDataHandler implements ProtoBufConvertable<FileData> {
 
   @Override
   public String toString() {
-    final StringBuilder classDataString = new StringBuilder(STRING_BUILDER_CAPACITY);
+    final StringBuilder mapData = new StringBuilder(STRING_BUILDER_CAPACITY);
     for (final Map.Entry<String, ClassDataHandler> entry : this.classDataMap.entrySet()) {
-      classDataString.append(entry.getKey()).append(": \n");
-      classDataString.append(entry.getValue().toString());
-      classDataString.append('\n');
+      mapData.append(entry.getKey()).append(": \n");
+      mapData.append(entry.getValue().toString());
+      mapData.append('\n');
     }
-    return "stats: methodCount=" + this.getMethodCount() + "  loc=" + this.builder.getLoc() + "\n"
+    for (final Map.Entry<String, String> entry : this.builder.getMetricMap().entrySet()) {
+      mapData.append(entry.getKey()).append(": ");
+      mapData.append(entry.getValue()).append('\n');
+    }
+    return "stats: methodCount=" + this.getMethodCount() + "\n"
         + "package: " + this.builder.getPackageName() + "\n"
         + "imports: " + this.builder.getImportNameList() + "\n"
-        + classDataString;
+        + mapData;
   }
 }

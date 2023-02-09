@@ -15,18 +15,8 @@ message  MethodData {
   repeated string modifier = 2;
   repeated ParameterData parameter = 3;
   repeated string outgoingMethodCalls = 4;
-  int32 nPath = 5;
-  int32 acPath = 6;
-  int32 loc = 7;
-}
-
-message  ConstructorData {
-  repeated string modifier = 1;
-  repeated ParameterData parameter = 2;
-  repeated string outgoingMethodCalls = 3;
-  int32 nPath = 4;
-  int32 acPath = 5;
-  int32 loc = 6;
+  bool isConstructor = 5;
+  map<string, string> metric = 6;
 }
 
 enum ClassType {
@@ -54,12 +44,12 @@ message ClassData {
   repeated string interface = 3;
   repeated FieldData field = 4;
   repeated string innerClass = 5;
-  repeated ConstructorData constructor = 6;
+  repeated MethodData constructor = 6;
   map<string, MethodData>  methodData = 7;
   repeated string variable = 8;
   string superClass = 9;
 
-  int32 loc = 10;
+  map<string, string> metric = 10;
   repeated string enumConstant = 11;
   repeated string tightCoupled = 12;
   repeated string looseCoupled = 13;
@@ -71,5 +61,5 @@ message FileData {
   string packageName = 3;
   repeated string importName = 4;
   map<string, ClassData> classData = 5;
-  int32 loc = 6;
+  map<string, string> metric = 6;
 }

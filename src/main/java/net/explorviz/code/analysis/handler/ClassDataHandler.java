@@ -16,7 +16,6 @@ public class ClassDataHandler implements ProtoBufConvertable<ClassData> {
   private final ClassData.Builder builder;
 
   private final Map<String, MethodDataHandler> methodDataMap;
-  private final Map<String, ConstructorDataHandler> constructorMap;
 
   // private int loc;
 
@@ -27,7 +26,6 @@ public class ClassDataHandler implements ProtoBufConvertable<ClassData> {
     this.builder = ClassData.newBuilder();
     this.builder.setSuperClass("");
     this.methodDataMap = new HashMap<>();
-    this.constructorMap = new HashMap<>();
   }
 
   /**
@@ -46,9 +44,9 @@ public class ClassDataHandler implements ProtoBufConvertable<ClassData> {
     this.builder.setSuperClass(superClass);
   }
 
-  public ConstructorDataHandler addConstructor(final String constructorFqn) {
-    this.constructorMap.put(constructorFqn, new ConstructorDataHandler());
-    return constructorMap.get(constructorFqn);
+  public MethodDataHandler addConstructor(final String constructorFqn) {
+    this.methodDataMap.put(constructorFqn, new MethodDataHandler());
+    return methodDataMap.get(constructorFqn);
   }
 
   public void addField(final String fieldName, final String fieldType,
@@ -110,15 +108,22 @@ public class ClassDataHandler implements ProtoBufConvertable<ClassData> {
   }
 
 
-  public void setLoc(final int loc) {
-    this.builder.setLoc(loc);
+  /**
+   * Adds a new metric entry to the ClassData, returns the old value of the metric if it existed,
+   * null otherwise.
+   *
+   * @param metricName the name/idetifier of the metric
+   * @param metricValue the value of the metric
+   * @return the old value of the metric if it existed, null otherwise.
+   */
+  public String addMetric(final String metricName, final String metricValue) {
+    String oldMetricValue = builder.getMetricOrDefault(metricName, null);
+    builder.putMetric(metricName, metricValue);
+    return oldMetricValue;
   }
 
   @Override
   public ClassData getProtoBufObject() {
-    for (final Map.Entry<String, ConstructorDataHandler> entry : this.constructorMap.entrySet()) {
-      this.builder.addConstructor(entry.getValue().getProtoBufObject());
-    }
     for (final Map.Entry<String, MethodDataHandler> entry : this.methodDataMap.entrySet()) {
       this.builder.putMethodData(entry.getKey(), entry.getValue().getProtoBufObject());
     }
@@ -133,6 +138,11 @@ public class ClassDataHandler implements ProtoBufConvertable<ClassData> {
       methodDataString.append(entry.getValue().toString());
       methodDataString.append('\n');
     }
+    final StringBuilder metricDataString = new StringBuilder(STRING_BUILDER_CAPACITY);
+    for (final Map.Entry<String, String> entry : this.builder.getMetricMap().entrySet()) {
+      metricDataString.append(entry.getKey()).append(": ");
+      metricDataString.append(entry.getValue()).append('\n');
+    }
     return "{ \n"
         + "type: " + this.builder.getType().toString() + "\n"
         + "modifier: " + this.builder.getModifierList() + "\n"
@@ -143,7 +153,7 @@ public class ClassDataHandler implements ProtoBufConvertable<ClassData> {
         + "constructors: " + this.builder.getConstructorList() + "\n"
         + "methods: \n" + methodDataString + "\n"
         + "variables: " + this.builder.getVariableList() + "\n"
-        + "loc: " + this.builder.getLoc() + "\n}";
+        + metricDataString + "\n}";
   }
 
 
