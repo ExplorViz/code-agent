@@ -371,6 +371,10 @@ public class GitRepositoryHandler { // NOPMD
     }
   }
 
+  public boolean isUnreachableCommit(final Optional<String> commitId, final String branch) {
+
+    return commitId.isPresent() ? this.isUnreachableCommit(commitId.get(), branch) : false;
+  }
 
   /**
    * Checks if the given commit is unreachable by the given branch (is not part of the branch).

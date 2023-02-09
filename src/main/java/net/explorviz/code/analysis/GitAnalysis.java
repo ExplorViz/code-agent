@@ -76,10 +76,9 @@ public class GitAnalysis {
   /* package */ CommitReportHandler commitReportHandler; // NOCS
 
 
-  // TODO change startCommit and endCommit to Optional<String>
-  private void analyzeAndSendRepo(final String startCommit,// NOCS NOPMD TODO cyclomatic complexity
-                                  final String endCommit,
-                                  final DataExporter exporter)
+  private void analyzeAndSendRepo(final DataExporter exporter, // NOCS NOPMD
+                                  final Optional<String> startCommit, // TODO cyclomatic complexity
+                                  final Optional<String> endCommit)
       throws IOException, GitAPIException, PropertyNotDefinedException, NotFoundException { // NOPMD
     // steps:
     // open or download repository                          - Done
@@ -93,9 +92,9 @@ public class GitAnalysis {
       final String branch = GitRepositoryHandler.getCurrentBranch(repository);
 
       if (this.gitRepositoryHandler.isUnreachableCommit(startCommit, branch)) {
-        throw new NotFoundException(toErrorText("start", startCommit, branch));
+        throw new NotFoundException(toErrorText("start", startCommit.orElse(""), branch));
       } else if (this.gitRepositoryHandler.isUnreachableCommit(endCommit, branch)) {
-        throw new NotFoundException(toErrorText("end", endCommit, branch));
+        throw new NotFoundException(toErrorText("end", endCommit.orElse(""), branch));
       }
 
       // get a list of all known heads, tags, remotes, ...
@@ -122,12 +121,12 @@ public class GitAnalysis {
 
         int commitCount = 0;
         RevCommit lastCheckedCommit = null;
-        boolean inAnalysisRange = "".equals(startCommit);
+        boolean inAnalysisRange = startCommit.isPresent() && "".equals(startCommit.get());
 
         for (final RevCommit commit : revWalk) {
 
           if (!inAnalysisRange) {
-            if (commit.name().equals(startCommit)) {
+            if (startCommit.isPresent() && commit.name().equals(startCommit.get())) {
               inAnalysisRange = true;
             } else {
               if (fetchRemoteDataProperty) {
@@ -147,7 +146,7 @@ public class GitAnalysis {
             }
             commitCount++;
             lastCheckedCommit = commit;
-            if (commit.name().equals(endCommit)) {
+            if (endCommit.isPresent() && commit.name().equals(endCommit.get())) {
               break;
             }
             continue;
@@ -157,8 +156,8 @@ public class GitAnalysis {
 
           commitCount++;
           lastCheckedCommit = commit;
-          // break if endCommit is reached, if endCommit is null, run for all commits
-          if (commit.name().equals(endCommit)) {
+          // break if endCommit is reached, if endCommit is empty, run for all commits
+          if (endCommit.isPresent() && commit.name().equals(endCommit.get())) {
             break;
           }
         }
@@ -234,10 +233,9 @@ public class GitAnalysis {
     // get fetch data from remote
     StateData remoteState = exporter.requestStateData(repositoryBranchProperty.orElse(""));
     if (remoteState.getCommitID().isEmpty()) {
-      analyzeAndSendRepo(startCommitProperty.orElse(""), endCommitProperty.orElse(""),
-          exporter);
+      analyzeAndSendRepo(exporter, startCommitProperty, endCommitProperty);
     } else {
-      analyzeAndSendRepo(remoteState.getCommitID(), "", exporter);
+      analyzeAndSendRepo(exporter, Optional.of(remoteState.getCommitID()), Optional.empty());
     }
   }
 
