@@ -35,7 +35,8 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 /**
- * Visitor filling a FileData object with typical information in java files.
+ * Visitor filling a FileData object with typical information about java files. Includes the LOC
+ * (lines of code) metric.
  */
 public class FileDataVisitor extends VoidVisitorAdapter<FileDataHandler> { // NOPMD
 
@@ -44,7 +45,7 @@ public class FileDataVisitor extends VoidVisitorAdapter<FileDataHandler> { // NO
   private final GenericVisitorAdapter<Integer, FileDataHandler> nPathVisitor;
   // private final VoidVisitorAdapter<FileDataHandler> acPathVisitor;
 
-  public FileDataVisitor(Optional<NPathVisitor> nPathVisitor,
+  public FileDataVisitor(Optional<GenericVisitorAdapter<Integer, FileDataHandler>> nPathVisitor,
                          Optional<ACPathVisitor> acPathVisitor) {
     this.nPathVisitor = nPathVisitor.isPresent() ? nPathVisitor.get() : new EmptyGenericVisitor();
     // this.acPathVisitor = acPathVisitor.isPresent() ? acPathVisitor.get() : new EmptyVoidVisitor();
@@ -65,7 +66,6 @@ public class FileDataVisitor extends VoidVisitorAdapter<FileDataHandler> { // NO
   @Override
   public void visit(final EnumDeclaration n, final FileDataHandler data) {
     data.enterClass(n.getFullyQualifiedName().orElse(UNKNOWN));
-    // data.getCurrentClassData().setLoc(getLoc(n));
     data.getCurrentClassData().addMetric("loc", String.valueOf(getLoc(n)));
     data.getCurrentClassData().setIsEnum();
     for (final Modifier modifier : n.getModifiers()) {
@@ -146,7 +146,6 @@ public class FileDataVisitor extends VoidVisitorAdapter<FileDataHandler> { // NO
           parameter.getModifiers());
     }
     method.addMetric("loc", String.valueOf(getLoc(n)));
-    nPathVisitor.visit(n, data);
     super.visit(n, data);
   }
 

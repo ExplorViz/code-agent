@@ -60,6 +60,25 @@ public class FileDataHandler implements ProtoBufConvertable<FileData> {
     return oldMetricValue;
   }
 
+  /**
+   * Returns the value of the metric, if no entry with the name exists, returns null.
+   *
+   * @param metricName the name/identifier of the metric
+   * @return the value of the metric or null if the metric does not exist
+   */
+  public String getMetricValue(final String metricName) {
+    return builder.getMetricOrDefault(metricName, null);
+  }
+
+  /**
+   * Returns the metrics map
+   *
+   * @return the map containing the File metrics
+   */
+  public Map<String, String> getMetrics() {
+    return builder.getMetricMap();
+  }
+
   public void addImport(final String importName) {
     this.builder.addImportName(importName);
   }
@@ -76,7 +95,7 @@ public class FileDataHandler implements ProtoBufConvertable<FileData> {
     return this.classStack.lastElement();
   }
 
-  private ClassDataHandler getClassData(final String className) {
+  public ClassDataHandler getClassData(final String className) {
     return this.classDataMap.get(className);
   }
 

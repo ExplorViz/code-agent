@@ -40,6 +40,10 @@ public class ClassDataHandler implements ProtoBufConvertable<ClassData> {
     return methodDataMap.get(methodFqn);
   }
 
+  public MethodDataHandler getMethod(final String methodFqn) {
+    return methodDataMap.get(methodFqn);
+  }
+
   public void setSuperClass(final String superClass) {
     this.builder.setSuperClass(superClass);
   }
@@ -112,7 +116,7 @@ public class ClassDataHandler implements ProtoBufConvertable<ClassData> {
    * Adds a new metric entry to the ClassData, returns the old value of the metric if it existed,
    * null otherwise.
    *
-   * @param metricName the name/idetifier of the metric
+   * @param metricName the name/identifier of the metric
    * @param metricValue the value of the metric
    * @return the old value of the metric if it existed, null otherwise.
    */
@@ -120,6 +124,25 @@ public class ClassDataHandler implements ProtoBufConvertable<ClassData> {
     String oldMetricValue = builder.getMetricOrDefault(metricName, null);
     builder.putMetric(metricName, metricValue);
     return oldMetricValue;
+  }
+
+  /**
+   * Returns the value of the metric, if no entry with the name exists, returns null.
+   *
+   * @param metricName the name/identifier of the metric
+   * @return the value of the metric or null if the metric does not exist
+   */
+  public String getMetricValue(final String metricName) {
+    return builder.getMetricOrDefault(metricName, null);
+  }
+
+  /**
+   * Returns the metrics map
+   *
+   * @return the map containing the File metrics
+   */
+  public Map<String, String> getMetrics() {
+    return builder.getMetricMap();
   }
 
   @Override

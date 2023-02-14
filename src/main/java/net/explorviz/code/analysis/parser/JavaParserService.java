@@ -8,6 +8,7 @@ import com.github.javaparser.symbolsolver.model.resolution.SymbolReference;
 import com.github.javaparser.symbolsolver.resolution.typesolvers.CombinedTypeSolver;
 import com.github.javaparser.symbolsolver.resolution.typesolvers.JavaParserTypeSolver;
 import com.github.javaparser.symbolsolver.resolution.typesolvers.ReflectionTypeSolver;
+import com.github.javaparser.utils.Pair;
 import java.io.IOException;
 import java.nio.file.Path;
 import java.util.Collections;
@@ -17,9 +18,9 @@ import java.util.Optional;
 import javax.enterprise.context.ApplicationScoped;
 import net.explorviz.code.analysis.exceptions.DebugFileWriter;
 import net.explorviz.code.analysis.handler.FileDataHandler;
-import net.explorviz.code.analysis.visitor.ACPathVisitor;
+import net.explorviz.code.analysis.handler.MetricAppender;
+import net.explorviz.code.analysis.visitor.ClassComplexityVisitor;
 import net.explorviz.code.analysis.visitor.FileDataVisitor;
-import net.explorviz.code.analysis.visitor.NPathVisitor;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -36,8 +37,9 @@ public class JavaParserService {
   private ReflectionTypeSolver reflectionTypeSolver;
 
   /**
-   * Creates a new JavaParserService without any TypeSolvers, call {@link JavaParserService#reset()}
-   * or {@link JavaParserService#reset(List)} to get a valid JavaParserService.
+   * Creates a new JavaParserService with only the reflectionTypeSolver, call
+   * {@link JavaParserService#reset(List)} to add JavaParserTypeSolvers and check in the given
+   * paths.
    */
   public JavaParserService() {
     combinedTypeSolver = new CombinedTypeSolver();
@@ -73,15 +75,27 @@ public class JavaParserService {
 
   private FileDataHandler parse(final CompilationUnit compilationUnit, final String fileName,
                                 boolean calculateMetrics) {
+    // List<VoidVisitor<Pair<MetricAppender, Object>>> voidVisitors = new ArrayList<>();
+    // List<Object> voidVisitorsInputs = new ArrayList<>();
     final FileDataHandler data = new FileDataHandler(fileName);
     final FileDataVisitor multiCollectorVisitor;
     if (calculateMetrics) {
-      multiCollectorVisitor = new FileDataVisitor(Optional.of(new NPathVisitor()),
-          Optional.of(new ACPathVisitor()));
+      // multiCollectorVisitor = new FileDataVisitor(Optional.of(new NPathVisitor()),
+      //     Optional.of(new ACPathVisitor()));
+      multiCollectorVisitor = new FileDataVisitor(Optional.empty(), Optional.empty());
+      // multiCollectorVisitor = new FileDataVisitor(Optional.of(new NPathVisitorImpl()),
+      //     Optional.of(new ACPathVisitor()));
+      multiCollectorVisitor.visit(compilationUnit, data);
+      Pair<MetricAppender, Object> pair = new Pair<>(new MetricAppender(data), new Object());
+      new ClassComplexityVisitor().visit(compilationUnit, pair);
     } else {
       multiCollectorVisitor = new FileDataVisitor(Optional.empty(), Optional.empty());
+      multiCollectorVisitor.visit(compilationUnit, data);
     }
-    multiCollectorVisitor.visit(compilationUnit, data);
+
+    // for(VoidVisitor<Pair<MetricAppender, Object>> voidVisitor : voidVisitors) {
+    //   voidVisitor.visit(compilationUnit, new Pair<MetricAppender, Object>(new MetricAppender(data),voidVisitorsInputs.get(0)));
+    // }
     return data;
   }
 

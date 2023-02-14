@@ -3,6 +3,7 @@ package net.explorviz.code.analysis.visitor;
 import com.github.javaparser.ast.Node;
 import com.github.javaparser.ast.body.ConstructorDeclaration;
 import com.github.javaparser.ast.body.MethodDeclaration;
+import com.github.javaparser.ast.comments.Comment;
 import com.github.javaparser.ast.expr.AssignExpr;
 import com.github.javaparser.ast.expr.BinaryExpr;
 import com.github.javaparser.ast.expr.ConditionalExpr;
@@ -44,8 +45,15 @@ public class NPathVisitor extends GenericVisitorAdapter<Integer, FileDataHandler
   public Integer visit(BlockStmt n, FileDataHandler data) {
     int product = 1;
     for (Node node : n.getChildNodes()) {
-      int childComplexity = node.accept(this, data);
-      product *= childComplexity;
+      // Skip comment
+      if (node instanceof Comment) {
+        continue;
+      }
+      Integer childComplexity = node.accept(this, data);
+      if (childComplexity != null) {
+        product *= childComplexity;
+      }
+
     }
 
     return product;
@@ -63,7 +71,7 @@ public class NPathVisitor extends GenericVisitorAdapter<Integer, FileDataHandler
 
   @Override
   public Integer visit(MethodCallExpr n, FileDataHandler arg) {
-    return 1;
+    return super.visit(n, arg);
   }
 
   @Override
@@ -131,14 +139,20 @@ public class NPathVisitor extends GenericVisitorAdapter<Integer, FileDataHandler
     if (n.getExpression().isEmpty()) {
       return 1;
     }
-    Integer conditionalExpressionComplexity = super.visit(n, data);
-    return conditionalExpressionComplexity == null ? 1 : conditionalExpressionComplexity;
+    int boolCompReturn = booleanExpressionComplexity(n.getExpression().get());
+    // int conditionalExpressionComplexity = multiply(n.getExpression().get(), data);
+    int conditionalExpressionComplexity = 0;
+
+    if (conditionalExpressionComplexity > 1) {
+      boolCompReturn += conditionalExpressionComplexity;
+    }
+    return boolCompReturn > 0 ? conditionalExpressionComplexity : 1;
   }
 
-  @Override
-  public Integer visit(BreakStmt n, FileDataHandler arg) {
-    return 1;
-  }
+  // @Override
+  // public Integer visit(BreakStmt n, FileDataHandler arg) {
+  //   return 1;
+  // }
 
   // @Override
   // public Integer visit(SwitchExpr n, FileDataHandler data) {
@@ -185,16 +199,16 @@ public class NPathVisitor extends GenericVisitorAdapter<Integer, FileDataHandler
     return n.getLabels().size();
   }
 
-  @Override
-  public Integer visit(BinaryExpr n, FileDataHandler data) {
-    if (n.getOperator().equals(BinaryExpr.Operator.AND) || n.getOperator()
-        .equals(BinaryExpr.Operator.OR)) {
-      Integer i = super.visit(n, data);
-      return i == null ? 1 : i + 1;
-    }
-    Integer i = super.visit(n, data);
-    return i == null ? 0 : i;
-  }
+  // @Override
+  // public Integer visit(BinaryExpr n, FileDataHandler data) {
+  //   if (n.getOperator().equals(BinaryExpr.Operator.AND) || n.getOperator()
+  //       .equals(BinaryExpr.Operator.OR)) {
+  //     Integer i = super.visit(n, data);
+  //     return i == null ? 1 : i + 1;
+  //   }
+  //   Integer i = super.visit(n, data);
+  //   return i == null ? 0 : i;
+  // }
 
   @Override
   public Integer visit(ConditionalExpr n, FileDataHandler data) {
