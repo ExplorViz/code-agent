@@ -120,6 +120,10 @@ public class FileDataHandler implements ProtoBufConvertable<FileData> {
     return methodCount;
   }
 
+  public void setCommitSHA(final String commitSHA) {
+    this.builder.setCommitID(commitSHA);
+  }
+
   public String getFileName() {
     return this.builder.getFileName();
   }

@@ -20,6 +20,8 @@ dependencies {
     implementation 'io.quarkus:quarkus-resteasy-reactive'
     implementation 'io.quarkus:quarkus-grpc'
 
+    implementation 'com.google.protobuf:protobuf-java-util'
+
     // Java Parsing
     implementation 'com.github.javaparser:javaparser-symbol-solver-core:3.24.2'
 

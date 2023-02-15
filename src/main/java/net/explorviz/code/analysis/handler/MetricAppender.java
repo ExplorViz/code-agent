@@ -19,11 +19,12 @@ public class MetricAppender {
   private static final String UNKNOWN = "UNKNOWN";
   private final FileDataHandler fileData;
   private final Stack<String> classStack;
-  private String methodName;
+  private final Stack<String> methodStack;
 
   public MetricAppender(FileDataHandler fileDataHandler) {
     this.fileData = fileDataHandler;
     this.classStack = new Stack<>();
+    this.methodStack = new Stack<>();
   }
 
   /**
@@ -36,8 +37,10 @@ public class MetricAppender {
    */
   public String putMethodMetric(String metricName, String metricValue) {
     // TODO catch if class or method does not exist
-    return fileData.getClassData(classStack.peek()).getMethod(methodName)
-        .addMetric(metricName, metricValue);
+    ClassDataHandler classDataHandler = fileData.getClassData(classStack.peek());
+    MethodDataHandler methodDataHandler = classDataHandler.getMethod(methodStack.peek());
+    return methodDataHandler.addMetric(metricName, metricValue);
+    // return fileData.getClassData(classStack.peek()).getMethod(methodName).addMetric(metricName, metricValue);
   }
 
   /**
@@ -50,7 +53,8 @@ public class MetricAppender {
    */
   public String putClassMetric(String metricName, String metricValue) {
     // TODO catch if class data not available
-    return fileData.getClassData(classStack.peek()).addMetric(metricName, metricValue);
+    ClassDataHandler classDataHandler = fileData.getClassData(classStack.peek());
+    return classDataHandler.addMetric(metricName, metricValue);
   }
 
   public String putMethodMetric(String metricName, String metricValue,
@@ -109,17 +113,17 @@ public class MetricAppender {
   }
 
   public void enterMethod(final MethodDeclaration method) {
-    methodName = getCurrentClassName() + "." + method.getNameAsString() + "#" + parameterHash(
-        method.getParameters());
+    methodStack.push(getCurrentClassName() + "." + method.getNameAsString() + "#" + parameterHash(
+        method.getParameters()));
   }
 
   public void leaveMethod() {
-    methodName = "";
+    methodStack.pop();
   }
 
   // TODO Name or FQN?
   public String getCurrentMethodName() {
-    return methodName;
+    return methodStack.peek();
   }
 
   public FileDataHandler getFileData() {

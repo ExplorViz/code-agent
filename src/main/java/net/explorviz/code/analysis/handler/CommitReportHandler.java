@@ -19,8 +19,10 @@ public class CommitReportHandler {
 
   }
 
-  public void init(String commitId, String branchName) {
+  public void init(String commitId, String parentCommitId, String branchName) {
+    clear();
     builder.setCommitID(commitId);
+    builder.setParentCommitID(parentCommitId == null ? "NONE" : parentCommitId);
     builder.setBranchName(branchName);
   }
 

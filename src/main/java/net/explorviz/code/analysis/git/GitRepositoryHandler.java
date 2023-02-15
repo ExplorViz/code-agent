@@ -414,10 +414,6 @@ public class GitRepositoryHandler { // NOPMD
     return repositoryPath;
   }
 
-  public static String getCurrentBranch(final Repository repository) throws IOException {
-    return repository.getFullBranch();
-  }
-
   private static AbstractTreeIterator prepareTreeParser(final Repository repository,
                                                         final RevTree tree) throws IOException {
     final CanonicalTreeParser treeParser = new CanonicalTreeParser();

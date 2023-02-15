@@ -12,6 +12,7 @@ service CommitReportService {
 
 message  CommitReportData {
   string commitID = 1;
-  string branchName = 2;
-  repeated string files = 3;
+  string parentCommitID = 2;
+  string branchName = 3;
+  repeated string files = 4;
 }

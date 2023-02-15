@@ -86,8 +86,14 @@ public class JavaParserService {
       // multiCollectorVisitor = new FileDataVisitor(Optional.of(new NPathVisitorImpl()),
       //     Optional.of(new ACPathVisitor()));
       multiCollectorVisitor.visit(compilationUnit, data);
-      Pair<MetricAppender, Object> pair = new Pair<>(new MetricAppender(data), new Object());
-      new ClassComplexityVisitor().visit(compilationUnit, pair);
+      try {
+        Pair<MetricAppender, Object> pair = new Pair<>(new MetricAppender(data), new Object());
+        new ClassComplexityVisitor().visit(compilationUnit, pair);
+      } catch (Exception e) {
+        if (LOGGER.isErrorEnabled()) {
+          LOGGER.error("Unable to create metric for File: " + fileName);
+        }
+      }
     } else {
       multiCollectorVisitor = new FileDataVisitor(Optional.empty(), Optional.empty());
       multiCollectorVisitor.visit(compilationUnit, data);
@@ -140,7 +146,7 @@ public class JavaParserService {
   }
 
   private FileDataHandler parseAny(final String fileContent, final String fileName, final Path path,
-                                   boolean calculateMetrics)
+                                   boolean calculateMetrics, final String commitSHA)
       throws IOException {
     StaticJavaParser.getConfiguration().setSymbolResolver(this.javaSymbolSolver);
     final CompilationUnit compilationUnit;
@@ -155,7 +161,9 @@ public class JavaParserService {
     DebugFileWriter.saveAstAsYaml(compilationUnit, "/logs/quarkus/debug.yaml");
 
     try {
-      return parse(compilationUnit, fileName, calculateMetrics);
+      FileDataHandler dataHandler = parse(compilationUnit, fileName, calculateMetrics);
+      dataHandler.setCommitSHA(commitSHA);
+      return dataHandler;
     } catch (NoSuchElementException e) {
       if (LOGGER.isErrorEnabled()) {
         LOGGER.error("NoSuchElementException: \n" + compilationUnit.toString());
@@ -178,9 +186,9 @@ public class JavaParserService {
    * @param fileContent stringified java file
    */
   public FileDataHandler parseFileContent(final String fileContent, final String fileName,
-                                          boolean calculateMetrics) {
+                                          boolean calculateMetrics, final String commitSHA) {
     try {
-      return parseAny(fileContent, fileName, null, calculateMetrics);
+      return parseAny(fileContent, fileName, null, calculateMetrics, commitSHA);
     } catch (IOException e) {
       //   omit the IO Exception as the function can throw the exception only if path is not null
       return null;
@@ -192,10 +200,11 @@ public class JavaParserService {
    *
    * @throws IOException Gets thrown if the file is not reachable
    */
-  public FileDataHandler parseFile(final String pathToFile, boolean calculateMetrics)
+  public FileDataHandler parseFile(final String pathToFile, boolean calculateMetrics,
+                                   final String commitSHA)
       throws IOException {
     final Path path = Path.of(pathToFile);
-    return parseAny("", path.getFileName().toString(), path, calculateMetrics);
+    return parseAny("", path.getFileName().toString(), path, calculateMetrics, commitSHA);
   }
 
 }

@@ -32,7 +32,6 @@ public class ClassComplexityVisitor extends VoidVisitorAdapter<Pair<MetricAppend
 
   @Override
   public void visit(final ClassOrInterfaceDeclaration n, final Pair<MetricAppender, Object> data) {
-    System.out.println("Here");
     methodCounter.clear();
 
     data.a.enterClass(n);
@@ -65,8 +64,8 @@ public class ClassComplexityVisitor extends VoidVisitorAdapter<Pair<MetricAppend
   public void visit(final MethodDeclaration n, final Pair<MetricAppender, Object> data) {
     data.a.enterMethod(n);
     super.visit(n, data);
-    // calculate complexity here
-    int metricValue = methodCounter.getOrDefault(data.a.getCurrentMethodName(), 0);
+    int metricValue = methodCounter.getOrDefault(data.a.getCurrentMethodName(), 1);
+
     data.a.putMethodMetric(CYCLOMATIC_COMPLEXITY, String.valueOf(metricValue));
     data.a.leaveMethod();
   }

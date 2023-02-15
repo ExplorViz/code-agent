@@ -18,6 +18,7 @@ import net.explorviz.code.analysis.export.JsonExporter;
 import net.explorviz.code.analysis.git.DirectoryFinder;
 import net.explorviz.code.analysis.git.GitRepositoryHandler;
 import net.explorviz.code.analysis.handler.CommitReportHandler;
+import net.explorviz.code.analysis.handler.FileDataHandler;
 import net.explorviz.code.analysis.parser.JavaParserService;
 import net.explorviz.code.analysis.types.FileDescriptor;
 import net.explorviz.code.proto.FileData;
@@ -89,7 +90,7 @@ public class GitAnalysis {
     //  - send data chunk                                   - TODO
     try (Repository repository = this.gitRepositoryHandler.getGitRepository()) {
 
-      final String branch = GitRepositoryHandler.getCurrentBranch(repository);
+      final String branch = repository.getFullBranch();
 
       if (this.gitRepositoryHandler.isUnreachableCommit(startCommit, branch)) {
         throw new NotFoundException(toErrorText("start", startCommit.orElse(""), branch));
@@ -121,12 +122,12 @@ public class GitAnalysis {
 
         int commitCount = 0;
         RevCommit lastCheckedCommit = null;
-        boolean inAnalysisRange = startCommit.isPresent() && "".equals(startCommit.get());
+        boolean inAnalysisRange = startCommit.isEmpty() || "".equals(startCommit.get());
 
         for (final RevCommit commit : revWalk) {
 
           if (!inAnalysisRange) {
-            if (startCommit.isPresent() && commit.name().equals(startCommit.get())) {
+            if (commit.name().equals(startCommit.get())) {
               inAnalysisRange = true;
             } else {
               if (fetchRemoteDataProperty) {
@@ -143,6 +144,7 @@ public class GitAnalysis {
           if (descriptorList.isEmpty()) {
             if (LOGGER.isInfoEnabled()) {
               LOGGER.info("Skip {}", commit.name());
+              createCommitReport(repository, commit, lastCheckedCommit, exporter, branch);
             }
             commitCount++;
             lastCheckedCommit = commit;
@@ -152,7 +154,7 @@ public class GitAnalysis {
             continue;
           }
 
-          commitAnalysis(repository, commit, descriptorList, exporter);
+          commitAnalysis(repository, commit, lastCheckedCommit, descriptorList, exporter, branch);
 
           commitCount++;
           lastCheckedCommit = commit;
@@ -169,12 +171,12 @@ public class GitAnalysis {
   }
 
   private void commitAnalysis(final Repository repository, final RevCommit commit,
+                              final RevCommit lastCommit,
                               final List<FileDescriptor> descriptorList,
-                              final DataExporter exporter)
+                              final DataExporter exporter, final String branchName)
       throws GitAPIException, NotFoundException, IOException {
     DirectoryFinder.resetDirectory(sourceDirectoryProperty.orElse(""));
-    commitReportHandler.init(commit.getId().getName(),
-        GitRepositoryHandler.getCurrentBranch(repository));
+    // commitReportHandler.init(commit.getId().getName(),lastCommit.getId().getName(), branchName);
 
     final Date commitDate = commit.getAuthorIdent().getWhen();
     LOGGER.info("Analyze {}", commitDate);
@@ -185,9 +187,24 @@ public class GitAnalysis {
         List.of(sourceDirectoryProperty.orElse("").split(","))));
 
     for (final FileDescriptor fileDescriptor : descriptorList) {
-      final FileData fileData = fileAnalysis(repository, fileDescriptor, javaParserService);
-      // TODO Export Alex
+      final FileData fileData = fileAnalysis(repository, fileDescriptor, javaParserService,
+          commit.getName());
       exporter.sendFileData(fileData);
+    }
+    createCommitReport(repository, commit, lastCommit, exporter, branchName);
+    // List<FileDescriptor> files = gitRepositoryHandler.listFilesInCommit(repository, commit,
+    //     restrictAnalysisToFoldersProperty.orElse(""));
+    // commitReportHandler.add(files);
+    // exporter.sendCommitReport(commitReportHandler.getCommitReport());
+  }
+
+  private void createCommitReport(final Repository repository, final RevCommit commit,
+                                  final RevCommit lastCommit, final DataExporter exporter,
+                                  final String branchName) throws NotFoundException, IOException {
+    if (lastCommit == null) {
+      commitReportHandler.init(commit.getId().getName(), null, branchName);
+    } else {
+      commitReportHandler.init(commit.getId().getName(), lastCommit.getId().getName(), branchName);
     }
     List<FileDescriptor> files = gitRepositoryHandler.listFilesInCommit(repository, commit,
         restrictAnalysisToFoldersProperty.orElse(""));
@@ -196,12 +213,14 @@ public class GitAnalysis {
   }
 
   private FileData fileAnalysis(final Repository repository, final FileDescriptor file,
-                                final JavaParserService parser) throws IOException {
+                                final JavaParserService parser, final String commitSHA)
+      throws IOException {
     final String fileContent = GitRepositoryHandler.getContent(file.objectId, repository);
     LOGGER.info("analyze: {}", file.fileName);
     try {
-      return parser.parseFileContent(fileContent, file.fileName, calculateMetricsProperty) // NOPMD
-          .getProtoBufObject();
+      FileDataHandler fileDataHandler = parser.parseFileContent(fileContent, file.fileName,
+          calculateMetricsProperty, commitSHA); // NOPMD
+      return fileDataHandler.getProtoBufObject();
 
     } catch (NoSuchElementException | NoSuchFieldError e) {
       if (LOGGER.isWarnEnabled()) {
@@ -226,7 +245,8 @@ public class GitAnalysis {
     if (fetchRemoteDataProperty) {
       exporter = new GrpcExporter();
     } else {
-      exporter = new JsonExporter("");
+      // remove the hardcoded path
+      exporter = new JsonExporter("C:\\Users\\Julian\\projects\\Bachelor\\output");
       // pathToStorageDirectoryProperty.orElseThrow(
       // () -> new PropertyNotDefinedException("pathToStorageDirectoryProperty"));
     }
