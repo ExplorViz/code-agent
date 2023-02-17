@@ -82,9 +82,7 @@ public class JavaParserService {
     if (calculateMetrics) {
       // multiCollectorVisitor = new FileDataVisitor(Optional.of(new NPathVisitor()),
       //     Optional.of(new ACPathVisitor()));
-      multiCollectorVisitor = new FileDataVisitor(Optional.empty(), Optional.empty());
-      // multiCollectorVisitor = new FileDataVisitor(Optional.of(new NPathVisitorImpl()),
-      //     Optional.of(new ACPathVisitor()));
+      multiCollectorVisitor = new FileDataVisitor(Optional.empty());
       multiCollectorVisitor.visit(compilationUnit, data);
       try {
         Pair<MetricAppender, Object> pair = new Pair<>(new MetricAppender(data), new Object());
@@ -95,7 +93,7 @@ public class JavaParserService {
         }
       }
     } else {
-      multiCollectorVisitor = new FileDataVisitor(Optional.empty(), Optional.empty());
+      multiCollectorVisitor = new FileDataVisitor(Optional.empty());
       multiCollectorVisitor.visit(compilationUnit, data);
     }
 

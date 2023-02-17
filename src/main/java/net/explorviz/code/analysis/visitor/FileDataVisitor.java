@@ -45,10 +45,8 @@ public class FileDataVisitor extends VoidVisitorAdapter<FileDataHandler> { // NO
   private final GenericVisitorAdapter<Integer, FileDataHandler> nPathVisitor;
   // private final VoidVisitorAdapter<FileDataHandler> acPathVisitor;
 
-  public FileDataVisitor(Optional<GenericVisitorAdapter<Integer, FileDataHandler>> nPathVisitor,
-                         Optional<ACPathVisitor> acPathVisitor) {
+  public FileDataVisitor(Optional<GenericVisitorAdapter<Integer, FileDataHandler>> nPathVisitor) {
     this.nPathVisitor = nPathVisitor.isPresent() ? nPathVisitor.get() : new EmptyGenericVisitor();
-    // this.acPathVisitor = acPathVisitor.isPresent() ? acPathVisitor.get() : new EmptyVoidVisitor();
   }
 
   @Override
