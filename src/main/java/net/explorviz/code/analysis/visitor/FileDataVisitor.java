@@ -91,7 +91,6 @@ public class FileDataVisitor extends VoidVisitorAdapter<FileDataHandler> { // NO
 
   @Override
   public void visit(final ClassOrInterfaceDeclaration n, final FileDataHandler data) { // NOPMD
-
     data.enterClass(n.getFullyQualifiedName().orElse(UNKNOWN));
     data.getCurrentClassData().addMetric("loc", String.valueOf(getLoc(n)));
 
@@ -136,6 +135,7 @@ public class FileDataVisitor extends VoidVisitorAdapter<FileDataHandler> { // NO
         data.getCurrentClassName() + "." + n.getNameAsString() + "#" + parameterHash(
             n.getParameters());
     final String returnType = resolveFqn(n.getType(), data);
+    data.setLastAddedMethodFqn(methodsFullyQualifiedName);
     final MethodDataHandler method = data.getCurrentClassData()
         .addMethod(methodsFullyQualifiedName, returnType);
     for (final Modifier modifier : n.getModifiers()) {
@@ -181,27 +181,36 @@ public class FileDataVisitor extends VoidVisitorAdapter<FileDataHandler> { // NO
 
   // If FieldAccessExpr, then tight coupling
   @Override
-  public void visit(MethodCallExpr n, FileDataHandler arg) {
+  public void visit(MethodCallExpr n, FileDataHandler data) {
     // System.out.println(n.getNameAsString());
-    super.visit(n, arg);
+    super.visit(n, data);
   }
 
   @Override
-  public void visit(ObjectCreationExpr n, FileDataHandler arg) {
-    // System.out.println(n.toString());
-    super.visit(n, arg);
+  public void visit(ObjectCreationExpr n, FileDataHandler data) {
+    if (n.getAnonymousClassBody().isPresent()) {
+      if (n.getAnonymousClassBody().get().size() > 1 && LOGGER.isWarnEnabled()) {
+        LOGGER.warn("Detected multiple anonymous class bodies inside object creation expression."
+            + "Unable to handle process. False data may occur.");
+      }
+      data.enterAnonymousClass(n.getTypeAsString(), data.getLastAddedMethodFqn());
+      super.visit(n, data);
+      data.leaveAnonymousClass();
+    } else {
+      super.visit(n, data);
+    }
   }
 
   @Override
-  public void visit(ModuleDeclaration n, FileDataHandler arg) {
+  public void visit(ModuleDeclaration n, FileDataHandler data) {
     // TODO NOT SUPPORTED
-    super.visit(n, arg);
+    super.visit(n, data);
   }
 
   @Override
-  public void visit(RecordDeclaration n, FileDataHandler arg) {
+  public void visit(RecordDeclaration n, FileDataHandler data) {
     // TODO NOT SUPPORTED
-    super.visit(n, arg);
+    super.visit(n, data);
   }
 
   private String resolveFqn(final Type type, final FileDataHandler data) {

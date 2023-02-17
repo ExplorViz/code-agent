@@ -17,6 +17,7 @@ public class FileDataHandler implements ProtoBufConvertable<FileData> {
 
   private final FileData.Builder builder;
   private final Map<String, ClassDataHandler> classDataMap;
+  private String lastAddedMethod = "";
 
   /**
    * Creates a blank FileData object.
@@ -29,7 +30,7 @@ public class FileDataHandler implements ProtoBufConvertable<FileData> {
   }
 
   /**
-   * Enters a Class, used while walking the AST.
+   * Enters a class, used while walking the AST.
    *
    * @param className the name of the entered class
    */
@@ -44,6 +45,26 @@ public class FileDataHandler implements ProtoBufConvertable<FileData> {
           this.classStack.get(this.classStack.size() - 2));
       parent.addInnerClass(className);
     }
+  }
+
+  /**
+   * Enters an anonymous class, used while walking the AST.
+   *
+   * @param anonymousClassName the type of the anonymous class, as no real name is available
+   * @param parentFQN the fqn of the parent, may be the method it is created in.
+   */
+  public void enterAnonymousClass(final String anonymousClassName, final String parentFQN) {
+    String fqn = parentFQN + "." + anonymousClassName;
+    int idx = 0;
+    while (classDataMap.containsKey(fqn)) {
+      idx++;
+      fqn = parentFQN + "." + anonymousClassName + "#" + idx;
+    }
+
+    this.classStack.push(fqn);
+    ClassDataHandler classDataHandler = new ClassDataHandler();
+    classDataHandler.setIsAnonymousClass();
+    this.classDataMap.put(fqn, classDataHandler);
   }
 
   /**
@@ -107,6 +128,10 @@ public class FileDataHandler implements ProtoBufConvertable<FileData> {
     this.classStack.pop();
   }
 
+  public void leaveAnonymousClass() {
+    leaveClass();
+  }
+
   /**
    * Calculates the number of methods in this file.
    *
@@ -152,5 +177,13 @@ public class FileDataHandler implements ProtoBufConvertable<FileData> {
         + "package: " + this.builder.getPackageName() + "\n"
         + "imports: " + this.builder.getImportNameList() + "\n"
         + mapData;
+  }
+
+  public String getLastAddedMethodFqn() {
+    return lastAddedMethod;
+  }
+
+  public void setLastAddedMethodFqn(final String lastAddedMethodFqn) {
+    this.lastAddedMethod = lastAddedMethodFqn;
   }
 }

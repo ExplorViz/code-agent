@@ -24,6 +24,7 @@ enum ClassType {
   ABSTRACT_CLASS = 1;
   CLASS = 2;
   ENUM = 3;
+  ANONYMOUS_CLASS = 4;
 }
 
 message ParameterData {

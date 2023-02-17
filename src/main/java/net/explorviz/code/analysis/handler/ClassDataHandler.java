@@ -96,7 +96,17 @@ public class ClassDataHandler implements ProtoBufConvertable<ClassData> {
   }
 
   public void setIsClass() {
-    this.builder.setType(ClassType.CLASS);
+    if (this.builder.getType() != ClassType.ANONYMOUS_CLASS) {
+      this.builder.setType(ClassType.CLASS);
+    }
+  }
+
+  public void setIsClass(final boolean override) {
+    if (override) {
+      this.builder.setType(ClassType.CLASS);
+    } else {
+      setIsClass();
+    }
   }
 
   public boolean isClass() {
@@ -109,6 +119,14 @@ public class ClassDataHandler implements ProtoBufConvertable<ClassData> {
 
   public boolean isEnum() {
     return this.builder.getType() == ClassType.ENUM;
+  }
+
+  public void setIsAnonymousClass() {
+    this.builder.setType(ClassType.ANONYMOUS_CLASS);
+  }
+
+  public boolean isAnonymousClass() {
+    return this.builder.getType() == ClassType.ANONYMOUS_CLASS;
   }
 
 

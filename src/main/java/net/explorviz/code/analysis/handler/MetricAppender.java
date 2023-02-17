@@ -36,10 +36,13 @@ public class MetricAppender {
    * @return returns the old value of the metric if the metric exists, otherwise null
    */
   public String putMethodMetric(String metricName, String metricValue) {
-    // TODO catch if class or method does not exist
-    ClassDataHandler classDataHandler = fileData.getClassData(classStack.peek());
-    MethodDataHandler methodDataHandler = classDataHandler.getMethod(methodStack.peek());
-    return methodDataHandler.addMetric(metricName, metricValue);
+    try {
+      ClassDataHandler classDataHandler = fileData.getClassData(classStack.peek());
+      MethodDataHandler methodDataHandler = classDataHandler.getMethod(methodStack.peek());
+      return methodDataHandler.addMetric(metricName, metricValue);
+    } catch (NullPointerException e) {
+      return null;
+    }
     // return fileData.getClassData(classStack.peek()).getMethod(methodName).addMetric(metricName, metricValue);
   }
 
@@ -52,9 +55,12 @@ public class MetricAppender {
    * @return returns the old value of the metric if the metric exists, otherwise null
    */
   public String putClassMetric(String metricName, String metricValue) {
-    // TODO catch if class data not available
-    ClassDataHandler classDataHandler = fileData.getClassData(classStack.peek());
-    return classDataHandler.addMetric(metricName, metricValue);
+    try {
+      ClassDataHandler classDataHandler = fileData.getClassData(classStack.peek());
+      return classDataHandler.addMetric(metricName, metricValue);
+    } catch (NullPointerException e) {
+      return null;
+    }
   }
 
   public String putMethodMetric(String metricName, String metricValue,
