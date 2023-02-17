@@ -2,7 +2,7 @@ package net.explorviz.code.analysis.visitor;
 
 import com.github.javaparser.ast.body.ClassOrInterfaceDeclaration;
 import com.github.javaparser.ast.body.MethodDeclaration;
-import com.github.javaparser.ast.stmt.ForStmt;
+import com.github.javaparser.ast.expr.ObjectCreationExpr;
 import com.github.javaparser.ast.visitor.VoidVisitorAdapter;
 import com.github.javaparser.utils.Pair;
 import net.explorviz.code.analysis.handler.MetricAppender;
@@ -37,7 +37,16 @@ public class VisitorStub extends VoidVisitorAdapter<Pair<MetricAppender, Object>
   }
 
   @Override
-  public void visit(ForStmt n, Pair<MetricAppender, Object> data) {
-    super.visit(n, data);
+  public void visit(ObjectCreationExpr n, Pair<MetricAppender, Object> data) {
+    if (n.getAnonymousClassBody().isPresent()) {
+      if (n.getAnonymousClassBody().get().size() > 1) {
+        // TODO did not found an example how this could look like, so an implementation is needed
+      }
+      data.a.enterAnonymousClass(n.getTypeAsString(), data.a.getCurrentMethodName());
+      super.visit(n, data);
+      data.a.leaveAnonymousClass();
+    } else {
+      super.visit(n, data);
+    }
   }
 }

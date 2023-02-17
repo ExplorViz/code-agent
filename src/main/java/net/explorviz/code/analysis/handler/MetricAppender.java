@@ -6,7 +6,9 @@ import com.github.javaparser.ast.body.ClassOrInterfaceDeclaration;
 import com.github.javaparser.ast.body.MethodDeclaration;
 import com.github.javaparser.ast.body.Parameter;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Stack;
 
 /**
@@ -20,11 +22,13 @@ public class MetricAppender {
   private final FileDataHandler fileData;
   private final Stack<String> classStack;
   private final Stack<String> methodStack;
+  private final Map<String, Integer> anonymousCounter;
 
   public MetricAppender(FileDataHandler fileDataHandler) {
     this.fileData = fileDataHandler;
     this.classStack = new Stack<>();
     this.methodStack = new Stack<>();
+    this.anonymousCounter = new HashMap<>();
   }
 
   /**
@@ -110,6 +114,18 @@ public class MetricAppender {
   }
 
   public void leaveClass() {
+    this.classStack.pop();
+  }
+
+  public void enterAnonymousClass(final String anonymousClassName, final String parentFQN) {
+    String fqn = parentFQN + "." + anonymousClassName;
+    Integer val = anonymousCounter.put(fqn, anonymousCounter.getOrDefault(fqn, 0) + 1);
+    fqn = parentFQN + "." + anonymousClassName + (val == null ? "" : "#" + val);
+
+    this.classStack.push(fqn);
+  }
+
+  public void leaveAnonymousClass() {
     this.classStack.pop();
   }
 

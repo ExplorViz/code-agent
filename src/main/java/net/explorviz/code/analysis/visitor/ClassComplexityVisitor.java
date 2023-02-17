@@ -2,6 +2,7 @@ package net.explorviz.code.analysis.visitor;
 
 import com.github.javaparser.ast.body.ClassOrInterfaceDeclaration;
 import com.github.javaparser.ast.body.MethodDeclaration;
+import com.github.javaparser.ast.expr.ObjectCreationExpr;
 import com.github.javaparser.ast.stmt.CatchClause;
 import com.github.javaparser.ast.stmt.ForEachStmt;
 import com.github.javaparser.ast.stmt.ForStmt;
@@ -68,6 +69,20 @@ public class ClassComplexityVisitor extends VoidVisitorAdapter<Pair<MetricAppend
 
     data.a.putMethodMetric(CYCLOMATIC_COMPLEXITY, String.valueOf(metricValue));
     data.a.leaveMethod();
+  }
+
+  @Override
+  public void visit(ObjectCreationExpr n, Pair<MetricAppender, Object> data) {
+    if (n.getAnonymousClassBody().isPresent()) {
+      if (n.getAnonymousClassBody().get().size() > 1) {
+        // TODO did not found an example how this could look like, so an implementation is needed
+      }
+      data.a.enterAnonymousClass(n.getTypeAsString(), data.a.getCurrentMethodName());
+      super.visit(n, data);
+      data.a.leaveAnonymousClass();
+    } else {
+      super.visit(n, data);
+    }
   }
 
 
