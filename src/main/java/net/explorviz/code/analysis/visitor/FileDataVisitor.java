@@ -24,9 +24,13 @@ import com.github.javaparser.ast.type.Type;
 import com.github.javaparser.ast.visitor.GenericVisitorAdapter;
 import com.github.javaparser.ast.visitor.VoidVisitorAdapter;
 import com.github.javaparser.resolution.UnsolvedSymbolException;
+import com.github.javaparser.resolution.declarations.ResolvedReferenceTypeDeclaration;
 import com.github.javaparser.resolution.types.ResolvedReferenceType;
 import com.github.javaparser.resolution.types.ResolvedType;
+import com.github.javaparser.symbolsolver.model.resolution.SymbolReference;
+import com.github.javaparser.symbolsolver.model.resolution.TypeSolver;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 import java.util.Optional;
 import net.explorviz.code.analysis.handler.FileDataHandler;
@@ -43,10 +47,13 @@ public class FileDataVisitor extends VoidVisitorAdapter<FileDataHandler> { // NO
   private static final Logger LOGGER = LoggerFactory.getLogger(FileDataVisitor.class);
   private static final String UNKNOWN = "UNKNOWN";
   private final GenericVisitorAdapter<Integer, FileDataHandler> nPathVisitor;
+  private final Optional<TypeSolver> fallbackTypeSolver;
   // private final VoidVisitorAdapter<FileDataHandler> acPathVisitor;
 
-  public FileDataVisitor(Optional<GenericVisitorAdapter<Integer, FileDataHandler>> nPathVisitor) {
+  public FileDataVisitor(Optional<GenericVisitorAdapter<Integer, FileDataHandler>> nPathVisitor,
+                         Optional<TypeSolver> fallbackTypeSolver) {
     this.nPathVisitor = nPathVisitor.isPresent() ? nPathVisitor.get() : new EmptyGenericVisitor();
+    this.fallbackTypeSolver = fallbackTypeSolver;
   }
 
   @Override
@@ -222,16 +229,17 @@ public class FileDataVisitor extends VoidVisitorAdapter<FileDataHandler> { // NO
     } catch (UnsolvedSymbolException | IllegalStateException e) {
       return findFqnInImports(type, data);
     } catch (UnsupportedOperationException e) {
-      if (LOGGER.isWarnEnabled()) {
-        LOGGER.warn(
-            "UnsupportedOperationException encountered, "
-                + "reason currently unknown. Try to resolve but this may fail.");
-      }
-      // TODO what happens here? Error gets thrown but I don't know the reason...
+      String typeName = type.toString();
       if (e.getMessage().contains("CorrespondingDeclaration")) {
-        return findFqnInImports(type, data);
+        typeName = solveTypeInCurrentContext(type.toString());
       }
-      return findFqnInImports(type, data);
+      if (typeName.equals(type.toString())) {
+        typeName = findFqnInImports(type, data);
+      }
+      if (LOGGER.isWarnEnabled() && typeName.equals(type.toString())) {
+        LOGGER.warn("Type <" + typeName + "> could not be solved.");
+      }
+      return typeName;
     }
   }
 
@@ -315,14 +323,18 @@ public class FileDataVisitor extends VoidVisitorAdapter<FileDataHandler> { // NO
     return 0;
   }
 
-  /**
-   * Calculates the hash for a parameter list provided as String List.
-   *
-   * @param list a list of Types
-   * @return the hash of the types as hexadecimal string
-   */
-  public static String parameterHash(final List<String> list) {
-    return Integer.toHexString(list.hashCode());
+  private String solveTypeInCurrentContext(final String name) {
+    if (fallbackTypeSolver.isPresent()) {
+      // Don't know why, but symbol solver seems to have problems with
+      for (String builtInPackage : Arrays.asList("", "java.lang.")) {
+        final SymbolReference<ResolvedReferenceTypeDeclaration> ref = fallbackTypeSolver.get()
+            .tryToSolveType(builtInPackage + name);
+        if (ref.isSolved()) {
+          return ref.getCorrespondingDeclaration().getQualifiedName();
+        }
+      }
+    }
+    return name;
   }
 
   /**
@@ -331,7 +343,7 @@ public class FileDataVisitor extends VoidVisitorAdapter<FileDataHandler> { // NO
    * @param parameterList a list of Parameters
    * @return the hash of the parameters as hexadecimal string
    */
-  public static String parameterHash(final NodeList<Parameter> parameterList) {
+  private static String parameterHash(final NodeList<Parameter> parameterList) {
     final List<String> tempList = new ArrayList<>();
     for (final Parameter parameter : parameterList) {
       tempList.add(parameter.getName().asString());

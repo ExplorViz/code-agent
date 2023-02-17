@@ -2,9 +2,7 @@ package net.explorviz.code.analysis.parser;
 
 import com.github.javaparser.StaticJavaParser;
 import com.github.javaparser.ast.CompilationUnit;
-import com.github.javaparser.resolution.declarations.ResolvedReferenceTypeDeclaration;
 import com.github.javaparser.symbolsolver.JavaSymbolSolver;
-import com.github.javaparser.symbolsolver.model.resolution.SymbolReference;
 import com.github.javaparser.symbolsolver.resolution.typesolvers.CombinedTypeSolver;
 import com.github.javaparser.symbolsolver.resolution.typesolvers.JavaParserTypeSolver;
 import com.github.javaparser.symbolsolver.resolution.typesolvers.ReflectionTypeSolver;
@@ -43,7 +41,7 @@ public class JavaParserService {
    */
   public JavaParserService() {
     combinedTypeSolver = new CombinedTypeSolver();
-    reflectionTypeSolver = new ReflectionTypeSolver();
+    reflectionTypeSolver = new ReflectionTypeSolver(false);
     combinedTypeSolver.add(reflectionTypeSolver);
     javaSymbolSolver = new JavaSymbolSolver(combinedTypeSolver);
   }
@@ -56,7 +54,7 @@ public class JavaParserService {
   public JavaParserService(final List<String> sourcePaths) {
     this.sourcePaths = sourcePaths;
     combinedTypeSolver = new CombinedTypeSolver();
-    reflectionTypeSolver = new ReflectionTypeSolver();
+    reflectionTypeSolver = new ReflectionTypeSolver(false);
     combinedTypeSolver.add(reflectionTypeSolver);
     for (final String path : sourcePaths) {
       combinedTypeSolver.add(new JavaParserTypeSolver(Path.of(path)));  // NOPMD
@@ -82,7 +80,8 @@ public class JavaParserService {
     if (calculateMetrics) {
       // multiCollectorVisitor = new FileDataVisitor(Optional.of(new NPathVisitor()),
       //     Optional.of(new ACPathVisitor()));
-      multiCollectorVisitor = new FileDataVisitor(Optional.empty());
+      multiCollectorVisitor = new FileDataVisitor(Optional.empty(),
+          Optional.of(combinedTypeSolver));
       multiCollectorVisitor.visit(compilationUnit, data);
       try {
         Pair<MetricAppender, Object> pair = new Pair<>(new MetricAppender(data), new Object());
@@ -93,7 +92,8 @@ public class JavaParserService {
         }
       }
     } else {
-      multiCollectorVisitor = new FileDataVisitor(Optional.empty());
+      multiCollectorVisitor = new FileDataVisitor(Optional.empty(),
+          Optional.of(combinedTypeSolver));
       multiCollectorVisitor.visit(compilationUnit, data);
     }
 
@@ -109,7 +109,7 @@ public class JavaParserService {
    */
   public void reset() {
     combinedTypeSolver = new CombinedTypeSolver();
-    reflectionTypeSolver = new ReflectionTypeSolver();
+    reflectionTypeSolver = new ReflectionTypeSolver(false);
     combinedTypeSolver.add(reflectionTypeSolver);
     for (final String path : this.sourcePaths) {
       combinedTypeSolver.add(new JavaParserTypeSolver(path)); // NOPMD
@@ -125,22 +125,6 @@ public class JavaParserService {
   public void reset(final List<String> sourcePaths) {
     this.sourcePaths = sourcePaths;
     reset();
-  }
-
-
-  /**
-   * Tries to solve the given name with the attached TypeSolvers in the current Context.
-   *
-   * @param name the name of the type to solve
-   * @return Empty, if not able, the FQN otherwise
-   */
-  public Optional<String> solveTypeInCurrentContext(final String name) {
-    final SymbolReference<ResolvedReferenceTypeDeclaration> ref = combinedTypeSolver.tryToSolveType(
-        name);
-    if (ref.isSolved()) {
-      return Optional.of(ref.getCorrespondingDeclaration().toString());
-    }
-    return Optional.empty();
   }
 
   private FileDataHandler parseAny(final String fileContent, final String fileName, final Path path,
