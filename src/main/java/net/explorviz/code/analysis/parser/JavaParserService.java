@@ -14,7 +14,6 @@ import java.util.List;
 import java.util.NoSuchElementException;
 import java.util.Optional;
 import javax.enterprise.context.ApplicationScoped;
-import net.explorviz.code.analysis.exceptions.DebugFileWriter;
 import net.explorviz.code.analysis.handler.FileDataHandler;
 import net.explorviz.code.analysis.handler.MetricAppender;
 import net.explorviz.code.analysis.visitor.ClassComplexityVisitor;
@@ -73,13 +72,9 @@ public class JavaParserService {
 
   private FileDataHandler parse(final CompilationUnit compilationUnit, final String fileName,
                                 boolean calculateMetrics) {
-    // List<VoidVisitor<Pair<MetricAppender, Object>>> voidVisitors = new ArrayList<>();
-    // List<Object> voidVisitorsInputs = new ArrayList<>();
     final FileDataHandler data = new FileDataHandler(fileName);
     final FileDataVisitor multiCollectorVisitor;
     if (calculateMetrics) {
-      // multiCollectorVisitor = new FileDataVisitor(Optional.of(new NPathVisitor()),
-      //     Optional.of(new ACPathVisitor()));
       multiCollectorVisitor = new FileDataVisitor(Optional.empty(),
           Optional.of(combinedTypeSolver));
       multiCollectorVisitor.visit(compilationUnit, data);
@@ -96,10 +91,6 @@ public class JavaParserService {
           Optional.of(combinedTypeSolver));
       multiCollectorVisitor.visit(compilationUnit, data);
     }
-
-    // for(VoidVisitor<Pair<MetricAppender, Object>> voidVisitor : voidVisitors) {
-    //   voidVisitor.visit(compilationUnit, new Pair<MetricAppender, Object>(new MetricAppender(data),voidVisitorsInputs.get(0)));
-    // }
     return data;
   }
 
@@ -140,7 +131,7 @@ public class JavaParserService {
     }
 
     // DEBUG CODE
-    DebugFileWriter.saveAstAsYaml(compilationUnit, "/logs/quarkus/debug.yaml");
+    // DebugFileWriter.saveAstAsYaml(compilationUnit, "/logs/quarkus/debug.yaml");
 
     try {
       FileDataHandler dataHandler = parse(compilationUnit, fileName, calculateMetrics);

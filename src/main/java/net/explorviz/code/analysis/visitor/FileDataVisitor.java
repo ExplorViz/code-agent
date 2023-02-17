@@ -33,8 +33,10 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Optional;
+import java.util.stream.Collectors;
 import net.explorviz.code.analysis.handler.FileDataHandler;
 import net.explorviz.code.analysis.handler.MethodDataHandler;
+import org.eclipse.microprofile.config.inject.ConfigProperty;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -44,10 +46,16 @@ import org.slf4j.LoggerFactory;
  */
 public class FileDataVisitor extends VoidVisitorAdapter<FileDataHandler> { // NOPMD
 
+  @ConfigProperty(name = "explorviz.gitanalysis.assume-unresolved-types-from-wildcard-imports",
+      defaultValue = "false")
+  /* default */ boolean wildcardImportProperty;  // NOCS
+
   private static final Logger LOGGER = LoggerFactory.getLogger(FileDataVisitor.class);
   private static final String UNKNOWN = "UNKNOWN";
   private final GenericVisitorAdapter<Integer, FileDataHandler> nPathVisitor;
   private final Optional<TypeSolver> fallbackTypeSolver;
+  private int wildcardImportCount = 0;
+  private String wildcardImport = null;
   // private final VoidVisitorAdapter<FileDataHandler> acPathVisitor;
 
   public FileDataVisitor(Optional<GenericVisitorAdapter<Integer, FileDataHandler>> nPathVisitor,
@@ -64,6 +72,12 @@ public class FileDataVisitor extends VoidVisitorAdapter<FileDataHandler> { // NO
 
   @Override
   public void visit(final ImportDeclaration n, final FileDataHandler data) {
+    if (n.isAsterisk()) {
+      if (wildcardImportCount == 0 && wildcardImport == null) {
+        wildcardImport = n.getNameAsString();
+      }
+      wildcardImportCount++;
+    }
     data.addImport(n.getNameAsString());
     super.visit(n, data);
   }
@@ -284,13 +298,39 @@ public class FileDataVisitor extends VoidVisitorAdapter<FileDataHandler> { // NO
     }
     // check imports
     for (final String importEntry : imports) {
+      if (type.asString().contains(".")) {
+        String[] a = type.asString().split("\\.");
+        if (importEntry.endsWith(a[0])) {
+          String result = Arrays.stream(a).filter(str -> !str.equals(a[0])).collect(
+              Collectors.joining("."));
+          return importEntry + "." + result + attachedGenerics;
+        }
+      }
       if (importEntry.endsWith(type.asString())) {
         return importEntry + attachedGenerics;
       }
     }
 
+    if (wildcardImportProperty && wildcardImportCount == 1) {
+      LOGGER.warn(wildcardImport + "." + type.asString() + attachedGenerics);
+      return wildcardImport + "." + type.asString() + attachedGenerics;
+    }
+
     if (LOGGER.isErrorEnabled()) {
-      LOGGER.error("Unable to get FQN for <" + type.asString() + ">");
+      // if wildcard in imports, note here that it might be possible the type is defined there
+      if (wildcardImportCount > 1 && wildcardImportProperty) {
+        LOGGER.error(
+            "File contains multiple wildcard imports, type <" + type.asString()
+                + "> is ambiguous.");
+      } else {
+        if (wildcardImportCount > 0) {
+          LOGGER.error(
+              "File contains wildcard import(s), type <" + type.asString()
+                  + "> might be defined there. Type assumption by wildcards is turned off.");
+        } else {
+          LOGGER.error("Unable to get FQN for <" + type.asString() + ">");
+        }
+      }
     }
     return type.asString() + attachedGenerics;
   }
