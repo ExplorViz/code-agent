@@ -199,14 +199,13 @@ public class GitRepositoryHandler { // NOPMD
   /**
    * Returns a Git {@link Repository} object by using the parameters set in the
    * application.properties.<br> The local repository defined in
-   * {@code  explorviz.gitanalysis.local.folder.path} will be used.
+   * {@code  explorviz.gitanalysis.local.storage-path} will be used.
    * <br>
-   * If {@code  explorviz.gitanalysis.local.folder.path} is empty, the repository defined in
+   * If {@code  explorviz.gitanalysis.local.storage-path} is empty, the repository defined in
    * {@code  explorviz.gitanalysis.remote.url} will be cloned to the location
-   * {@code explorviz.gitanalysis.remote.localstoragepath}.<br> If no storage path is given, a
-   * temporary directory will be created. <br> The branch given in
-   * {@code explorviz.gitanalysis.branch} will be used if present, otherwise the default (remote) or
-   * current (local) will be used.
+   * {@code explorviz.gitanalysis.remote.storage-path}.<br> If no storage path is given, a temporary
+   * directory will be created. <br> The branch given in {@code explorviz.gitanalysis.branch} will
+   * be used if present, otherwise the default (remote) or current (local) will be used.
    *
    * @return an opened Git {@link Repository}
    * @throws PropertyNotDefinedException gets thrown if a needed property is not present

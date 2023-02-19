@@ -1,7 +1,6 @@
 package net.explorviz.code.analysis.git;
 
 import java.io.File;
-import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
@@ -35,19 +34,26 @@ public final class DirectoryFinder {
   }
 
   /**
+   * Resets the internal path storage.
+   */
+  public static void reset() {
+    PATHS.clear();
+  }
+
+  /**
    * Searches and return the relative path to the directory matching the search string.
    *
    * @param paths a list of search strings for the paths.
-   * @param relativePath the path the return should be relative to
+   * @param root the path the return should be relative to
    * @return the directories matching the search strings
    * @throws NotFoundException thrown if no directory matches the given search string
    */
   public static List<String> getRelativeDirectory(final List<String> paths,
-                                                  final String relativePath)
+                                                  final String root)
       throws NotFoundException {
     final List<String> relativePaths = new ArrayList<>();
-    for (final String path : getDirectory(paths)) {
-      relativePaths.add(path.replace(relativePath, ""));
+    for (final String path : getDirectory(paths, root)) {
+      relativePaths.add(path.replace(root, ""));
     }
     return relativePaths;
   }
@@ -56,11 +62,12 @@ public final class DirectoryFinder {
    * Searches and return the absolute path to the directory matching the search string.
    *
    * @param paths a list of search strings for the paths.
+   * @param root the root path to start the search from
    * @return the directories matching the search strings
    * @throws MalformedPathException thrown if the search string is malformed and can not be used
    * @throws NotFoundException      thrown if no directory matches the given search string
    */
-  public static List<String> getDirectory(final List<String> paths) // NOPMD
+  public static List<String> getDirectory(final List<String> paths, final String root) // NOPMD
       throws NotFoundException {
     final List<String> pathList = new ArrayList<>();
     for (final String path : paths) {
@@ -71,39 +78,36 @@ public final class DirectoryFinder {
       }
       String sourceDir = path;  // NOPMD
       boolean isOptionalPath = false;
+      // check if path is enclosed in brackets and therefore optional
       if (sourceDir.matches("^\\[.*\\]$")) {
         sourceDir = sourceDir.replaceAll("\\[|\\]", "");
         isOptionalPath = true;
       }
-      // handle the wildcard
-      if (sourceDir.contains("*")) {
-        if (sourceDir.matches("\\*[/\\\\]?$")) {
-          throw new MalformedPathException(
-              "Wildcard character can not be the last, search would not terminate! Given -> "
-                  + sourceDir);
-        }
-        if (sourceDir.matches("\\\\\\\\|//")) {
-          sourceDir = sourceDir.replaceAll("\\\\", "\\").replaceAll("//", "/");
-          LOGGER.warn("found double file separator, replaced input with -> {}", sourceDir);
-        }
-        final String[] arr = sourceDir.split("[*\\\\/]");
-        final List<String> traverseFolders = new ArrayList<>(Arrays.asList(arr)); // NOPMD
-        final String dir = findFolder(GitRepositoryHandler.getCurrentRepositoryPath(),
-            traverseFolders);
-        if (dir.isEmpty()) {
-          // skip this path if not found as it was declared as optional
-          if (isOptionalPath) {
-            continue;
-          }
-          throw new NotFoundException("directory was not found");
-        }
-        PATHS.put(path, new File(dir).getAbsolutePath()); // NOPMD
-
-      } else {
-        final String p = Path.of(GitRepositoryHandler.getCurrentRepositoryPath(), sourceDir)
-            .toString();
-        PATHS.put(path, p);
+      if (sourceDir.matches("\\*[/\\\\]?$")) {
+        throw new MalformedPathException(
+            "Wildcard character can not be the last, search would not terminate! Given -> "
+                + sourceDir);
       }
+      if (sourceDir.matches("\\\\\\\\|//")) {
+        sourceDir = sourceDir.replaceAll("\\\\", "\\").replaceAll("//", "/");
+        LOGGER.warn("found double file separator, replaced input with -> {}", sourceDir);
+      }
+      // TODO seems to have a bug, what happens with src*java, this will result in ["src","java"] instead of the expected ["src", "", "java"]
+      //  maybe split only on // and \ and check for "*" in findfolder instead of ""
+      // Strip leading slashes
+      sourceDir = sourceDir.replaceAll("^\\\\+|^/+", "");
+      final String[] arr = sourceDir.split("[\\\\/]");
+      final List<String> traverseFolders = new ArrayList<>(Arrays.asList(arr)); // NOPMD
+      final String dir = findFolder(root, traverseFolders);
+      if (dir.isEmpty()) {
+        // skip this path if not found as it was declared as optional
+        if (isOptionalPath) {
+          continue;
+        }
+        throw new NotFoundException("directory was not found");
+      }
+      PATHS.put(path, new File(dir).getAbsolutePath()); // NOPMD
+
       pathList.add(PATHS.get(path));
     }
     return pathList;
@@ -132,7 +136,7 @@ public final class DirectoryFinder {
       return findFolder(currentPath + File.separator + folderName, traverseFolders);
     }
     // this is a wildcard, perform depth-first search
-    if (traverseFolders.get(0).isEmpty()) {
+    if (traverseFolders.get(0).equals("*")) {
       // maybe the wildcard is there, but we are already in the right directory
       if (Arrays.stream(directories)
           .anyMatch(Predicate.isEqual(traverseFolders.get(1)))) {
