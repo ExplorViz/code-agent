@@ -87,6 +87,14 @@ If set to false, the analysis ignores any remote state but acts according to the
 the [start commit](#explorvizgitanalysisstart-commit-sha1) and [end commit](#explorvizgitanalysisend-commit-sha1)
 settings.
 
+### explorviz.gitanalysis.send-to-remote
+
+Type: Boolean or Empty (defaults to false)
+
+If a remote storage is used and this is set to true, the analysis data will be sent to the remote endpoint, if set to
+false, the analysis data will be stored as json on disc. The storage location will be printed
+on startup and is relative to the java working directory.
+
 ### explorviz.gitanalysis.source-directory
 
 Type: String or empty
@@ -107,9 +115,8 @@ are used to detect the correct type. Provide one or multiple [search expressions
 Type: String or empty
 
 The full SHA-1 hash of a commit used to define the starting point of the analysis. The Commit must be reachable in the
-given [branch](#explorvizgitanalysisbranch). This commit is excluded from the analysis, the analysis startswith the
-subsequent commit. If [fetching from the remote](#explorvizgitanalysisfetch-remote-data) is enabled, this setting is
-ignored.
+given [branch](#explorvizgitanalysisbranch). The analysis includes the given commit.
+If [fetching from the remote](#explorvizgitanalysisfetch-remote-data) is enabled, this setting is ignored.
 
 ### explorviz.gitanalysis.end-commit-sha1
 
