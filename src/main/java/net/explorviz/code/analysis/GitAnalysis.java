@@ -60,6 +60,9 @@ public class GitAnalysis {
   @ConfigProperty(name = "explorviz.gitanalysis.fetch-remote-data", defaultValue = "true")
   /* default */ boolean fetchRemoteDataProperty;  // NOCS
 
+  @ConfigProperty(name = "explorviz.gitanalysis.send-to-remote", defaultValue = "true")
+  /* default */ boolean sendToRemoteProperty;  // NOCS
+
   @ConfigProperty(name = "explorviz.gitanalysis.calculate-metrics", defaultValue = "true")
   /* default */ boolean calculateMetricsProperty;  // NOCS
 
@@ -82,41 +85,21 @@ public class GitAnalysis {
   GrpcExporter grpcExporter;
 
 
-  private void analyzeAndSendRepo(final DataExporter exporter, // NOCS NOPMD
-                                  final Optional<String> startCommit, // TODO cyclomatic complexity
-                                  final Optional<String> endCommit)
+  private void analyzeAndSendRepo(final DataExporter exporter) // NOCS NOPMD
       throws IOException, GitAPIException, PropertyNotDefinedException, NotFoundException { // NOPMD
 
     try (Repository repository = this.gitRepositoryHandler.getGitRepository()) {
 
       final String branch = repository.getFullBranch();
 
-      if (this.gitRepositoryHandler.isUnreachableCommit(startCommit, branch)) {
-        throw new NotFoundException(toErrorText("start", startCommit.orElse(""), branch));
-      } else if (this.gitRepositoryHandler.isUnreachableCommit(endCommit, branch)) {
-        throw new NotFoundException(toErrorText("end", endCommit.orElse(""), branch));
-      }
+      // get fetch data from remote
+      Optional<String> startCommit = findStartCommit(exporter, branch);
+      Optional<String> endCommit = fetchRemoteDataProperty ? Optional.empty() : endCommitProperty;
 
-      // get a list of all known heads, tags, remotes, ...
-      final Collection<Ref> allRefs = repository.getRefDatabase().getRefs();
-      // a RevWalk allows to walk over commits based on some filtering that is defined
+      checkIfCommitsAreReachable(startCommit, endCommit, branch);
 
       try (RevWalk revWalk = new RevWalk(repository)) {
-
-        // sort the commits in ascending order by the commit time (the oldest first)
-        revWalk.sort(RevSort.COMMIT_TIME_DESC, true);
-        revWalk.sort(RevSort.REVERSE, true);
-
-        if (LOGGER.isInfoEnabled()) {
-          LOGGER.info("analyzing branch " + branch);
-        }
-
-        for (final Ref ref : allRefs) {
-          if (ref.getName().equals(branch)) {
-            revWalk.markStart(revWalk.parseCommit(ref.getObjectId()));
-            break;
-          }
-        }
+        prepareRevWalk(repository, revWalk, branch);
 
         int commitCount = 0;
         RevCommit lastCheckedCommit = null;
@@ -127,6 +110,10 @@ public class GitAnalysis {
           if (!inAnalysisRange) {
             if (commit.name().equals(startCommit.get())) {
               inAnalysisRange = true;
+              if (fetchRemoteDataProperty) {
+                lastCheckedCommit = commit;
+                continue;
+              }
             } else {
               if (fetchRemoteDataProperty) {
                 lastCheckedCommit = commit;
@@ -165,6 +152,46 @@ public class GitAnalysis {
       }
       // checkout the branch, so not a single commit is checked out after the run
       Git.wrap(repository).checkout().setName(branch).call();
+    }
+  }
+
+  private void checkIfCommitsAreReachable(Optional<String> startCommit, Optional<String> endCommit,
+                                          String branch) throws NotFoundException {
+    if (this.gitRepositoryHandler.isUnreachableCommit(startCommit, branch)) {
+      throw new NotFoundException(toErrorText("start", startCommit.orElse(""), branch));
+    } else if (this.gitRepositoryHandler.isUnreachableCommit(endCommit, branch)) {
+      throw new NotFoundException(toErrorText("end", endCommit.orElse(""), branch));
+    }
+  }
+
+  private Optional<String> findStartCommit(DataExporter exporter, String branch) {
+    if (fetchRemoteDataProperty) {
+      StateData remoteState = exporter.requestStateData(branch);
+      if (remoteState.getCommitID().isEmpty() || remoteState.getCommitID().isBlank()) {
+        return Optional.empty();
+      } else {
+        return Optional.of(remoteState.getCommitID());
+      }
+    } else {
+      return startCommitProperty;
+    }
+  }
+
+  private void prepareRevWalk(Repository repository, RevWalk revWalk, String branch)
+      throws IOException {
+    revWalk.sort(RevSort.COMMIT_TIME_DESC, true);
+    revWalk.sort(RevSort.REVERSE, true);
+
+    if (LOGGER.isInfoEnabled()) {
+      LOGGER.info("analyzing branch " + branch);
+    }
+    // get a list of all known heads, tags, remotes, ...
+    final Collection<Ref> allRefs = repository.getRefDatabase().getRefs();
+    for (final Ref ref : allRefs) {
+      if (ref.getName().equals(branch)) {
+        revWalk.markStart(revWalk.parseCommit(ref.getObjectId()));
+        break;
+      }
     }
   }
 
@@ -233,20 +260,13 @@ public class GitAnalysis {
     DataExporter exporter;
     // check if running local or remote enabled
     //  TODO seems unclean to use this property to decide if the analysis runs locally AND if the
-    //  state should be checked. Are these always bound together?
-    if (fetchRemoteDataProperty) {
+    //   state should be checked. Are these always bound together?
+    if (sendToRemoteProperty) {
       exporter = grpcExporter;
     } else {
       exporter = new JsonExporter();
     }
-    // get fetch data from remote
-    // TODO the else is false here, if undefined, need to get the current or default branch.
-    StateData remoteState = exporter.requestStateData(repositoryBranchProperty.orElse(""));
-    if (remoteState.getCommitID().isEmpty() || remoteState.getCommitID().isBlank()) {
-      analyzeAndSendRepo(exporter, startCommitProperty, endCommitProperty);
-    } else {
-      analyzeAndSendRepo(exporter, Optional.of(remoteState.getCommitID()), Optional.empty());
-    }
+    analyzeAndSendRepo(exporter);
   }
 
 

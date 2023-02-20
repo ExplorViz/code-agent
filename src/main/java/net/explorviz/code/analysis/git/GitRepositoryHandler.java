@@ -97,7 +97,10 @@ public class GitRepositoryHandler { // NOPMD
         LOGGER.info("No path given, repository will be cloned to " + repoPath);
       }
     } else if (!new File(repoPath).isAbsolute()) {
-      repoPath = Paths.get(System.getProperty("user.dir"), repoPath).toString();
+      String systemPath = System.getProperty("user.dir");
+      systemPath = systemPath.replace("\\build\\classes\\java\\main", "");
+      systemPath = systemPath.replace("/build/classes/java/main", "");
+      repoPath = Paths.get(systemPath, repoPath).toString();
       if (LOGGER.isInfoEnabled()) {
         LOGGER.info("Detected relative path, absolute is: " + repoPath);
       }

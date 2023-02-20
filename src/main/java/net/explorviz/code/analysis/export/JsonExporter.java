@@ -7,15 +7,25 @@ import java.nio.file.Paths;
 import net.explorviz.code.proto.CommitReportData;
 import net.explorviz.code.proto.FileData;
 import net.explorviz.code.proto.StateData;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class JsonExporter implements DataExporter {
+
+  private static final Logger LOGGER = LoggerFactory.getLogger(JsonExporter.class);
 
   private final String storageDirectory;
   private int commitCount;
 
   public JsonExporter() throws IOException {
-    this.storageDirectory = Paths.get(System.getProperty("user.dir"), "analysis-data").toString();
+    String systemPath = System.getProperty("user.dir");
+    systemPath = systemPath.replace("\\build\\classes\\java\\main", "");
+    systemPath = systemPath.replace("/build/classes/java/main", "");
+    this.storageDirectory = Paths.get(systemPath, "analysis-data").toString();
     Files.createDirectories(Paths.get(storageDirectory));
+    if (LOGGER.isInfoEnabled()) {
+      LOGGER.info("The analysis-data folder is created here: {}", storageDirectory);
+    }
     this.commitCount = 0;
   }
 
