@@ -13,6 +13,12 @@ public class JsonExporter implements DataExporter {
   private final String storageDirectory;
   private int commitCount;
 
+  public JsonExporter() throws IOException {
+    this.storageDirectory = Paths.get(System.getProperty("user.dir"), "analysis-data").toString();
+    Files.createDirectories(Paths.get(storageDirectory));
+    this.commitCount = 0;
+  }
+
   public JsonExporter(final String pathToStorageDirectory) {
     this.storageDirectory = pathToStorageDirectory;
     this.commitCount = 0;

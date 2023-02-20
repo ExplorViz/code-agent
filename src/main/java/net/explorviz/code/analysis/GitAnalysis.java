@@ -45,6 +45,9 @@ public class GitAnalysis {
   @ConfigProperty(name = "explorviz.gitanalysis.local.storage-path")
   /* default */ Optional<String> repoPathProperty;  // NOCS
 
+  @ConfigProperty(name = "explorviz.gitanalysis.remote.url")
+  /* default */ Optional<String> repoRemoteUrlProperty;  // NOCS
+
   @ConfigProperty(name = "explorviz.gitanalysis.source-directory")
   /* default */ Optional<String> sourceDirectoryProperty;  // NOCS
 
@@ -74,6 +77,9 @@ public class GitAnalysis {
 
   @Inject
   /* package */ CommitReportHandler commitReportHandler; // NOCS
+
+  @Inject
+  GrpcExporter grpcExporter;
 
 
   private void analyzeAndSendRepo(final DataExporter exporter, // NOCS NOPMD
@@ -157,6 +163,8 @@ public class GitAnalysis {
           LOGGER.info("Analyzed {} commits", commitCount);
         }
       }
+      // checkout the branch, so not a single commit is checked out after the run
+      Git.wrap(repository).checkout().setName(branch).call();
     }
   }
 
@@ -218,29 +226,29 @@ public class GitAnalysis {
   /* package */ void onStart(@Observes final StartupEvent ev)
       throws IOException, GitAPIException, PropertyNotDefinedException,
       NotFoundException {
-    // TODO: delete, but currently needed for testing
-    if (repoPathProperty.isEmpty()) {
+    // TODO delete, but currently needed for testing
+    if (repoPathProperty.isEmpty() && repoRemoteUrlProperty.isEmpty()) {
       return;
     }
     DataExporter exporter;
     // check if running local or remote enabled
-    // TODO seems unclean to use this property to decide if the analysis runs locally AND if the
+    //  TODO seems unclean to use this property to decide if the analysis runs locally AND if the
     //  state should be checked. Are these always bound together?
     if (fetchRemoteDataProperty) {
-      exporter = new GrpcExporter();
+      exporter = grpcExporter;
     } else {
-      // TODO remove the hardcoded path
-      exporter = new JsonExporter("C:\\Users\\Julian\\projects\\Bachelor\\output");
-      // exporter = new VoidExporter();
+      exporter = new JsonExporter();
     }
     // get fetch data from remote
+    // TODO the else is false here, if undefined, need to get the current or default branch.
     StateData remoteState = exporter.requestStateData(repositoryBranchProperty.orElse(""));
-    if (remoteState.getCommitID().isEmpty()) {
+    if (remoteState.getCommitID().isEmpty() || remoteState.getCommitID().isBlank()) {
       analyzeAndSendRepo(exporter, startCommitProperty, endCommitProperty);
     } else {
       analyzeAndSendRepo(exporter, Optional.of(remoteState.getCommitID()), Optional.empty());
     }
   }
+
 
   // only done because checkstyle does not like the duplication of literals
   private static String toErrorText(final String position, final String commitId,

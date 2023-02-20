@@ -7,6 +7,7 @@ import java.net.MalformedURLException;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.NotDirectoryException;
+import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
@@ -93,7 +94,16 @@ public class GitRepositoryHandler { // NOPMD
     if (remoteRepositoryObject.getStoragePath().isBlank()) {
       repoPath = Files.createTempDirectory("TemporaryRepository").toAbsolutePath().toString();
       if (LOGGER.isInfoEnabled()) {
-        LOGGER.info("The repository will be cloned to " + repoPath);
+        LOGGER.info("No path given, repository will be cloned to " + repoPath);
+      }
+    } else if (!new File(repoPath).isAbsolute()) {
+      repoPath = Paths.get(System.getProperty("user.dir"), repoPath).toString();
+      if (LOGGER.isInfoEnabled()) {
+        LOGGER.info("Detected relative path, absolute is: " + repoPath);
+      }
+    } else {
+      if (LOGGER.isInfoEnabled()) {
+        LOGGER.info("Repository will be cloned to " + repoPath);
       }
     }
 
@@ -159,8 +169,9 @@ public class GitRepositoryHandler { // NOPMD
         this.git.checkout().setName(branchName).call();
       } catch (RefNotFoundException e) {
         if (LOGGER.isErrorEnabled()) {
-          LOGGER.error("The given branch name {} was not found", branchName);
+          LOGGER.error("The given branch name <{}> was not found", branchName);
         }
+        throw e;
       }
     }
     GitRepositoryHandler.repositoryPath = new File(repositoryPath).getAbsolutePath();
@@ -286,9 +297,9 @@ public class GitRepositoryHandler { // NOPMD
         if (diff.getChangeType().equals(DiffEntry.ChangeType.DELETE)) {
           continue;
         } else if (diff.getChangeType().equals(DiffEntry.ChangeType.RENAME)) {
-          LOGGER.error("File Renamed");
+          LOGGER.info("File Renamed");
         } else if (diff.getChangeType().equals(DiffEntry.ChangeType.COPY)) {
-          LOGGER.error("File Copied");
+          LOGGER.info("File Copied");
         }
         final String[] parts = diff.getNewPath().split("/");
         objectIdList.add(new FileDescriptor(diff.getNewId().toObjectId(), parts[parts.length - 1],
