@@ -15,6 +15,7 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
 import javax.enterprise.context.ApplicationScoped;
+import net.explorviz.code.analysis.FileIO;
 import net.explorviz.code.analysis.exceptions.NotFoundException;
 import net.explorviz.code.analysis.exceptions.PropertyNotDefinedException;
 import net.explorviz.code.analysis.types.FileDescriptor;
@@ -114,6 +115,7 @@ public class GitRepositoryHandler { // NOPMD
       if (LOGGER.isInfoEnabled()) {
         LOGGER.info("Cloning repository from " + checkedRepositoryUrl.getValue());
       }
+      FileIO.deleteDirectory(repoPath);
       this.git = Git.cloneRepository().setURI(checkedRepositoryUrl.getValue())
           .setCredentialsProvider(remoteRepositoryObject.getCredentialsProvider())
           .setDirectory(new File(repoPath)).setBranch(remoteRepositoryObject.getBranchNameOrNull())
@@ -121,6 +123,7 @@ public class GitRepositoryHandler { // NOPMD
       repositoryPath = new File(repoPath).getAbsolutePath();
       return this.git.getRepository();
     } catch (TransportException te) {
+      this.git.close();
       if (!checkedRepositoryUrl.getKey()) {
         throw (MalformedURLException) new MalformedURLException(
             checkedRepositoryUrl.getValue()).initCause(te);
@@ -139,6 +142,7 @@ public class GitRepositoryHandler { // NOPMD
       }
       throw te;
     } catch (InvalidRemoteException e) {
+      this.git.close();
       if (LOGGER.isErrorEnabled()) {
         LOGGER.error("The repository's Url seems not right, no git repository was found there.");
       }
@@ -447,14 +451,14 @@ public class GitRepositoryHandler { // NOPMD
    * @return a Tuple containing a flag if the returned url should be used and the url itself
    */
   public static Map.Entry<Boolean, String> convertSshToHttps(final String url) {
-    if (url.matches("^git@\\S+.\\S+:\\w+(/[\\S&&[^/]]+)+.git$")) {
+    if (url.matches("^git@\\S+.\\S+:\\w+(/[\\S&&[^/]]+)+[.git]?$")) {
       final String convertedUrl = url.replace(":", "/").replace("git@", "https://");
       if (LOGGER.isWarnEnabled()) {
         LOGGER.warn("The URL seems to be a SSH url, currently"
             + " only HTTPS is supported, converted url now is: " + convertedUrl);
       }
       return Map.entry(true, convertedUrl);
-    } else if (url.matches("^http[s]*://\\S+.\\S+(/[\\S&&[^/]]+)+.git$")) {
+    } else if (url.matches("^https?://\\S+(/[\\S&&[^/]]+)+[.git]?")) {
       // it should not matter if it is http or https here, the user should know
       return Map.entry(true, url);
     } else {

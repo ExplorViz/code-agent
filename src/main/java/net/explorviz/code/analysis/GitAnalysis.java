@@ -54,9 +54,6 @@ public class GitAnalysis {
   @ConfigProperty(name = "explorviz.gitanalysis.restrict-analysis-to-folders")
   /* default */ Optional<String> restrictAnalysisToFoldersProperty;  // NOCS NOPMD
 
-  @ConfigProperty(name = "explorviz.gitanalysis.branch")
-  /* default */ Optional<String> repositoryBranchProperty;  // NOCS
-
   @ConfigProperty(name = "explorviz.gitanalysis.fetch-remote-data", defaultValue = "true")
   /* default */ boolean fetchRemoteDataProperty;  // NOCS
 
