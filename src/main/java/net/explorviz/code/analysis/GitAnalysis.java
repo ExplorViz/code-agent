@@ -15,12 +15,12 @@ import net.explorviz.code.analysis.export.DataExporter;
 import net.explorviz.code.analysis.export.GrpcExporter;
 import net.explorviz.code.analysis.export.JsonExporter;
 import net.explorviz.code.analysis.git.DirectoryFinder;
+import net.explorviz.code.analysis.git.GitMetricCollector;
 import net.explorviz.code.analysis.git.GitRepositoryHandler;
 import net.explorviz.code.analysis.handler.CommitReportHandler;
 import net.explorviz.code.analysis.handler.FileDataHandler;
 import net.explorviz.code.analysis.parser.JavaParserService;
 import net.explorviz.code.analysis.types.FileDescriptor;
-import net.explorviz.code.proto.FileData;
 import net.explorviz.code.proto.StateData;
 import org.eclipse.jgit.api.Git;
 import org.eclipse.jgit.api.errors.GitAPIException;
@@ -205,11 +205,16 @@ public class GitAnalysis {
     javaParserService.reset(DirectoryFinder.getDirectory(
         List.of(sourceDirectoryProperty.orElse("").split(",")),
         GitRepositoryHandler.getCurrentRepositoryPath()));
+    GitMetricCollector.resetAuthor();
 
     for (final FileDescriptor fileDescriptor : descriptorList) {
-      final FileData fileData = fileAnalysis(repository, fileDescriptor, javaParserService,
+      final FileDataHandler fileDataHandler = fileAnalysis(repository, fileDescriptor,
+          javaParserService,
           commit.getName());
-      exporter.sendFileData(fileData);
+      if (fileDataHandler != null) {
+        GitMetricCollector.addCommitGitMetrics(fileDataHandler, commit);
+        exporter.sendFileData(fileDataHandler.getProtoBufObject());
+      }
     }
     createCommitReport(repository, commit, lastCommit, exporter, branchName);
 
@@ -229,14 +234,15 @@ public class GitAnalysis {
     exporter.sendCommitReport(commitReportHandler.getCommitReport());
   }
 
-  private FileData fileAnalysis(final Repository repository, final FileDescriptor file,
-                                final JavaParserService parser, final String commitSHA)
+  private FileDataHandler fileAnalysis(final Repository repository, final FileDescriptor file,
+                                       final JavaParserService parser, final String commitSHA)
       throws IOException {
     final String fileContent = GitRepositoryHandler.getContent(file.objectId, repository);
     try {
       FileDataHandler fileDataHandler = parser.parseFileContent(fileContent, file.fileName,
           calculateMetricsProperty, commitSHA); // NOPMD
-      return fileDataHandler.getProtoBufObject();
+      GitMetricCollector.addFileGitMetrics(fileDataHandler, file);
+      return fileDataHandler;
 
     } catch (NoSuchElementException | NoSuchFieldError e) {
       if (LOGGER.isWarnEnabled()) {

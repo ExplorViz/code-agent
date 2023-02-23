@@ -63,4 +63,8 @@ message FileData {
   repeated string importName = 4;
   map<string, ClassData> classData = 5;
   map<string, string> metric = 6;
+  string author = 7;
+  int32 modifiedLines = 8;
+  int32 addedLines = 9;
+  int32 deletedLines = 10;
 }

@@ -20,17 +20,22 @@ import net.explorviz.code.analysis.exceptions.NotFoundException;
 import net.explorviz.code.analysis.exceptions.PropertyNotDefinedException;
 import net.explorviz.code.analysis.types.FileDescriptor;
 import net.explorviz.code.analysis.types.RemoteRepositoryObject;
+import net.explorviz.code.analysis.types.Triple;
 import org.eclipse.jgit.api.Git;
 import org.eclipse.jgit.api.errors.GitAPIException;
 import org.eclipse.jgit.api.errors.InvalidRemoteException;
 import org.eclipse.jgit.api.errors.RefNotFoundException;
 import org.eclipse.jgit.api.errors.TransportException;
 import org.eclipse.jgit.diff.DiffEntry;
+import org.eclipse.jgit.diff.DiffFormatter;
+import org.eclipse.jgit.diff.Edit;
+import org.eclipse.jgit.diff.EditList;
 import org.eclipse.jgit.errors.MissingObjectException;
 import org.eclipse.jgit.lib.ObjectId;
 import org.eclipse.jgit.lib.ObjectLoader;
 import org.eclipse.jgit.lib.ObjectReader;
 import org.eclipse.jgit.lib.Repository;
+import org.eclipse.jgit.patch.FileHeader;
 import org.eclipse.jgit.revwalk.RevCommit;
 import org.eclipse.jgit.revwalk.RevTree;
 import org.eclipse.jgit.transport.CredentialsProvider;
@@ -42,6 +47,7 @@ import org.eclipse.jgit.treewalk.filter.AndTreeFilter;
 import org.eclipse.jgit.treewalk.filter.PathFilterGroup;
 import org.eclipse.jgit.treewalk.filter.PathSuffixFilter;
 import org.eclipse.jgit.treewalk.filter.TreeFilter;
+import org.eclipse.jgit.util.io.DisabledOutputStream;
 import org.eclipse.microprofile.config.inject.ConfigProperty;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -115,7 +121,7 @@ public class GitRepositoryHandler { // NOPMD
       if (LOGGER.isInfoEnabled()) {
         LOGGER.info("Cloning repository from " + checkedRepositoryUrl.getValue());
       }
-      FileIO.deleteDirectory(repoPath);
+      FileIO.cleanDirectory(repoPath);
       this.git = Git.cloneRepository().setURI(checkedRepositoryUrl.getValue())
           .setCredentialsProvider(remoteRepositoryObject.getCredentialsProvider())
           .setDirectory(new File(repoPath)).setBranch(remoteRepositoryObject.getBranchNameOrNull())
@@ -123,7 +129,6 @@ public class GitRepositoryHandler { // NOPMD
       repositoryPath = new File(repoPath).getAbsolutePath();
       return this.git.getRepository();
     } catch (TransportException te) {
-      this.git.close();
       if (!checkedRepositoryUrl.getKey()) {
         throw (MalformedURLException) new MalformedURLException(
             checkedRepositoryUrl.getValue()).initCause(te);
@@ -142,7 +147,6 @@ public class GitRepositoryHandler { // NOPMD
       }
       throw te;
     } catch (InvalidRemoteException e) {
-      this.git.close();
       if (LOGGER.isErrorEnabled()) {
         LOGGER.error("The repository's Url seems not right, no git repository was found there.");
       }
@@ -300,6 +304,7 @@ public class GitRepositoryHandler { // NOPMD
           .setNewTree(prepareTreeParser(repository, newCommit.getTree())).setPathFilter(filter)
           .call();
 
+
       for (final DiffEntry diff : diffs) {
         if (diff.getChangeType().equals(DiffEntry.ChangeType.DELETE)) {
           continue;
@@ -308,12 +313,36 @@ public class GitRepositoryHandler { // NOPMD
         } else if (diff.getChangeType().equals(DiffEntry.ChangeType.COPY)) {
           LOGGER.info("File Copied");
         }
+        Triple<Integer, Integer, Integer> mods;
+        try (DiffFormatter diffFormatter = new DiffFormatter(DisabledOutputStream.INSTANCE)) {
+          diffFormatter.setRepository(repository);
+          FileHeader fileHeader = diffFormatter.toFileHeader(diff);
+          mods = countModifications(fileHeader.toEditList());
+        }
         final String[] parts = diff.getNewPath().split("/");
         objectIdList.add(new FileDescriptor(diff.getNewId().toObjectId(), parts[parts.length - 1],
-            diff.getNewPath()));
+            diff.getNewPath(), mods));
       }
     }
     return objectIdList;
+  }
+
+  private Triple<Integer, Integer, Integer> countModifications(EditList editList) {
+    int modifiedLines = 0;
+    int addedLines = 0;
+    int deletedLines = 0;
+    for (Edit edit : editList) {
+      if (edit.getBeginA() == edit.getEndA() && edit.getBeginB() < edit.getEndB()) {
+        // insert edit
+        addedLines += edit.getLengthB();
+      } else if (edit.getBeginA() < edit.getEndA() && edit.getBeginB() == edit.getEndB()) {
+        // delete edit
+        deletedLines += edit.getLengthA();
+      } else if (edit.getBeginA() < edit.getEndA() && edit.getBeginB() < edit.getEndB()) {
+        modifiedLines += edit.getLengthB();
+      }
+    }
+    return new Triple<>(modifiedLines, addedLines, deletedLines);
   }
 
   /**

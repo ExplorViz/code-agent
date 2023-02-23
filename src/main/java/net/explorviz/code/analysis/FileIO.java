@@ -10,17 +10,19 @@ import java.util.Comparator;
 import java.util.stream.Stream;
 
 public class FileIO {
-  public static void deleteDirectory(String dir) throws IOException {
+  public static void cleanDirectory(String dir) throws IOException {
     Path path = Paths.get(dir);
+    File[] files = path.toFile().listFiles();
+    // clean if directory is not empty
+    if (files == null || files.length != 0) {
 
-    // read java doc, Files.walk need close the resources.
-    // try-with-resources to ensure that the stream's open directories are closed
-    try (Stream<Path> walk = Files.walk(path)) {
-      walk
-          .sorted(Comparator.reverseOrder())
-          .forEach(FileIO::deleteDirectoryExtract);
-    } catch (NoSuchFileException e) {
-      // ignore exception, all done
+      try (Stream<Path> walk = Files.walk(path)) {
+        walk
+            .sorted(Comparator.reverseOrder())
+            .forEach(FileIO::deleteDirectoryExtract);
+      } catch (NoSuchFileException e) {
+        // ignore exception, all done
+      }
     }
   }
 

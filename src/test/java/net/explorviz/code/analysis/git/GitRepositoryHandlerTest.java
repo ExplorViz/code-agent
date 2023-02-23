@@ -54,10 +54,12 @@ public class GitRepositoryHandlerTest {
   }
 
   @AfterEach
-  void tearDown() throws IOException {
+  void tearDown() {
     try (Stream<Path> walk = Files.walk(tempGitLocation.toPath())) {
       walk.sorted(Comparator.reverseOrder()).map(Path::toFile)
           .forEach(File::delete);
+    } catch (IOException exception) {
+      System.err.println("Folder not deletable");
     }
   }
 

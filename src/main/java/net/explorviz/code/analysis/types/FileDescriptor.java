@@ -11,11 +11,24 @@ public class FileDescriptor {
   public final ObjectId objectId; // NOCS
   public final String fileName;   // NOCS
   public final String relativePath; // NOCS
+  public int modifiedLines = 0;
+  public int addedLines = 0;
+  public int removedLines = 0;
 
   public FileDescriptor(final ObjectId objectId, final String fileName, final String relativePath) {
     this.objectId = objectId;
     this.fileName = fileName;
     this.relativePath = relativePath;
+  }
+
+  public FileDescriptor(final ObjectId objectId, final String fileName, final String relativePath,
+                        Triple<Integer, Integer, Integer> modificationData) {
+    this(objectId, fileName, relativePath);
+    if (modificationData != null) {
+      this.modifiedLines = modificationData.getLeft();
+      this.addedLines = modificationData.getMiddle();
+      this.removedLines = modificationData.getRight();
+    }
   }
 
   @Override

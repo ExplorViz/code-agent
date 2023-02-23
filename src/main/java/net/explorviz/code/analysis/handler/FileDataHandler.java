@@ -153,6 +153,16 @@ public class FileDataHandler implements ProtoBufConvertable<FileData> {
     return this.builder.getFileName();
   }
 
+  public void setModifications(int modifiedLines, int addedLines, int deletedLines) {
+    this.builder.setModifiedLines(modifiedLines);
+    this.builder.setAddedLines(addedLines);
+    this.builder.setDeletedLines(deletedLines);
+  }
+
+  public void setAuthor(String author) {
+    this.builder.setAuthor(author);
+  }
+
   @Override
   public FileData getProtoBufObject() {
     for (final Map.Entry<String, ClassDataHandler> entry : this.classDataMap.entrySet()) {
