@@ -21,13 +21,13 @@ import java.util.regex.Pattern;
 import net.explorviz.code.analysis.handler.MetricAppender;
 
 
-public class ClassComplexityVisitor extends VoidVisitorAdapter<Pair<MetricAppender, Object>> {
+public class CyclomaticComplexityVisitor extends VoidVisitorAdapter<Pair<MetricAppender, Object>> {
   private static final String CYCLOMATIC_COMPLEXITY = "cyclomatic_complexity";
   private static final String CYCLOMATIC_COMPLEXITY_WEIGHTED = "cyclomatic_complexity_weighted";
 
   private final HashMap<String, Integer> methodCounter;
 
-  public ClassComplexityVisitor() {
+  public CyclomaticComplexityVisitor() {
     methodCounter = new HashMap<>();
   }
 

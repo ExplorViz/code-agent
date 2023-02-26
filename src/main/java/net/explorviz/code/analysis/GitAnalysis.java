@@ -1,5 +1,6 @@
 package net.explorviz.code.analysis;
 
+import io.quarkus.runtime.Quarkus;
 import io.quarkus.runtime.StartupEvent;
 import java.io.IOException;
 import java.util.Collection;
@@ -170,6 +171,11 @@ public class GitAnalysis {
         return Optional.of(remoteState.getCommitID());
       }
     } else {
+      // happens if value is set by GitLab CI and the "previous latest commit" is unavailable
+      if (startCommitProperty.isPresent() && "0000000000000000000000000000000000000000".equals(
+          startCommitProperty.get())) {
+        return Optional.empty();
+      }
       return startCommitProperty;
     }
   }
@@ -256,20 +262,18 @@ public class GitAnalysis {
   /* package */ void onStart(@Observes final StartupEvent ev)
       throws IOException, GitAPIException, PropertyNotDefinedException,
       NotFoundException {
-    // TODO delete, but currently needed for testing
+
     if (repoPathProperty.isEmpty() && repoRemoteUrlProperty.isEmpty()) {
       return;
     }
     DataExporter exporter;
-    // check if running local or remote enabled
-    //  TODO seems unclean to use this property to decide if the analysis runs locally AND if the
-    //   state should be checked. Are these always bound together?
     if (sendToRemoteProperty) {
       exporter = grpcExporter;
     } else {
       exporter = new JsonExporter();
     }
     analyzeAndSendRepo(exporter);
+    Quarkus.asyncExit();
   }
 
 
