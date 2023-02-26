@@ -16,8 +16,9 @@ import java.util.Optional;
 import javax.enterprise.context.ApplicationScoped;
 import net.explorviz.code.analysis.handler.FileDataHandler;
 import net.explorviz.code.analysis.handler.MetricAppender;
+import net.explorviz.code.analysis.visitor.CyclomaticComplexityVisitor;
 import net.explorviz.code.analysis.visitor.FileDataVisitor;
-import net.explorviz.code.analysis.visitor.LackOfCohesionMethodsVisitor;
+import net.explorviz.code.analysis.visitor.NestedBlockDepth;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -80,10 +81,10 @@ public class JavaParserService {
       multiCollectorVisitor.visit(compilationUnit, data);
       try {
         Pair<MetricAppender, Object> pair = new Pair<>(new MetricAppender(data), new Object());
-        // new CyclomaticComplexityVisitor().visit(compilationUnit, pair);
-        // new NestedBlockDepth().visit(compilationUnit, new Pair<>(new MetricAppender(data), null));
-        new LackOfCohesionMethodsVisitor().visit(compilationUnit,
-            new Pair<>(new MetricAppender(data), null));
+        new CyclomaticComplexityVisitor().visit(compilationUnit, pair);
+        new NestedBlockDepth().visit(compilationUnit, new Pair<>(new MetricAppender(data), null));
+        // new LackOfCohesionMethodsVisitor().visit(compilationUnit,
+        //     new Pair<>(new MetricAppender(data), null));
       } catch (Exception e) {
         e.printStackTrace();
         if (LOGGER.isErrorEnabled()) {
