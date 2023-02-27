@@ -6,6 +6,20 @@ This project is a tool that analyzes a git repository containg a java project.
 
 <!-- TODO Describe the usage, building etc. here -->
 <!-- TODO run modes are - local, remote, CI -->
+By changing some settings in the ``application.properties`` file, it is possible to run the code-agent as CI job.
+
+| property name                           | property value           |
+|-----------------------------------------|--------------------------|
+| explorviz.gitanalysis.remote.url        | ${CI_REPOSITORY_URL:}    |
+| explorviz.gitanalysis.branch            | ${CI_COMMIT_BRANCH:}     |
+| explorviz.gitanalysis.start-commit-sha1 | ${CI_COMMIT_BEFORE_SHA:} |
+| explorviz.gitanalysis.end-commit-sha1   | ${CI_COMMIT_SHA:}        |
+
+Setting the ``explorviz.gitanalysis.remote.url`` and the ``explorviz.gitanalysis.branch`` properties is mandatory,
+the ``explorviz.gitanalysis.start-commit-sha1`` can be helpful if no fetching from a remote is done, as the
+analysis will only be performed on subsequent commits. The ``explorviz.gitanalysis.end-commit-sha1`` shouldn't be
+necessary at all. The CI-Pipeline normally runs on the latest commit so the value of the property is always the
+latest commit's sha1 value, therefore leaving the property empty produces the same outcome.
 
 ## Settings
 

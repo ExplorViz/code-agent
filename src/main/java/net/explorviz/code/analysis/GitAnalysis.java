@@ -273,6 +273,9 @@ public class GitAnalysis {
       exporter = new JsonExporter();
     }
     analyzeAndSendRepo(exporter);
+    if (LOGGER.isInfoEnabled()) {
+      LOGGER.info("Analysis finished successfully, exiting now.");
+    }
     Quarkus.asyncExit();
   }
 
