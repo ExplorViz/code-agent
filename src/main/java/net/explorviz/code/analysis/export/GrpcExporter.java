@@ -16,17 +16,18 @@ import net.explorviz.code.proto.StructureEventServiceGrpc;
  */
 @ApplicationScoped
 public final class GrpcExporter implements DataExporter {
+  private static final String GRPC_CLIENT_NAME = "codeAnalysisGrpcClient";
 
-  @GrpcClient("codeAnalysisGrpcClient")
+  @GrpcClient(GRPC_CLIENT_NAME)
   /* package */ FileDataServiceGrpc.FileDataServiceBlockingStub fileDataGrpcClient; // NOCS
   //
-  @GrpcClient("codeAnalysisGrpcClient")
+  @GrpcClient(GRPC_CLIENT_NAME)
   /* package */ CommitReportServiceGrpc.CommitReportServiceBlockingStub commitDataGrpcClient;// NOCS
   //
-  @GrpcClient("codeAnalysisGrpcClient")
+  @GrpcClient(GRPC_CLIENT_NAME)
   /* package */ StateDataServiceGrpc.StateDataServiceBlockingStub stateDataGrpcClient; // NOCS
 
-  @GrpcClient("codeAnalysisGrpcClient")
+  @GrpcClient(GRPC_CLIENT_NAME)
   /* package */ StructureEventServiceGrpc.StructureEventServiceBlockingStub grpcClient; // NOCS
 
 
@@ -36,18 +37,25 @@ public final class GrpcExporter implements DataExporter {
    * @param branchName the branch for the analysis
    * @return the state of the remote database
    */
+  @Override
   public StateData requestStateData(final String branchName) {
-    StateDataRequest.Builder requestBuilder = StateDataRequest.newBuilder();
+    final StateDataRequest.Builder requestBuilder = StateDataRequest.newBuilder();
     requestBuilder.setBranchName(branchName);
     return stateDataGrpcClient.requestStateData(requestBuilder.build());
   }
 
+  @Override
   public void sendFileData(final FileData fileData) {
     fileDataGrpcClient.sendFileData(fileData);
   }
 
   @Override
-  public void sendCommitReport(CommitReportData commitReportData) {
+  public void sendCommitReport(final CommitReportData commitReportData) {
     commitDataGrpcClient.sendCommitReport(commitReportData);
+  }
+
+  @Override
+  public boolean isInvalidCommitHash(final String hash) {
+    return "0000000000000000000000000000000000000000".equals(hash);
   }
 }

@@ -95,12 +95,22 @@ public class ClassDataHandler implements ProtoBufConvertable<ClassData> {
     return this.builder.getType() == ClassType.ABSTRACT_CLASS;
   }
 
+  /**
+   * Set the current ClassType as class if it wasn't set to anonymous class already.
+   */
   public void setIsClass() {
     if (this.builder.getType() != ClassType.ANONYMOUS_CLASS) {
       this.builder.setType(ClassType.CLASS);
     }
   }
 
+  /**
+   * Set the current ClassType as class. If override is true, any ClassType value prior to this call
+   * gets overridden.
+   *
+   * @param override set true to force set the ClassType, if false, the current classType is
+   *     checked to not override if it is set as anonymous class.
+   */
   public void setIsClass(final boolean override) {
     if (override) {
       this.builder.setType(ClassType.CLASS);
@@ -139,7 +149,7 @@ public class ClassDataHandler implements ProtoBufConvertable<ClassData> {
    * @return the old value of the metric if it existed, null otherwise.
    */
   public String addMetric(final String metricName, final String metricValue) {
-    String oldMetricValue = builder.getMetricOrDefault(metricName, null);
+    final String oldMetricValue = builder.getMetricOrDefault(metricName, null);
     builder.putMetric(metricName, metricValue);
     return oldMetricValue;
   }
@@ -155,7 +165,7 @@ public class ClassDataHandler implements ProtoBufConvertable<ClassData> {
   }
 
   /**
-   * Returns the metrics map
+   * Returns the metrics map.
    *
    * @return the map containing the File metrics
    */

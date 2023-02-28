@@ -13,15 +13,12 @@ import com.github.javaparser.ast.body.EnumDeclaration;
 import com.github.javaparser.ast.body.FieldDeclaration;
 import com.github.javaparser.ast.body.MethodDeclaration;
 import com.github.javaparser.ast.body.Parameter;
-import com.github.javaparser.ast.body.RecordDeclaration;
 import com.github.javaparser.ast.body.VariableDeclarator;
 import com.github.javaparser.ast.comments.Comment;
 import com.github.javaparser.ast.expr.MethodCallExpr;
 import com.github.javaparser.ast.expr.ObjectCreationExpr;
-import com.github.javaparser.ast.modules.ModuleDeclaration;
 import com.github.javaparser.ast.type.ClassOrInterfaceType;
 import com.github.javaparser.ast.type.Type;
-import com.github.javaparser.ast.visitor.GenericVisitorAdapter;
 import com.github.javaparser.ast.visitor.VoidVisitorAdapter;
 import com.github.javaparser.resolution.UnsolvedSymbolException;
 import com.github.javaparser.resolution.declarations.ResolvedReferenceTypeDeclaration;
@@ -46,21 +43,20 @@ import org.slf4j.LoggerFactory;
  */
 public class FileDataVisitor extends VoidVisitorAdapter<FileDataHandler> { // NOPMD
 
+  private static final Logger LOGGER = LoggerFactory.getLogger(FileDataVisitor.class);
+  private static final String UNKNOWN = "UNKNOWN";
+  private static final String LOC = "loc";
+
   @ConfigProperty(name = "explorviz.gitanalysis.assume-unresolved-types-from-wildcard-imports",
       defaultValue = "false")
   /* default */ boolean wildcardImportProperty;  // NOCS
 
-  private static final Logger LOGGER = LoggerFactory.getLogger(FileDataVisitor.class);
-  private static final String UNKNOWN = "UNKNOWN";
-  private final GenericVisitorAdapter<Integer, FileDataHandler> nPathVisitor;
   private final Optional<TypeSolver> fallbackTypeSolver;
-  private int wildcardImportCount = 0;
-  private String wildcardImport = null;
-  // private final VoidVisitorAdapter<FileDataHandler> acPathVisitor;
+  private int wildcardImportCount;
+  private String wildcardImport;
 
-  public FileDataVisitor(Optional<GenericVisitorAdapter<Integer, FileDataHandler>> nPathVisitor,
-                         Optional<TypeSolver> fallbackTypeSolver) {
-    this.nPathVisitor = nPathVisitor.isPresent() ? nPathVisitor.get() : new EmptyGenericVisitor();
+  public FileDataVisitor(final Optional<TypeSolver> fallbackTypeSolver) {
+    super();
     this.fallbackTypeSolver = fallbackTypeSolver;
   }
 
@@ -85,7 +81,7 @@ public class FileDataVisitor extends VoidVisitorAdapter<FileDataHandler> { // NO
   @Override
   public void visit(final EnumDeclaration n, final FileDataHandler data) {
     data.enterClass(n.getFullyQualifiedName().orElse(UNKNOWN));
-    data.getCurrentClassData().addMetric("loc", String.valueOf(getLoc(n)));
+    data.getCurrentClassData().addMetric(LOC, String.valueOf(getLoc(n)));
     data.getCurrentClassData().setIsEnum();
     for (final Modifier modifier : n.getModifiers()) {
       data.getCurrentClassData().addModifier(modifier.getKeyword().asString());
@@ -101,9 +97,9 @@ public class FileDataVisitor extends VoidVisitorAdapter<FileDataHandler> { // NO
       modifierList.add(modifier.getKeyword().asString());
     }
     for (final VariableDeclarator declarator : n.getVariables()) {
-      data.getCurrentClassData().addField(declarator.getNameAsString(),
-          resolveFqn(declarator.getType(), data),
-          modifierList);
+      data.getCurrentClassData()
+          .addField(declarator.getNameAsString(), resolveFqn(declarator.getType(), data),
+              modifierList);
     }
     super.visit(n, data);
   }
@@ -111,7 +107,7 @@ public class FileDataVisitor extends VoidVisitorAdapter<FileDataHandler> { // NO
   @Override
   public void visit(final ClassOrInterfaceDeclaration n, final FileDataHandler data) { // NOPMD
     data.enterClass(n.getFullyQualifiedName().orElse(UNKNOWN));
-    data.getCurrentClassData().addMetric("loc", String.valueOf(getLoc(n)));
+    data.getCurrentClassData().addMetric(LOC, String.valueOf(getLoc(n)));
 
     if (n.isInterface()) {
       data.getCurrentClassData().setIsInterface();
@@ -164,7 +160,7 @@ public class FileDataVisitor extends VoidVisitorAdapter<FileDataHandler> { // NO
       method.addParameter(parameter.getNameAsString(), resolveFqn(parameter.getType(), data),
           parameter.getModifiers());
     }
-    method.addMetric("loc", String.valueOf(getLoc(n)));
+    method.addMetric(LOC, String.valueOf(getLoc(n)));
     super.visit(n, data);
   }
 
@@ -182,7 +178,7 @@ public class FileDataVisitor extends VoidVisitorAdapter<FileDataHandler> { // NO
       constructor.addParameter(parameter.getNameAsString(), resolveFqn(parameter.getType(), data),
           parameter.getModifiers());
     }
-    constructor.addMetric("loc", String.valueOf(getLoc(n)));
+    constructor.addMetric(LOC, String.valueOf(getLoc(n)));
     super.visit(n, data);
   }
 
@@ -194,19 +190,19 @@ public class FileDataVisitor extends VoidVisitorAdapter<FileDataHandler> { // NO
 
   @Override
   public void visit(final CompilationUnit n, final FileDataHandler data) {
-    data.addMetric("loc", String.valueOf(getLoc(n)));
+    data.addMetric(LOC, String.valueOf(getLoc(n)));
     super.visit(n, data);
   }
 
   // If FieldAccessExpr, then tight coupling
   @Override
-  public void visit(MethodCallExpr n, FileDataHandler data) {
+  public void visit(final MethodCallExpr n, final FileDataHandler data) {
     // System.out.println(n.getNameAsString());
     super.visit(n, data);
   }
 
   @Override
-  public void visit(ObjectCreationExpr n, FileDataHandler data) {
+  public void visit(final ObjectCreationExpr n, final FileDataHandler data) {
     if (n.getAnonymousClassBody().isPresent()) {
       if (n.getAnonymousClassBody().get().size() > 1 && LOGGER.isWarnEnabled()) {
         LOGGER.warn("Detected multiple anonymous class bodies inside object creation expression."
@@ -220,17 +216,17 @@ public class FileDataVisitor extends VoidVisitorAdapter<FileDataHandler> { // NO
     }
   }
 
-  @Override
-  public void visit(ModuleDeclaration n, FileDataHandler data) {
-    // TODO NOT SUPPORTED
-    super.visit(n, data);
-  }
-
-  @Override
-  public void visit(RecordDeclaration n, FileDataHandler data) {
-    // TODO NOT SUPPORTED
-    super.visit(n, data);
-  }
+  // @Override
+  // public void visit(final ModuleDeclaration n, final FileDataHandler data) {
+  //   // NOT SUPPORTED
+  //   super.visit(n, data);
+  // }
+  //
+  // @Override
+  // public void visit(final RecordDeclaration n, final FileDataHandler data) {
+  //   // NOT SUPPORTED
+  //   super.visit(n, data);
+  // }
 
   private String resolveFqn(final Type type, final FileDataHandler data) {
     try {
@@ -278,7 +274,7 @@ public class FileDataVisitor extends VoidVisitorAdapter<FileDataHandler> { // NO
    * @param type the type of the Object
    * @return the fqn or the original type
    */
-  private String findFqnInImports(final Type type, final FileDataHandler data) {  // NOPMD
+  private String findFqnInImports(final Type type, final FileDataHandler data) {  // NOPMD NOCS
     final List<String> imports = data.getImportNames();
     String attachedGenerics = "";
     if (type instanceof ClassOrInterfaceType) {
@@ -299,10 +295,10 @@ public class FileDataVisitor extends VoidVisitorAdapter<FileDataHandler> { // NO
     // check imports
     for (final String importEntry : imports) {
       if (type.asString().contains(".")) {
-        String[] a = type.asString().split("\\.");
+        final String[] a = type.asString().split("\\.");
         if (importEntry.endsWith(a[0])) {
-          String result = Arrays.stream(a).filter(str -> !str.equals(a[0])).collect(
-              Collectors.joining("."));
+          final String result = Arrays.stream(a).filter(str -> !str.equals(a[0]))
+              .collect(Collectors.joining("."));
           return importEntry + "." + result + attachedGenerics;
         }
       }
@@ -312,23 +308,23 @@ public class FileDataVisitor extends VoidVisitorAdapter<FileDataHandler> { // NO
     }
 
     if (wildcardImportProperty && wildcardImportCount == 1) {
-      LOGGER.warn(wildcardImport + "." + type.asString() + attachedGenerics);
+      if (LOGGER.isWarnEnabled()) {
+        LOGGER.warn(wildcardImport + "." + type.asString() + attachedGenerics);
+      }
       return wildcardImport + "." + type.asString() + attachedGenerics;
     }
 
     if (LOGGER.isErrorEnabled()) {
       // if wildcard in imports, note here that it might be possible the type is defined there
       if (wildcardImportCount > 1 && wildcardImportProperty) {
-        LOGGER.error(
-            "File contains multiple wildcard imports, type <" + type.asString()
-                + "> is ambiguous.");
+        LOGGER.error("File contains multiple wildcard imports, type <" + type.asString() // NOPMD
+            + "> is ambiguous.");
       } else {
         if (wildcardImportCount > 0) {
-          LOGGER.error(
-              "File contains wildcard import(s), type <" + type.asString()
-                  + "> might be defined there. Type assumption by wildcards is turned off.");
+          LOGGER.error("File contains wildcard import(s), type <" + type.asString() // NOPMD
+              + "> might be defined there. Type assumption by wildcards is turned off.");
         } else {
-          LOGGER.error("Unable to get FQN for <" + type.asString() + ">");
+          LOGGER.error("Unable to get FQN for <" + type.asString() + ">"); // NOPMD
         }
       }
     }
@@ -366,7 +362,7 @@ public class FileDataVisitor extends VoidVisitorAdapter<FileDataHandler> { // NO
   private String solveTypeInCurrentContext(final String name) {
     if (fallbackTypeSolver.isPresent()) {
       // Don't know why, but symbol solver seems to have problems with
-      for (String builtInPackage : Arrays.asList("", "java.lang.")) {
+      for (final String builtInPackage : Arrays.asList("", "java.lang.")) {
         final SymbolReference<ResolvedReferenceTypeDeclaration> ref = fallbackTypeSolver.get()
             .tryToSolveType(builtInPackage + name);
         if (ref.isSolved()) {

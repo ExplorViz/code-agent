@@ -1,4 +1,4 @@
-package net.explorviz.code.analysis.git;
+package net.explorviz.code.analysis.git; // NOPMD
 
 
 import java.io.File;
@@ -103,17 +103,17 @@ public class GitRepositoryHandler { // NOPMD
       if (LOGGER.isInfoEnabled()) {
         LOGGER.info("No path given, repository will be cloned to " + repoPath);
       }
-    } else if (!new File(repoPath).isAbsolute()) {
+    } else if (new File(repoPath).isAbsolute()) {
+      if (LOGGER.isInfoEnabled()) {
+        LOGGER.info("Repository will be cloned to " + repoPath);
+      }
+    } else {
       String systemPath = System.getProperty("user.dir");
       systemPath = systemPath.replace("\\build\\classes\\java\\main", "");
       systemPath = systemPath.replace("/build/classes/java/main", "");
       repoPath = Paths.get(systemPath, repoPath).toString();
       if (LOGGER.isInfoEnabled()) {
         LOGGER.info("Detected relative path, absolute is: " + repoPath);
-      }
-    } else {
-      if (LOGGER.isInfoEnabled()) {
-        LOGGER.info("Repository will be cloned to " + repoPath);
       }
     }
 
@@ -294,7 +294,7 @@ public class GitRepositoryHandler { // NOPMD
       throws GitAPIException, IOException, NotFoundException {
     List<FileDescriptor> objectIdList = new ArrayList<>();
 
-    TreeFilter filter = getJavaFileTreeFilter(pathRestrictions);
+    final TreeFilter filter = getJavaFileTreeFilter(pathRestrictions);
 
     if (oldCommit.isEmpty()) {
       objectIdList = listFilesInCommit(repository, newCommit, filter);
@@ -314,9 +314,10 @@ public class GitRepositoryHandler { // NOPMD
           LOGGER.info("File Copied");
         }
         Triple<Integer, Integer, Integer> mods;
-        try (DiffFormatter diffFormatter = new DiffFormatter(DisabledOutputStream.INSTANCE)) {
+        try (DiffFormatter diffFormatter = new DiffFormatter(// NOPMD
+            DisabledOutputStream.INSTANCE)) {
           diffFormatter.setRepository(repository);
-          FileHeader fileHeader = diffFormatter.toFileHeader(diff);
+          final FileHeader fileHeader = diffFormatter.toFileHeader(diff);
           mods = countModifications(fileHeader.toEditList());
         }
         final String[] parts = diff.getNewPath().split("/");
@@ -327,11 +328,11 @@ public class GitRepositoryHandler { // NOPMD
     return objectIdList;
   }
 
-  private Triple<Integer, Integer, Integer> countModifications(EditList editList) {
+  private Triple<Integer, Integer, Integer> countModifications(final EditList editList) {
     int modifiedLines = 0;
     int addedLines = 0;
     int deletedLines = 0;
-    for (Edit edit : editList) {
+    for (final Edit edit : editList) {
       if (edit.getBeginA() == edit.getEndA() && edit.getBeginB() < edit.getEndB()) {
         // insert edit
         addedLines += edit.getLengthB();
@@ -383,10 +384,9 @@ public class GitRepositoryHandler { // NOPMD
   }
 
   private List<FileDescriptor> listFilesInCommit(final Repository repository, // NOPMD
-                                                 final RevCommit commit,
-                                                 final TreeFilter filter)
+                                                 final RevCommit commit, final TreeFilter filter)
       throws IOException {
-    List<FileDescriptor> objectIdList = new ArrayList<>();
+    final List<FileDescriptor> objectIdList = new ArrayList<>();
     try (final TreeWalk treeWalk = new TreeWalk(repository)) { // NOPMD
       treeWalk.addTree(commit.getTree());
       treeWalk.setRecursive(true);
@@ -419,7 +419,7 @@ public class GitRepositoryHandler { // NOPMD
 
   public boolean isUnreachableCommit(final Optional<String> commitId, final String branch) {
 
-    return commitId.isPresent() ? this.isUnreachableCommit(commitId.get(), branch) : false;
+    return commitId.isPresent() && this.isUnreachableCommit(commitId.get(), branch);
   }
 
   /**

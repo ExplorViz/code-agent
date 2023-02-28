@@ -92,8 +92,6 @@ public final class DirectoryFinder {
         sourceDir = sourceDir.replaceAll("\\\\", "\\").replaceAll("//", "/");
         LOGGER.warn("found double file separator, replaced input with -> {}", sourceDir);
       }
-      // TODO seems to have a bug, what happens with src*java, this will result in ["src","java"] instead of the expected ["src", "", "java"]
-      //  maybe split only on // and \ and check for "*" in findfolder instead of ""
       // Strip leading slashes
       sourceDir = sourceDir.replaceAll("^\\\\+|^/+", "");
       final String[] arr = sourceDir.split("[\\\\/]");
@@ -136,7 +134,7 @@ public final class DirectoryFinder {
       return findFolder(currentPath + File.separator + folderName, traverseFolders);
     }
     // this is a wildcard, perform depth-first search
-    if (traverseFolders.get(0).equals("*")) {
+    if ("*".equals(traverseFolders.get(0))) {
       // maybe the wildcard is there, but we are already in the right directory
       if (Arrays.stream(directories)
           .anyMatch(Predicate.isEqual(traverseFolders.get(1)))) {

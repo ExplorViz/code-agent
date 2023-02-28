@@ -1,11 +1,15 @@
 package net.explorviz.code.analysis.visitor;
 
+import com.github.javaparser.ast.Node;
 import com.github.javaparser.ast.body.ClassOrInterfaceDeclaration;
 import com.github.javaparser.ast.body.MethodDeclaration;
 import com.github.javaparser.ast.expr.ObjectCreationExpr;
 import com.github.javaparser.ast.visitor.VoidVisitorAdapter;
 import com.github.javaparser.utils.Pair;
+import net.explorviz.code.analysis.exceptions.NotFoundException;
 import net.explorviz.code.analysis.handler.MetricAppender;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * This is a starting point for the implementation of further metrics. Use this stub as basis for
@@ -19,10 +23,19 @@ import net.explorviz.code.analysis.handler.MetricAppender;
  */
 public class VisitorStub extends VoidVisitorAdapter<Pair<MetricAppender, Object>> {
 
+  private static final Logger LOGGER = LoggerFactory.getLogger(VisitorStub.class);
+
   @Override
   public void visit(final ClassOrInterfaceDeclaration n, final Pair<MetricAppender, Object> data) {
     data.a.enterClass(n);
-    data.a.putClassMetric("someClassMetric", "metricValue");
+    try {
+      data.a.putClassMetric("someClassMetric", "classMetricValue");
+    } catch (NotFoundException e) {
+      // metric was not addable.
+      if (LOGGER.isErrorEnabled()) {
+        LOGGER.error(e.getMessage(), e);
+      }
+    }
     super.visit(n, data);
     data.a.leaveClass();
   }
@@ -31,20 +44,30 @@ public class VisitorStub extends VoidVisitorAdapter<Pair<MetricAppender, Object>
   @Override
   public void visit(final MethodDeclaration n, final Pair<MetricAppender, Object> data) {
     data.a.enterMethod(n);
-    data.a.putMethodMetric("someMethodMetric", "metricValue");
+    try {
+      data.a.putMethodMetric("someMethodMetric", "methodMetricValue");
+    } catch (NotFoundException e) {
+      // metric was not addable.
+      if (LOGGER.isErrorEnabled()) {
+        LOGGER.error(e.getMessage(), e);
+      }
+    }
     super.visit(n, data);
     data.a.leaveMethod();
   }
 
   @Override
-  public void visit(ObjectCreationExpr n, Pair<MetricAppender, Object> data) {
+  public void visit(final ObjectCreationExpr n, final Pair<MetricAppender, Object> data) {
     if (n.getAnonymousClassBody().isPresent()) {
-      if (n.getAnonymousClassBody().get().size() > 1) {
-        // TODO did not found an example how this could look like, so an implementation is needed
+      for (final Node node : n.getChildNodes()) {
+        if (node instanceof ClassOrInterfaceDeclaration) {
+          data.a.enterAnonymousClass(n.getTypeAsString(), data.a.getCurrentMethodName());
+          node.accept(this, data);
+          data.a.leaveAnonymousClass();
+        } else {
+          node.accept(this, data);
+        }
       }
-      data.a.enterAnonymousClass(n.getTypeAsString(), data.a.getCurrentMethodName());
-      super.visit(n, data);
-      data.a.leaveAnonymousClass();
     } else {
       super.visit(n, data);
     }

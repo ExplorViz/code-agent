@@ -8,11 +8,27 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.Comparator;
 import java.util.stream.Stream;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
-public class FileIO {
-  public static void cleanDirectory(String dir) throws IOException {
-    Path path = Paths.get(dir);
-    File[] files = path.toFile().listFiles();
+/**
+ * Class to bundle some file deletion methods.
+ */
+public final class FileIO { // NOCS
+  private static final Logger LOGGER = LoggerFactory.getLogger(FileIO.class);
+
+  private FileIO() {
+  }
+
+  /**
+   * Deletes a directory with all its children files and directories.
+   *
+   * @param dir the path to the directory
+   * @throws IOException gets thrown if the path to the directory is not valid
+   */
+  public static void cleanDirectory(final String dir) throws IOException {
+    final Path path = Paths.get(dir);
+    final File[] files = path.toFile().listFiles();
     // clean if directory is not empty
     if (files == null || files.length != 0) {
 
@@ -21,19 +37,19 @@ public class FileIO {
             .sorted(Comparator.reverseOrder())
             .forEach(FileIO::deleteDirectoryExtract);
       } catch (NoSuchFileException e) {
-        // ignore exception, all done
+        assert true;
       }
     }
   }
 
   // extract method to handle exception in lambda
-  private static void deleteDirectoryExtract(Path path) {
+  private static void deleteDirectoryExtract(final Path path) {
     try {
       Files.delete(path);
     } catch (IOException e) {
-      boolean deleted = new File(path.toString()).delete();
-      if (!deleted) {
-        System.err.printf("Unable to delete this path : %s%n%s", path, e);
+      final boolean deleted = new File(path.toString()).delete();
+      if (!deleted && LOGGER.isErrorEnabled()) {
+        LOGGER.error("Unable to delete this path : {} , {}", path, e);
       }
     }
   }

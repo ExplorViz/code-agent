@@ -51,18 +51,18 @@ public class FileDataHandler implements ProtoBufConvertable<FileData> {
    * Enters an anonymous class, used while walking the AST.
    *
    * @param anonymousClassName the type of the anonymous class, as no real name is available
-   * @param parentFQN the fqn of the parent, may be the method it is created in.
+   * @param parentFqn the fqn of the parent, may be the method it is created in.
    */
-  public void enterAnonymousClass(final String anonymousClassName, final String parentFQN) {
-    String fqn = parentFQN + "." + anonymousClassName;
+  public void enterAnonymousClass(final String anonymousClassName, final String parentFqn) {
+    String fqn = parentFqn + "." + anonymousClassName;
     int idx = 0;
     while (classDataMap.containsKey(fqn)) {
       idx++;
-      fqn = parentFQN + "." + anonymousClassName + "#" + idx;
+      fqn = parentFqn + "." + anonymousClassName + "#" + idx;
     }
 
     this.classStack.push(fqn);
-    ClassDataHandler classDataHandler = new ClassDataHandler();
+    final ClassDataHandler classDataHandler = new ClassDataHandler();
     classDataHandler.setIsAnonymousClass();
     this.classDataMap.put(fqn, classDataHandler);
   }
@@ -76,7 +76,7 @@ public class FileDataHandler implements ProtoBufConvertable<FileData> {
    * @return the old value of the metric if it existed, null otherwise.
    */
   public String addMetric(final String metricName, final String metricValue) {
-    String oldMetricValue = builder.getMetricOrDefault(metricName, null);
+    final String oldMetricValue = builder.getMetricOrDefault(metricName, null);
     builder.putMetric(metricName, metricValue);
     return oldMetricValue;
   }
@@ -92,7 +92,7 @@ public class FileDataHandler implements ProtoBufConvertable<FileData> {
   }
 
   /**
-   * Returns the metrics map
+   * Returns the metrics map.
    *
    * @return the map containing the File metrics
    */
@@ -145,21 +145,34 @@ public class FileDataHandler implements ProtoBufConvertable<FileData> {
     return methodCount;
   }
 
-  public void setCommitSHA(final String commitSHA) {
-    this.builder.setCommitID(commitSHA);
+  /**
+   * Set the SHA-1 of the current commit.
+   *
+   * @param commitSha the SHA-1 of the commit.
+   */
+  public void setCommitSha(final String commitSha) {
+    this.builder.setCommitID(commitSha);
   }
 
   public String getFileName() {
     return this.builder.getFileName();
   }
 
-  public void setModifications(int modifiedLines, int addedLines, int deletedLines) {
+  /**
+   * Set the modifications entries.
+   *
+   * @param modifiedLines the amount of modified lines in this file
+   * @param addedLines the amount of added lines in this file
+   * @param deletedLines the amount of deleted line in this file
+   */
+  public void setModifications(final int modifiedLines, final int addedLines,
+                               final int deletedLines) {
     this.builder.setModifiedLines(modifiedLines);
     this.builder.setAddedLines(addedLines);
     this.builder.setDeletedLines(deletedLines);
   }
 
-  public void setAuthor(String author) {
+  public void setAuthor(final String author) {
     this.builder.setAuthor(author);
   }
 
@@ -183,10 +196,9 @@ public class FileDataHandler implements ProtoBufConvertable<FileData> {
       mapData.append(entry.getKey()).append(": ");
       mapData.append(entry.getValue()).append('\n');
     }
-    return "stats: methodCount=" + this.getMethodCount() + "\n"
-        + "package: " + this.builder.getPackageName() + "\n"
-        + "imports: " + this.builder.getImportNameList() + "\n"
-        + mapData;
+    return "stats: methodCount=" + this.getMethodCount() + "\n" + "package: "
+        + this.builder.getPackageName() + "\n" + "imports: " + this.builder.getImportNameList()
+        + "\n" + mapData;
   }
 
   public String getLastAddedMethodFqn() {

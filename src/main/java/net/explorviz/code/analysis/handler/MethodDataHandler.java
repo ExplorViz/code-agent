@@ -39,19 +39,33 @@ public class MethodDataHandler implements ProtoBufConvertable<MethodData> {
     this.builder.addModifier(modifier);
   }
 
+  /**
+   * Add a parameter to the method.
+   *
+   * @param name name of the parameter
+   * @param type type of the parameter
+   * @param modifiers modifiers of the parameter
+   */
   public void addParameter(final String name, final String type,
                            final NodeList<Modifier> modifiers) {
-    ParameterData.Builder parameterBuilder = ParameterData.newBuilder();
+    final ParameterData.Builder parameterBuilder = ParameterData.newBuilder();
     parameterBuilder.setName(name);
     parameterBuilder.setType(type);
-    for (Modifier mod : modifiers) {
+    for (final Modifier mod : modifiers) {
       parameterBuilder.addModifier(mod.toString());
     }
     builder.addParameter(parameterBuilder);
   }
 
+  /**
+   * Add a parameter to the method.
+   *
+   * @param name name of the parameter
+   * @param type type of the parameter
+   * @param modifiers modifiers of the parameter
+   */
   public void addParameter(final String name, final String type, final List<String> modifiers) {
-    ParameterData.Builder parameterBuilder = ParameterData.newBuilder();
+    final ParameterData.Builder parameterBuilder = ParameterData.newBuilder();
     parameterBuilder.setName(name);
     parameterBuilder.setType(type);
     parameterBuilder.addAllModifier(modifiers);
@@ -62,8 +76,15 @@ public class MethodDataHandler implements ProtoBufConvertable<MethodData> {
     this.builder.addOutgoingMethodCalls(fqn);
   }
 
+  /**
+   * Adds a metric to the Method.
+   *
+   * @param metricName the name of the metric
+   * @param metricValue the value of the metric
+   * @return the old metric value if it existed, null otherwise
+   */
   public String addMetric(final String metricName, final String metricValue) {
-    String oldMetricValue = builder.getMetricOrDefault(metricName, null);
+    final String oldMetricValue = builder.getMetricOrDefault(metricName, null);
     builder.putMetric(metricName, metricValue);
     return oldMetricValue;
   }
@@ -79,7 +100,7 @@ public class MethodDataHandler implements ProtoBufConvertable<MethodData> {
   }
 
   /**
-   * Returns the metrics map
+   * Returns the metrics map.
    *
    * @return the map containing the File metrics
    */
@@ -99,10 +120,9 @@ public class MethodDataHandler implements ProtoBufConvertable<MethodData> {
       metricDataString.append(entry.getKey()).append(": ");
       metricDataString.append(entry.getValue()).append('\n');
     }
-    return "  type: " + this.builder.getReturnType() + "\n"
-        + "  modifiers: " + this.builder.getModifierList() + "\n"
-        + "  parameters: " + this.builder.getParameterList() + "\n"
-        + "  outgoing calls: " + this.builder.getOutgoingMethodCallsList() + "\n"
+    return "  type: " + this.builder.getReturnType() + "\n" + "  modifiers: "
+        + this.builder.getModifierList() + "\n" + "  parameters: " + this.builder.getParameterList()
+        + "\n" + "  outgoing calls: " + this.builder.getOutgoingMethodCallsList() + "\n"
         + metricDataString;
   }
 }

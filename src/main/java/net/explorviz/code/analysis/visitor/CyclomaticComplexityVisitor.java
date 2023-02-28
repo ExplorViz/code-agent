@@ -1,5 +1,6 @@
 package net.explorviz.code.analysis.visitor;
 
+import com.github.javaparser.ast.Node;
 import com.github.javaparser.ast.body.ClassOrInterfaceDeclaration;
 import com.github.javaparser.ast.body.MethodDeclaration;
 import com.github.javaparser.ast.expr.ObjectCreationExpr;
@@ -18,16 +19,24 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
+import net.explorviz.code.analysis.exceptions.NotFoundException;
 import net.explorviz.code.analysis.handler.MetricAppender;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
-
-public class CyclomaticComplexityVisitor extends VoidVisitorAdapter<Pair<MetricAppender, Object>> {
+/**
+ * Visitor to calculate the cyclomatic complexity for methods and classes.
+ */
+public class CyclomaticComplexityVisitor // NOPMD
+    extends VoidVisitorAdapter<Pair<MetricAppender, Object>> { // NOPMD
+  private static final Logger LOGGER = LoggerFactory.getLogger(CyclomaticComplexityVisitor.class);
   private static final String CYCLOMATIC_COMPLEXITY = "cyclomatic_complexity";
   private static final String CYCLOMATIC_COMPLEXITY_WEIGHTED = "cyclomatic_complexity_weighted";
 
-  private final HashMap<String, Integer> methodCounter;
+  private final Map<String, Integer> methodCounter;
 
   public CyclomaticComplexityVisitor() {
+    super();
     methodCounter = new HashMap<>();
   }
 
@@ -38,19 +47,33 @@ public class CyclomaticComplexityVisitor extends VoidVisitorAdapter<Pair<MetricA
     data.a.enterClass(n);
     super.visit(n, data);
     int metricValue = 0;
-    for (Map.Entry<String, Integer> entry : methodCounter.entrySet()) {
+    for (final Map.Entry<String, Integer> entry : methodCounter.entrySet()) {
       metricValue += methodCounter.get(entry.getKey());
     }
     // set the class metric
-    data.a.putClassMetric(CYCLOMATIC_COMPLEXITY, String.valueOf(metricValue));
+    try {
+      data.a.putClassMetric(CYCLOMATIC_COMPLEXITY, String.valueOf(metricValue));
+    } catch (NotFoundException e) {
+      // metric was not addable.
+      if (LOGGER.isErrorEnabled()) {
+        LOGGER.error(e.getMessage(), e);
+      }
+    }
 
-    if (methodCounter.entrySet().size() > 0) {
+    if (!methodCounter.entrySet().isEmpty()) {
       metricValue = metricValue / methodCounter.entrySet().size();
     }
-    data.a.putClassMetric(CYCLOMATIC_COMPLEXITY_WEIGHTED, String.valueOf(metricValue));
+    try {
+      data.a.putClassMetric(CYCLOMATIC_COMPLEXITY_WEIGHTED, String.valueOf(metricValue));
+    } catch (NotFoundException e) {
+      // metric was not addable.
+      if (LOGGER.isErrorEnabled()) {
+        LOGGER.error(e.getMessage(), e);
+      }
+    }
 
     // Update the file metric
-    Integer oldValue = Integer.getInteger(
+    final Integer oldValue = Integer.getInteger(
         data.a.getFileData().getMetricValue(CYCLOMATIC_COMPLEXITY));
     if (oldValue == null) {
       data.a.putFileMetric(CYCLOMATIC_COMPLEXITY, String.valueOf(metricValue));
@@ -65,21 +88,30 @@ public class CyclomaticComplexityVisitor extends VoidVisitorAdapter<Pair<MetricA
   public void visit(final MethodDeclaration n, final Pair<MetricAppender, Object> data) {
     data.a.enterMethod(n);
     super.visit(n, data);
-    int metricValue = methodCounter.getOrDefault(data.a.getCurrentMethodName(), 1);
-
-    data.a.putMethodMetric(CYCLOMATIC_COMPLEXITY, String.valueOf(metricValue));
+    final int metricValue = methodCounter.getOrDefault(data.a.getCurrentMethodName(), 1);
+    try {
+      data.a.putMethodMetric(CYCLOMATIC_COMPLEXITY, String.valueOf(metricValue));
+    } catch (NotFoundException e) {
+      // metric was not addable.
+      if (LOGGER.isErrorEnabled()) {
+        LOGGER.error(e.getMessage(), e);
+      }
+    }
     data.a.leaveMethod();
   }
 
   @Override
-  public void visit(ObjectCreationExpr n, Pair<MetricAppender, Object> data) {
+  public void visit(final ObjectCreationExpr n, final Pair<MetricAppender, Object> data) {
     if (n.getAnonymousClassBody().isPresent()) {
-      if (n.getAnonymousClassBody().get().size() > 1) {
-        // TODO did not found an example how this could look like, so an implementation is needed
+      for (final Node node : n.getChildNodes()) {
+        if (node instanceof ClassOrInterfaceDeclaration) {
+          data.a.enterAnonymousClass(n.getTypeAsString(), data.a.getCurrentMethodName());
+          node.accept(this, data);
+          data.a.leaveAnonymousClass();
+        } else {
+          node.accept(this, data);
+        }
       }
-      data.a.enterAnonymousClass(n.getTypeAsString(), data.a.getCurrentMethodName());
-      super.visit(n, data);
-      data.a.leaveAnonymousClass();
     } else {
       super.visit(n, data);
     }
@@ -87,16 +119,16 @@ public class CyclomaticComplexityVisitor extends VoidVisitorAdapter<Pair<MetricA
 
 
   @Override
-  public void visit(ForEachStmt statement, final Pair<MetricAppender, Object> data) {
-    addOccurrence(data.a.getCurrentMethodName(), "FOREACH");
+  public void visit(final ForEachStmt statement, final Pair<MetricAppender, Object> data) {
+    addOccurrence(data.a.getCurrentMethodName());
 
     super.visit(statement, data);
   }
 
 
   @Override
-  public void visit(ForStmt statement, final Pair<MetricAppender, Object> data) {
-    addOccurrence(data.a.getCurrentMethodName(), "FOR");
+  public void visit(final ForStmt statement, final Pair<MetricAppender, Object> data) {
+    addOccurrence(data.a.getCurrentMethodName());
 
     if (statement.getCompare().isPresent()) {
       conditionCheck(statement.getCompare().get().toString(), data);
@@ -107,11 +139,11 @@ public class CyclomaticComplexityVisitor extends VoidVisitorAdapter<Pair<MetricA
 
 
   @Override
-  public void visit(IfStmt statement, final Pair<MetricAppender, Object> data) {
-    addOccurrence(data.a.getCurrentMethodName(), "IF");
+  public void visit(final IfStmt statement, final Pair<MetricAppender, Object> data) {
+    addOccurrence(data.a.getCurrentMethodName());
 
     if (statement.getElseStmt().isPresent()) {
-      addOccurrence(data.a.getCurrentMethodName(), "ELSE");
+      addOccurrence(data.a.getCurrentMethodName());
     }
 
     conditionCheck(statement.getCondition().toString(), data);
@@ -120,10 +152,10 @@ public class CyclomaticComplexityVisitor extends VoidVisitorAdapter<Pair<MetricA
   }
 
   @Override
-  public void visit(SwitchEntry statement, final Pair<MetricAppender, Object> data) {
+  public void visit(final SwitchEntry statement, final Pair<MetricAppender, Object> data) {
 
-    for (Statement st : statement.getStatements()) {
-      addOccurrence(data.a.getCurrentMethodName(), "SWITCH");
+    for (final Statement ignored : statement.getStatements()) {
+      addOccurrence(data.a.getCurrentMethodName());
 
     }
 
@@ -131,63 +163,59 @@ public class CyclomaticComplexityVisitor extends VoidVisitorAdapter<Pair<MetricA
   }
 
   @Override
-  public void visit(CatchClause statement, final Pair<MetricAppender, Object> data) {
+  public void visit(final CatchClause statement, final Pair<MetricAppender, Object> data) {
 
-    addOccurrence(data.a.getCurrentMethodName(), "CATCH");
+    addOccurrence(data.a.getCurrentMethodName());
 
     super.visit(statement, data);
   }
 
   @Override
-  public void visit(ThrowStmt statement, final Pair<MetricAppender, Object> data) {
+  public void visit(final ThrowStmt statement, final Pair<MetricAppender, Object> data) {
 
-    addOccurrence(data.a.getCurrentMethodName(), "THROW");
-
-    super.visit(statement, data);
-  }
-
-
-  @Override
-  public void visit(TryStmt statement, final Pair<MetricAppender, Object> data) {
-
-    addOccurrence(data.a.getCurrentMethodName(), "TRY");
+    addOccurrence(data.a.getCurrentMethodName());
 
     super.visit(statement, data);
   }
 
 
   @Override
-  public void visit(WhileStmt statement, final Pair<MetricAppender, Object> data) {
+  public void visit(final TryStmt statement, final Pair<MetricAppender, Object> data) {
 
-    addOccurrence(data.a.getCurrentMethodName(), "WHILE");
+    addOccurrence(data.a.getCurrentMethodName());
+
+    super.visit(statement, data);
+  }
+
+
+  @Override
+  public void visit(final WhileStmt statement, final Pair<MetricAppender, Object> data) {
+
+    addOccurrence(data.a.getCurrentMethodName());
 
     conditionCheck(statement.getCondition().toString(), data);
 
     super.visit(statement, data);
   }
 
-  private void conditionCheck(String condition, final Pair<MetricAppender, Object> data) {
-    regexCheck(condition, Pattern.compile("/(\\s|\\w|\\d)&(\\s|\\w|\\d)/xg"),
-        "BITWISE_AND_OPERATOR", data);
-    regexCheck(condition, Pattern.compile("/(\\s|\\w|\\d)\\|(\\s|\\w|\\d)/xg"),
-        "BITWISE_OR_OPERATOR", data);
-    regexCheck(condition, Pattern.compile("/(\\s|\\w|\\d)&&(\\s|\\w|\\d)/xg"), "AND_OPERATOR",
-        data);
-    regexCheck(condition, Pattern.compile("/(\\s|\\w|\\d)\\|\\|(\\s|\\w|\\d)/xg"), "OR_OPERATOR",
-        data);
+  private void conditionCheck(final String condition, final Pair<MetricAppender, Object> data) {
+    regexCheck(condition, Pattern.compile("/(\\s|\\w|\\d)&(\\s|\\w|\\d)/xg"), data);
+    regexCheck(condition, Pattern.compile("/(\\s|\\w|\\d)\\|(\\s|\\w|\\d)/xg"), data);
+    regexCheck(condition, Pattern.compile("/(\\s|\\w|\\d)&&(\\s|\\w|\\d)/xg"), data);
+    regexCheck(condition, Pattern.compile("/(\\s|\\w|\\d)\\|\\|(\\s|\\w|\\d)/xg"), data);
   }
 
 
-  private void regexCheck(String haystack, Pattern pattern, String type,
+  private void regexCheck(final String haystack, final Pattern pattern,
                           final Pair<MetricAppender, Object> data) {
-    Matcher matcher = pattern.matcher(haystack);
+    final Matcher matcher = pattern.matcher(haystack);
 
     while (matcher.find()) {
-      addOccurrence(data.a.getCurrentMethodName(), type);
+      addOccurrence(data.a.getCurrentMethodName());
     }
   }
 
-  private void addOccurrence(String methodName, String type) {
+  private void addOccurrence(final String methodName) {
 
     // check if such method was ever updated
     if (methodCounter.containsKey(methodName)) {

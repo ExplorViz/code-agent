@@ -3,6 +3,9 @@ package net.explorviz.code.analysis.handler;
 import java.util.List;
 import net.explorviz.code.proto.ParameterData;
 
+/**
+ * A handler to easily access and maintain the ParameterData object.
+ */
 public class ParameterDataHandler implements ProtoBufConvertable<ParameterData> {
 
   private final ParameterData.Builder builder;
@@ -11,19 +14,19 @@ public class ParameterDataHandler implements ProtoBufConvertable<ParameterData> 
     builder = ParameterData.newBuilder();
   }
 
-  public void setName(String name) {
+  public void setName(final String name) {
     builder.setType(name);
   }
 
-  public void setType(String type) {
+  public void setType(final String type) {
     builder.setType(type);
   }
 
-  public void addModifier(String modifier) {
+  public void addModifier(final String modifier) {
     builder.addModifier(modifier);
   }
 
-  public void addModifiers(List<String> modifiers) {
+  public void addModifiers(final List<String> modifiers) {
     builder.addAllModifier(modifiers);
   }
 

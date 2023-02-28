@@ -24,6 +24,10 @@ import org.junit.jupiter.api.Test;
 public class DirectoryFinderTest {
 
   private static final String MAIN_SOURCE_PATH = "/src/main/java";
+  private static final String JAVA = "java";
+  private static final String SRC = "src";
+  private static final String REGEX_CONTAINS_SLASH = "\\\\+|/+";
+  private static final String NOT_FOUND = "Not Found";
 
   private static File tempLocation;
   private static DirectoryFinder directoryFinder;
@@ -31,8 +35,8 @@ public class DirectoryFinderTest {
   @BeforeAll
   static void setup() throws IOException {
     tempLocation = Files.createTempDirectory("explorviz-test").toFile();
-    Files.createDirectories(Paths.get(tempLocation.getAbsolutePath(), "src", "main", "java"));
-    Files.createDirectories(Paths.get(tempLocation.getAbsolutePath(), "src", "test", "java"));
+    Files.createDirectories(Paths.get(tempLocation.getAbsolutePath(), SRC, "main", JAVA));
+    Files.createDirectories(Paths.get(tempLocation.getAbsolutePath(), SRC, "test", JAVA));
   }
 
 
@@ -55,11 +59,12 @@ public class DirectoryFinderTest {
           tempLocation.getAbsolutePath());
       Assertions.assertEquals(1, absolutePaths.size());
       // clean string from mutiple slashes and bring to system seperator
-      String s = (tempLocation.getAbsolutePath() + searchPaths.get(0)).replaceAll("\\\\+|/+",
+      String s = (tempLocation.getAbsolutePath() + searchPaths.get(0)).replaceAll(
+          REGEX_CONTAINS_SLASH,
           Matcher.quoteReplacement(File.separator));
       Assertions.assertEquals(absolutePaths.get(0), s);
     } catch (NotFoundException e) {
-      Assertions.fail("Not found");
+      Assertions.fail(NOT_FOUND);
     }
   }
 
@@ -71,11 +76,12 @@ public class DirectoryFinderTest {
       List<String> absolutePaths = DirectoryFinder.getDirectory(searchPaths,
           tempLocation.getAbsolutePath());
       Assertions.assertEquals(1, absolutePaths.size());
-      String s = (tempLocation.getAbsolutePath() + MAIN_SOURCE_PATH).replaceAll("\\\\+|/+",
+      String s = (tempLocation.getAbsolutePath() + MAIN_SOURCE_PATH).replaceAll(
+          REGEX_CONTAINS_SLASH,
           Matcher.quoteReplacement(File.separator));
       Assertions.assertEquals(absolutePaths.get(0), s);
     } catch (NotFoundException e) {
-      Assertions.fail("Not found");
+      Assertions.fail(NOT_FOUND);
     }
   }
 
@@ -87,11 +93,12 @@ public class DirectoryFinderTest {
       List<String> absolutePaths = DirectoryFinder.getDirectory(searchPaths,
           tempLocation.getAbsolutePath());
       Assertions.assertEquals(1, absolutePaths.size());
-      String s = (tempLocation.getAbsolutePath() + MAIN_SOURCE_PATH).replaceAll("\\\\+|/+",
+      String s = (tempLocation.getAbsolutePath() + MAIN_SOURCE_PATH).replaceAll(
+          REGEX_CONTAINS_SLASH,
           Matcher.quoteReplacement(File.separator));
       Assertions.assertEquals(absolutePaths.get(0), s);
     } catch (NotFoundException e) {
-      Assertions.fail("Not found");
+      Assertions.fail(NOT_FOUND);
     }
   }
 
@@ -103,11 +110,12 @@ public class DirectoryFinderTest {
       List<String> absolutePaths = DirectoryFinder.getDirectory(searchPaths,
           tempLocation.getAbsolutePath());
       Assertions.assertEquals(1, absolutePaths.size());
-      String s = (tempLocation.getAbsolutePath() + MAIN_SOURCE_PATH).replaceAll("\\\\+|/+",
+      String s = (tempLocation.getAbsolutePath() + MAIN_SOURCE_PATH).replaceAll(
+          REGEX_CONTAINS_SLASH,
           Matcher.quoteReplacement(File.separator));
       Assertions.assertEquals(absolutePaths.get(0), s);
     } catch (NotFoundException e) {
-      Assertions.fail("Not found");
+      Assertions.fail(NOT_FOUND);
     }
   }
 

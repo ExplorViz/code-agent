@@ -13,7 +13,8 @@ import org.slf4j.LoggerFactory;
  * Simple Class to write failing file content to files.
  */
 public final class DebugFileWriter {
-  public static final Logger LOGGER = LoggerFactory.getLogger(JavaParserService.class);
+  private static final Logger LOGGER = LoggerFactory.getLogger(JavaParserService.class);
+  private static final String UNABLE_TO_WRITE = "Unable to write the content to file.";
 
   private DebugFileWriter() {
 
@@ -34,20 +35,26 @@ public final class DebugFileWriter {
       if (LOGGER.isErrorEnabled()) {
         // if something happens here, catch and ignore as the program can continue as normal
         // only the debug file will not be present
-        LOGGER.error("Unable to write the content to file.");
+        LOGGER.error(UNABLE_TO_WRITE);
       }
     }
   }
 
+  /**
+   * Saves the given compilationUnit as a YAML represented file.
+   *
+   * @param compilationUnit the Abstract syntax tree
+   * @param path the storage path
+   */
   public static void saveAstAsYaml(final CompilationUnit compilationUnit, final String path) {
-    YamlPrinter printer = new YamlPrinter(true);
+    final YamlPrinter printer = new YamlPrinter(true);
     try {
       Files.write(Paths.get(path), printer.output(compilationUnit).getBytes());
     } catch (IOException e) {
       if (LOGGER.isErrorEnabled()) {
         // if something happens here, catch and ignore as the program can continue as normal
         // only the debug file will not be present
-        LOGGER.error("Unable to write the content to file.");
+        LOGGER.error(UNABLE_TO_WRITE);
       }
     }
   }

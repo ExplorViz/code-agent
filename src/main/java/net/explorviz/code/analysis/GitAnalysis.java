@@ -39,7 +39,7 @@ import org.slf4j.LoggerFactory;
  * ("explorviz.repo.folder.path"). Sends the analysis's results to ExplorViz code service.
  */
 @ApplicationScoped
-public class GitAnalysis {
+public class GitAnalysis { // NOPMD
 
   private static final Logger LOGGER = LoggerFactory.getLogger(GitAnalysis.class);
 
@@ -80,7 +80,7 @@ public class GitAnalysis {
   /* package */ CommitReportHandler commitReportHandler; // NOCS
 
   @Inject
-  GrpcExporter grpcExporter;
+  /* package */ GrpcExporter grpcExporter; // NOCS
 
 
   private void analyzeAndSendRepo(final DataExporter exporter) // NOCS NOPMD
@@ -91,8 +91,9 @@ public class GitAnalysis {
       final String branch = repository.getFullBranch();
 
       // get fetch data from remote
-      Optional<String> startCommit = findStartCommit(exporter, branch);
-      Optional<String> endCommit = fetchRemoteDataProperty ? Optional.empty() : endCommitProperty;
+      final Optional<String> startCommit = findStartCommit(exporter, branch);
+      final Optional<String> endCommit =
+          fetchRemoteDataProperty ? Optional.empty() : endCommitProperty;
 
       checkIfCommitsAreReachable(startCommit, endCommit, branch);
 
@@ -151,10 +152,11 @@ public class GitAnalysis {
       // checkout the branch, so not a single commit is checked out after the run
       Git.wrap(repository).checkout().setName(branch).call();
     }
-  }
+      }
 
-  private void checkIfCommitsAreReachable(Optional<String> startCommit, Optional<String> endCommit,
-                                          String branch) throws NotFoundException {
+  private void checkIfCommitsAreReachable(final Optional<String> startCommit,
+                                          final Optional<String> endCommit, final String branch)
+      throws NotFoundException {
     if (this.gitRepositoryHandler.isUnreachableCommit(startCommit, branch)) {
       throw new NotFoundException(toErrorText("start", startCommit.orElse(""), branch));
     } else if (this.gitRepositoryHandler.isUnreachableCommit(endCommit, branch)) {
@@ -162,17 +164,16 @@ public class GitAnalysis {
     }
   }
 
-  private Optional<String> findStartCommit(DataExporter exporter, String branch) {
+  private Optional<String> findStartCommit(final DataExporter exporter, final String branch) {
     if (fetchRemoteDataProperty) {
-      StateData remoteState = exporter.requestStateData(branch);
+      final StateData remoteState = exporter.requestStateData(branch);
       if (remoteState.getCommitID().isEmpty() || remoteState.getCommitID().isBlank()) {
         return Optional.empty();
       } else {
         return Optional.of(remoteState.getCommitID());
       }
     } else {
-      // happens if value is set by GitLab CI and the "previous latest commit" is unavailable
-      if (startCommitProperty.isPresent() && "0000000000000000000000000000000000000000".equals(
+      if (startCommitProperty.isPresent() && exporter.isInvalidCommitHash(
           startCommitProperty.get())) {
         return Optional.empty();
       }
@@ -180,8 +181,8 @@ public class GitAnalysis {
     }
   }
 
-  private void prepareRevWalk(Repository repository, RevWalk revWalk, String branch)
-      throws IOException {
+  private void prepareRevWalk(final Repository repository, final RevWalk revWalk,
+                              final String branch) throws IOException {
     revWalk.sort(RevSort.COMMIT_TIME_DESC, true);
     revWalk.sort(RevSort.REVERSE, true);
 
@@ -199,8 +200,7 @@ public class GitAnalysis {
   }
 
   private void commitAnalysis(final Repository repository, final RevCommit commit,
-                              final RevCommit lastCommit,
-                              final List<FileDescriptor> descriptorList,
+                              final RevCommit lastCommit, final List<FileDescriptor> descriptorList,
                               final DataExporter exporter, final String branchName)
       throws GitAPIException, NotFoundException, IOException {
     DirectoryFinder.resetDirectory(sourceDirectoryProperty.orElse(""));
@@ -208,16 +208,19 @@ public class GitAnalysis {
     // final Date commitDate = commit.getAuthorIdent().getWhen();
     Git.wrap(repository).checkout().setName(commit.getName()).call();
 
-    javaParserService.reset(DirectoryFinder.getDirectory(
-        List.of(sourceDirectoryProperty.orElse("").split(",")),
-        GitRepositoryHandler.getCurrentRepositoryPath()));
+    javaParserService.reset(
+        DirectoryFinder.getDirectory(List.of(sourceDirectoryProperty.orElse("").split(",")),
+            GitRepositoryHandler.getCurrentRepositoryPath()));
     GitMetricCollector.resetAuthor();
 
     for (final FileDescriptor fileDescriptor : descriptorList) {
       final FileDataHandler fileDataHandler = fileAnalysis(repository, fileDescriptor,
-          javaParserService,
-          commit.getName());
-      if (fileDataHandler != null) {
+          javaParserService, commit.getName());
+      if (fileDataHandler == null) {
+        if (LOGGER.isErrorEnabled()) {
+          LOGGER.error("Analysis of file " + fileDescriptor.relativePath + " failed.");
+        }
+      } else {
         GitMetricCollector.addCommitGitMetrics(fileDataHandler, commit);
         exporter.sendFileData(fileDataHandler.getProtoBufObject());
       }
@@ -234,19 +237,19 @@ public class GitAnalysis {
     } else {
       commitReportHandler.init(commit.getId().getName(), lastCommit.getId().getName(), branchName);
     }
-    List<FileDescriptor> files = gitRepositoryHandler.listFilesInCommit(repository, commit,
+    final List<FileDescriptor> files = gitRepositoryHandler.listFilesInCommit(repository, commit,
         restrictAnalysisToFoldersProperty.orElse(""));
     commitReportHandler.add(files);
     exporter.sendCommitReport(commitReportHandler.getCommitReport());
   }
 
   private FileDataHandler fileAnalysis(final Repository repository, final FileDescriptor file,
-                                       final JavaParserService parser, final String commitSHA)
+                                       final JavaParserService parser, final String commitSha)
       throws IOException {
     final String fileContent = GitRepositoryHandler.getContent(file.objectId, repository);
     try {
-      FileDataHandler fileDataHandler = parser.parseFileContent(fileContent, file.fileName,
-          calculateMetricsProperty, commitSHA); // NOPMD
+      final FileDataHandler fileDataHandler = parser.parseFileContent(fileContent, file.fileName,
+          calculateMetricsProperty, commitSha); // NOPMD
       GitMetricCollector.addFileGitMetrics(fileDataHandler, file);
       return fileDataHandler;
 
@@ -254,14 +257,12 @@ public class GitAnalysis {
       if (LOGGER.isWarnEnabled()) {
         LOGGER.warn(e.toString());
       }
-      // TODO Return something more reasonable, null is clearly not good
       return null;
     }
   }
 
   /* package */ void onStart(@Observes final StartupEvent ev)
-      throws IOException, GitAPIException, PropertyNotDefinedException,
-      NotFoundException {
+      throws IOException, GitAPIException, PropertyNotDefinedException, NotFoundException {
 
     if (repoPathProperty.isEmpty() && repoRemoteUrlProperty.isEmpty()) {
       return;
@@ -277,6 +278,9 @@ public class GitAnalysis {
       LOGGER.info("Analysis finished successfully, exiting now.");
     }
     Quarkus.asyncExit();
+    // Quarkus.waitForExit();
+    // System.exit(-1); // NOPMD
+
   }
 
 

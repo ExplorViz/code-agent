@@ -18,7 +18,7 @@ import net.explorviz.code.analysis.handler.FileDataHandler;
 import net.explorviz.code.analysis.handler.MetricAppender;
 import net.explorviz.code.analysis.visitor.CyclomaticComplexityVisitor;
 import net.explorviz.code.analysis.visitor.FileDataVisitor;
-import net.explorviz.code.analysis.visitor.NestedBlockDepth;
+import net.explorviz.code.analysis.visitor.NestedBlockDepthVisitor;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -72,28 +72,29 @@ public class JavaParserService {
   }
 
   private FileDataHandler parse(final CompilationUnit compilationUnit, final String fileName,
-                                boolean calculateMetrics) {
+                                final boolean calculateMetrics) {
     final FileDataHandler data = new FileDataHandler(fileName);
     final FileDataVisitor multiCollectorVisitor;
     if (calculateMetrics) {
-      multiCollectorVisitor = new FileDataVisitor(Optional.empty(),
-          Optional.of(combinedTypeSolver));
+      multiCollectorVisitor = new FileDataVisitor(Optional.of(combinedTypeSolver));
       multiCollectorVisitor.visit(compilationUnit, data);
       try {
-        Pair<MetricAppender, Object> pair = new Pair<>(new MetricAppender(data), new Object());
+        final Pair<MetricAppender, Object> pair = new Pair<>(new MetricAppender(data),
+            new Object());
         new CyclomaticComplexityVisitor().visit(compilationUnit, pair);
-        new NestedBlockDepth().visit(compilationUnit, new Pair<>(new MetricAppender(data), null));
+        new NestedBlockDepthVisitor().visit(compilationUnit,
+            new Pair<>(new MetricAppender(data), null));
         // new LackOfCohesionMethodsVisitor().visit(compilationUnit,
         //     new Pair<>(new MetricAppender(data), null));
-      } catch (Exception e) {
-        e.printStackTrace();
+      } catch (Exception e) { // NOPMD
+        // Catch everything and proceed, as these are only the metrics, the analysis has to continue
         if (LOGGER.isErrorEnabled()) {
+          LOGGER.error(e.getMessage(), e);
           LOGGER.error("Unable to create metric for File: " + fileName);
         }
       }
     } else {
-      multiCollectorVisitor = new FileDataVisitor(Optional.empty(),
-          Optional.of(combinedTypeSolver));
+      multiCollectorVisitor = new FileDataVisitor(Optional.of(combinedTypeSolver));
       multiCollectorVisitor.visit(compilationUnit, data);
     }
     return data;
@@ -124,7 +125,7 @@ public class JavaParserService {
   }
 
   private FileDataHandler parseAny(final String fileContent, final String fileName, final Path path,
-                                   boolean calculateMetrics, final String commitSHA)
+                                   final boolean calculateMetrics, final String commitSha)
       throws IOException {
     StaticJavaParser.getConfiguration().setSymbolResolver(this.javaSymbolSolver);
     final CompilationUnit compilationUnit;
@@ -139,8 +140,8 @@ public class JavaParserService {
     // DebugFileWriter.saveAstAsYaml(compilationUnit, "/logs/quarkus/debug.yaml");
 
     try {
-      FileDataHandler dataHandler = parse(compilationUnit, fileName, calculateMetrics);
-      dataHandler.setCommitSHA(commitSHA);
+      final FileDataHandler dataHandler = parse(compilationUnit, fileName, calculateMetrics);
+      dataHandler.setCommitSha(commitSha);
       return dataHandler;
     } catch (NoSuchElementException e) {
       if (LOGGER.isErrorEnabled()) {
@@ -164,9 +165,9 @@ public class JavaParserService {
    * @param fileContent stringified java file
    */
   public FileDataHandler parseFileContent(final String fileContent, final String fileName,
-                                          boolean calculateMetrics, final String commitSHA) {
+                                          final boolean calculateMetrics, final String commitSha) {
     try {
-      return parseAny(fileContent, fileName, null, calculateMetrics, commitSHA);
+      return parseAny(fileContent, fileName, null, calculateMetrics, commitSha);
     } catch (IOException e) {
       //   omit the IO Exception as the function can throw the exception only if path is not null
       return null;
@@ -178,11 +179,10 @@ public class JavaParserService {
    *
    * @throws IOException Gets thrown if the file is not reachable
    */
-  public FileDataHandler parseFile(final String pathToFile, boolean calculateMetrics,
-                                   final String commitSHA)
-      throws IOException {
+  public FileDataHandler parseFile(final String pathToFile, final boolean calculateMetrics,
+                                   final String commitSha) throws IOException {
     final Path path = Path.of(pathToFile);
-    return parseAny("", path.getFileName().toString(), path, calculateMetrics, commitSHA);
+    return parseAny("", path.getFileName().toString(), path, calculateMetrics, commitSha);
   }
 
 }
