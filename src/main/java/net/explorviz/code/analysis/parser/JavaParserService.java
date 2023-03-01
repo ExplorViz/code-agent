@@ -18,6 +18,7 @@ import net.explorviz.code.analysis.handler.FileDataHandler;
 import net.explorviz.code.analysis.handler.MetricAppender;
 import net.explorviz.code.analysis.visitor.CyclomaticComplexityVisitor;
 import net.explorviz.code.analysis.visitor.FileDataVisitor;
+import net.explorviz.code.analysis.visitor.LackOfCohesionMethodsVisitor;
 import net.explorviz.code.analysis.visitor.NestedBlockDepthVisitor;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -74,18 +75,18 @@ public class JavaParserService {
   private FileDataHandler parse(final CompilationUnit compilationUnit, final String fileName,
                                 final boolean calculateMetrics) {
     final FileDataHandler data = new FileDataHandler(fileName);
-    final FileDataVisitor multiCollectorVisitor;
+    final FileDataVisitor fileDataVisitor;
     if (calculateMetrics) {
-      multiCollectorVisitor = new FileDataVisitor(Optional.of(combinedTypeSolver));
-      multiCollectorVisitor.visit(compilationUnit, data);
+      fileDataVisitor = new FileDataVisitor(Optional.of(combinedTypeSolver));
+      fileDataVisitor.visit(compilationUnit, data);
       try {
         final Pair<MetricAppender, Object> pair = new Pair<>(new MetricAppender(data),
             new Object());
         new CyclomaticComplexityVisitor().visit(compilationUnit, pair);
         new NestedBlockDepthVisitor().visit(compilationUnit,
             new Pair<>(new MetricAppender(data), null));
-        // new LackOfCohesionMethodsVisitor().visit(compilationUnit,
-        //     new Pair<>(new MetricAppender(data), null));
+        new LackOfCohesionMethodsVisitor().visit(compilationUnit,
+            new Pair<>(new MetricAppender(data), null));
       } catch (Exception e) { // NOPMD
         // Catch everything and proceed, as these are only the metrics, the analysis has to continue
         if (LOGGER.isErrorEnabled()) {
@@ -94,8 +95,8 @@ public class JavaParserService {
         }
       }
     } else {
-      multiCollectorVisitor = new FileDataVisitor(Optional.of(combinedTypeSolver));
-      multiCollectorVisitor.visit(compilationUnit, data);
+      fileDataVisitor = new FileDataVisitor(Optional.of(combinedTypeSolver));
+      fileDataVisitor.visit(compilationUnit, data);
     }
     return data;
   }

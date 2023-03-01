@@ -152,7 +152,7 @@ public class GitAnalysis { // NOPMD
       // checkout the branch, so not a single commit is checked out after the run
       Git.wrap(repository).checkout().setName(branch).call();
     }
-      }
+  }
 
   private void checkIfCommitsAreReachable(final Optional<String> startCommit,
                                           final Optional<String> endCommit, final String branch)
