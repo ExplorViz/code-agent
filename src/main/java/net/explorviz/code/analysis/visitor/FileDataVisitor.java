@@ -4,7 +4,6 @@ import com.github.javaparser.ast.CompilationUnit;
 import com.github.javaparser.ast.ImportDeclaration;
 import com.github.javaparser.ast.Modifier;
 import com.github.javaparser.ast.Node;
-import com.github.javaparser.ast.NodeList;
 import com.github.javaparser.ast.PackageDeclaration;
 import com.github.javaparser.ast.body.ClassOrInterfaceDeclaration;
 import com.github.javaparser.ast.body.ConstructorDeclaration;
@@ -33,6 +32,7 @@ import java.util.Optional;
 import java.util.stream.Collectors;
 import net.explorviz.code.analysis.handler.FileDataHandler;
 import net.explorviz.code.analysis.handler.MethodDataHandler;
+import net.explorviz.code.analysis.types.Verification;
 import org.eclipse.microprofile.config.inject.ConfigProperty;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -147,10 +147,11 @@ public class FileDataVisitor extends VoidVisitorAdapter<FileDataHandler> { // NO
   @Override
   public void visit(final MethodDeclaration n, final FileDataHandler data) {
     final String methodsFullyQualifiedName =
-        data.getCurrentClassName() + "." + n.getNameAsString() + "#" + parameterHash(
+        data.getCurrentClassName() + "." + n.getNameAsString() + "#" + Verification.parameterHash(
             n.getParameters());
+    data.enterMethod(methodsFullyQualifiedName);
     final String returnType = resolveFqn(n.getType(), data);
-    data.setLastAddedMethodFqn(methodsFullyQualifiedName);
+    // data.setLastAddedMethodFqn(methodsFullyQualifiedName);
     final MethodDataHandler method = data.getCurrentClassData()
         .addMethod(methodsFullyQualifiedName, returnType);
     for (final Modifier modifier : n.getModifiers()) {
@@ -162,12 +163,13 @@ public class FileDataVisitor extends VoidVisitorAdapter<FileDataHandler> { // NO
     }
     method.addMetric(LOC, String.valueOf(getLoc(n)));
     super.visit(n, data);
+    data.leaveMethod();
   }
 
   @Override
   public void visit(final ConstructorDeclaration n, final FileDataHandler data) {
     final String constructorsFullyQualifiedName =
-        data.getCurrentClassName() + "." + n.getNameAsString() + "#" + parameterHash(
+        data.getCurrentClassName() + "." + n.getNameAsString() + "#" + Verification.parameterHash(
             n.getParameters());
     final MethodDataHandler constructor = data.getCurrentClassData()
         .addConstructor(constructorsFullyQualifiedName);
@@ -204,11 +206,7 @@ public class FileDataVisitor extends VoidVisitorAdapter<FileDataHandler> { // NO
   @Override
   public void visit(final ObjectCreationExpr n, final FileDataHandler data) {
     if (n.getAnonymousClassBody().isPresent()) {
-      if (n.getAnonymousClassBody().get().size() > 1 && LOGGER.isWarnEnabled()) {
-        LOGGER.warn("Detected multiple anonymous class bodies inside object creation expression."
-            + "Unable to handle process. False data may occur.");
-      }
-      data.enterAnonymousClass(n.getTypeAsString(), data.getLastAddedMethodFqn());
+      data.enterAnonymousClass(n.getTypeAsString(), data.getCurrentMethodFqn());
       super.visit(n, data);
       data.leaveAnonymousClass();
     } else {
@@ -371,19 +369,5 @@ public class FileDataVisitor extends VoidVisitorAdapter<FileDataHandler> { // NO
       }
     }
     return name;
-  }
-
-  /**
-   * Calculates the hash for a parameter list provided as {@link NodeList}.
-   *
-   * @param parameterList a list of Parameters
-   * @return the hash of the parameters as hexadecimal string
-   */
-  private static String parameterHash(final NodeList<Parameter> parameterList) {
-    final List<String> tempList = new ArrayList<>();
-    for (final Parameter parameter : parameterList) {
-      tempList.add(parameter.getName().asString());
-    }
-    return Integer.toHexString(tempList.hashCode());
   }
 }

@@ -1,7 +1,8 @@
 package net.explorviz.code.analysis.visitor;
 
-import com.github.javaparser.ast.Node;
 import com.github.javaparser.ast.body.ClassOrInterfaceDeclaration;
+import com.github.javaparser.ast.body.ConstructorDeclaration;
+import com.github.javaparser.ast.body.EnumDeclaration;
 import com.github.javaparser.ast.body.MethodDeclaration;
 import com.github.javaparser.ast.expr.ObjectCreationExpr;
 import com.github.javaparser.ast.stmt.CatchClause;
@@ -50,6 +51,9 @@ public class CyclomaticComplexityVisitor // NOPMD
     for (final Map.Entry<String, Integer> entry : methodCounter.entrySet()) {
       metricValue += methodCounter.get(entry.getKey());
     }
+    if (metricValue == 0) {
+      metricValue = 1;
+    }
     // set the class metric
     try {
       data.a.putClassMetric(CYCLOMATIC_COMPLEXITY, String.valueOf(metricValue));
@@ -83,6 +87,67 @@ public class CyclomaticComplexityVisitor // NOPMD
     data.a.leaveClass();
   }
 
+  @Override
+  public void visit(final EnumDeclaration n, final Pair<MetricAppender, Object> data) {
+    methodCounter.clear();
+
+    data.a.enterClass(n);
+    super.visit(n, data);
+    int metricValue = 0;
+    for (final Map.Entry<String, Integer> entry : methodCounter.entrySet()) {
+      metricValue += methodCounter.get(entry.getKey());
+    }
+    if (metricValue == 0) {
+      metricValue = 1;
+    }
+    // set the class metric
+    try {
+      data.a.putClassMetric(CYCLOMATIC_COMPLEXITY, String.valueOf(metricValue));
+    } catch (NotFoundException e) {
+      // metric was not addable.
+      if (LOGGER.isErrorEnabled()) {
+        LOGGER.error(e.getMessage(), e);
+      }
+    }
+
+    if (!methodCounter.entrySet().isEmpty()) {
+      metricValue = metricValue / methodCounter.entrySet().size();
+    }
+    try {
+      data.a.putClassMetric(CYCLOMATIC_COMPLEXITY_WEIGHTED, String.valueOf(metricValue));
+    } catch (NotFoundException e) {
+      // metric was not addable.
+      if (LOGGER.isErrorEnabled()) {
+        LOGGER.error(e.getMessage(), e);
+      }
+    }
+
+    // Update the file metric
+    final Integer oldValue = Integer.getInteger(
+        data.a.getFileData().getMetricValue(CYCLOMATIC_COMPLEXITY));
+    if (oldValue == null) {
+      data.a.putFileMetric(CYCLOMATIC_COMPLEXITY, String.valueOf(metricValue));
+    } else {
+      data.a.putFileMetric(CYCLOMATIC_COMPLEXITY, String.valueOf(oldValue + metricValue));
+    }
+    data.a.leaveClass();
+  }
+
+  @Override
+  public void visit(ConstructorDeclaration n, Pair<MetricAppender, Object> data) {
+    data.a.enterMethod(n);
+    super.visit(n, data);
+    final int metricValue = methodCounter.getOrDefault(data.a.getCurrentMethodName(), 1);
+    try {
+      data.a.putMethodMetric(CYCLOMATIC_COMPLEXITY, String.valueOf(metricValue));
+    } catch (NotFoundException e) {
+      // metric was not addable.
+      if (LOGGER.isErrorEnabled()) {
+        LOGGER.error(e.getMessage(), e);
+      }
+    }
+    data.a.leaveMethod();
+  }
 
   @Override
   public void visit(final MethodDeclaration n, final Pair<MetricAppender, Object> data) {
@@ -103,15 +168,9 @@ public class CyclomaticComplexityVisitor // NOPMD
   @Override
   public void visit(final ObjectCreationExpr n, final Pair<MetricAppender, Object> data) {
     if (n.getAnonymousClassBody().isPresent()) {
-      for (final Node node : n.getChildNodes()) {
-        if (node instanceof ClassOrInterfaceDeclaration) {
-          data.a.enterAnonymousClass(n.getTypeAsString(), data.a.getCurrentMethodName());
-          node.accept(this, data);
-          data.a.leaveAnonymousClass();
-        } else {
-          node.accept(this, data);
-        }
-      }
+      data.a.enterAnonymousClass(n.getTypeAsString(), data.a.getCurrentMethodName());
+      super.visit(n, data);
+      data.a.leaveAnonymousClass();
     } else {
       super.visit(n, data);
     }

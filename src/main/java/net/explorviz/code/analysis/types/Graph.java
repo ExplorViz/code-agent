@@ -55,6 +55,7 @@ public class Graph {
     final Vertex v = vertexMap.get(label);
     adjVertices.values().forEach(e -> e.remove(v));
     adjVertices.remove(v);
+    vertexMap.put(label, null);
   }
 
   /**
@@ -66,6 +67,9 @@ public class Graph {
   public void addEdge(final String label1, final String label2) {
     final Vertex v1 = vertexMap.get(label1);
     final Vertex v2 = vertexMap.get(label2);
+    if (v1 == null || v2 == null) {
+      return;
+    }
     // propagate the group to all connected vertices
     updateGroups(v1, v2);
 

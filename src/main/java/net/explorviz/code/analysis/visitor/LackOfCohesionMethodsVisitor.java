@@ -1,8 +1,8 @@
 package net.explorviz.code.analysis.visitor;
 
 import com.github.javaparser.Range;
-import com.github.javaparser.ast.Node;
 import com.github.javaparser.ast.body.ClassOrInterfaceDeclaration;
+import com.github.javaparser.ast.body.EnumDeclaration;
 import com.github.javaparser.ast.body.FieldDeclaration;
 import com.github.javaparser.ast.body.MethodDeclaration;
 import com.github.javaparser.ast.body.VariableDeclarator;
@@ -16,6 +16,7 @@ import com.github.javaparser.utils.Pair;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
+import java.util.Stack;
 import java.util.stream.Collectors;
 import net.explorviz.code.analysis.exceptions.NotFoundException;
 import net.explorviz.code.analysis.handler.MetricAppender;
@@ -26,37 +27,74 @@ import net.explorviz.code.analysis.types.Graph;
  */
 public class LackOfCohesionMethodsVisitor extends VoidVisitorAdapter<Pair<MetricAppender, Object>> {
 
-  private Graph graph;
-  private List<FieldDeclaration> fields;
-  private List<String> fieldNames;
-  private List<String> methodNames;
+  private Graph currentGraph;
+  private final Stack<Graph> graphStack = new Stack<>();
+
+  private List<FieldDeclaration> currentFields;
+  private final Stack<List<FieldDeclaration>> fieldsStack = new Stack<>();
+  private List<String> currentFieldNames;
+  private final Stack<List<String>> fieldNamesStack = new Stack<>();
+  private List<String> currentMethodNames;
+  private final Stack<List<String>> methodNamesStack = new Stack<>();
 
   @Override
   public void visit(final ClassOrInterfaceDeclaration n, final Pair<MetricAppender, Object> data) {
-    this.graph = new Graph();
+    initNewClass();
+
     data.a.enterClass(n);
 
-    fields = n.getFields();
-    fieldNames = n.getFields().stream()
+    currentFields = n.getFields();
+    currentFieldNames = n.getFields().stream()
         .map(field -> field.getVariables().getFirst().get().getName().asString())
         .collect(Collectors.toList());
-    for (final String fieldName : fieldNames) {
-      graph.addVertex(fieldName, true);
+    for (final String fieldName : currentFieldNames) {
+      currentGraph.addVertex(fieldName, true);
     }
-    methodNames = n.getMethods().stream().map(NodeWithSimpleName::getNameAsString)
+    currentMethodNames = n.getMethods().stream().map(NodeWithSimpleName::getNameAsString)
         .collect(Collectors.toList());
-    for (final String methodName : methodNames) {
-      graph.addVertex(methodName);
+    for (final String methodName : currentMethodNames) {
+      currentGraph.addVertex(methodName);
     }
 
     super.visit(n, data);
 
     try {
-      data.a.putClassMetric("LCOM4", String.valueOf(graph.getGroups().size()));
+      data.a.putClassMetric("LCOM4", String.valueOf(currentGraph.getGroups().size()));
     } catch (NotFoundException e) {
       throw new RuntimeException(e); // NOPMD
     }
     data.a.leaveClass();
+    leaveClass();
+  }
+
+  @Override
+  public void visit(final EnumDeclaration n, final Pair<MetricAppender, Object> data) {
+    initNewClass();
+
+    data.a.enterClass(n);
+
+    currentFields = n.getFields();
+    currentFieldNames = n.getFields().stream()
+        .map(field -> field.getVariables().getFirst().get().getName().asString())
+        .collect(Collectors.toList());
+    for (final String fieldName : currentFieldNames) {
+      currentGraph.addVertex(fieldName, true);
+    }
+    currentMethodNames = n.getMethods().stream().map(NodeWithSimpleName::getNameAsString)
+        .collect(Collectors.toList());
+    for (final String methodName : currentMethodNames) {
+      currentGraph.addVertex(methodName);
+    }
+
+    super.visit(n, data);
+
+    try {
+      data.a.putClassMetric("LCOM4", String.valueOf(currentGraph.getGroups().size()));
+    } catch (NotFoundException e) {
+      throw new RuntimeException(e); // NOPMD
+    }
+    data.a.leaveClass();
+    leaveClass();
   }
 
   @Override // NOCS
@@ -65,13 +103,13 @@ public class LackOfCohesionMethodsVisitor extends VoidVisitorAdapter<Pair<Metric
     data.a.enterMethod(n);
     // Skip this method if it is inherited, remove the graph entry
     if (n.isAnnotationPresent("Override")) {
-      graph.removeVertex(n.getNameAsString());
+      currentGraph.removeVertex(n.getNameAsString());
       return;
     }
     // it the method is empty, remove the graph entry
     if (n.getBody().isEmpty() || n.getBody().get().getStatements().isEmpty() && n.getBody().get()
         .getChildNodes().isEmpty()) {
-      graph.removeVertex(n.getNameAsString());
+      currentGraph.removeVertex(n.getNameAsString());
       return;
     }
     // field access
@@ -80,7 +118,7 @@ public class LackOfCohesionMethodsVisitor extends VoidVisitorAdapter<Pair<Metric
         continue;
       }
       if (findInClassFields(expr.getNameAsString())) {
-        graph.addEdge(n.getNameAsString(), expr.getNameAsString());
+        currentGraph.addEdge(n.getNameAsString(), expr.getNameAsString());
       }
     }
     final List<Pair<String, Optional<Range>>> localVariables = new ArrayList<>();
@@ -90,16 +128,16 @@ public class LackOfCohesionMethodsVisitor extends VoidVisitorAdapter<Pair<Metric
     }
 
     for (final NameExpr nameExpr : n.findAll(NameExpr.class)) {
-      if (fieldNames.contains(nameExpr.getNameAsString()) && isNotShadowedByLocalVariable(
+      if (currentFieldNames.contains(nameExpr.getNameAsString()) && isNotShadowedByLocalVariable(
           localVariables, nameExpr)) {
-        graph.addEdge(n.getNameAsString(), nameExpr.getNameAsString());
+        currentGraph.addEdge(n.getNameAsString(), nameExpr.getNameAsString());
       }
     }
 
     for (final MethodCallExpr method : n.findAll(MethodCallExpr.class)) {
       if (isClassMethod(method)) {
         // add something to method name so fields and methods can have the same name
-        graph.addEdge(n.getNameAsString(), method.getNameAsString());
+        currentGraph.addEdge(n.getNameAsString(), method.getNameAsString());
       }
 
     }
@@ -109,17 +147,7 @@ public class LackOfCohesionMethodsVisitor extends VoidVisitorAdapter<Pair<Metric
 
   @Override
   public void visit(final ObjectCreationExpr n, final Pair<MetricAppender, Object> data) {
-    if (n.getAnonymousClassBody().isPresent()) {
-      for (final Node node : n.getChildNodes()) {
-        if (node instanceof ClassOrInterfaceDeclaration) {
-          data.a.enterAnonymousClass(n.getTypeAsString(), data.a.getCurrentMethodName());
-          node.accept(this, data);
-          data.a.leaveAnonymousClass();
-        } else {
-          node.accept(this, data);
-        }
-      }
-    } else {
+    if (n.getAnonymousClassBody().isEmpty()) {
       super.visit(n, data);
     }
   }
@@ -137,7 +165,7 @@ public class LackOfCohesionMethodsVisitor extends VoidVisitorAdapter<Pair<Metric
   }
 
   private boolean findInClassFields(final String field) {
-    for (final FieldDeclaration f : fields) {
+    for (final FieldDeclaration f : currentFields) {
       if (f.getVariables().getFirst().isPresent() && field.contains(
           f.getVariables().getFirst().get().getName().toString())) {
         return true;
@@ -148,9 +176,31 @@ public class LackOfCohesionMethodsVisitor extends VoidVisitorAdapter<Pair<Metric
 
   private boolean isClassMethod(final MethodCallExpr method) {
     if (method.getScope().isEmpty() || method.getScope().get().isThisExpr()) {
-      return methodNames.contains(method.getNameAsString());
+      return currentMethodNames.contains(method.getNameAsString());
     } else {
       return false;
     }
+  }
+
+  private void initNewClass() {
+    graphStack.push(new Graph());
+    currentGraph = graphStack.peek();
+    fieldsStack.push(new ArrayList<>());
+    currentFields = fieldsStack.peek();
+    fieldNamesStack.push(new ArrayList<>());
+    currentFieldNames = fieldNamesStack.peek();
+    methodNamesStack.push(new ArrayList<>());
+    currentMethodNames = methodNamesStack.peek();
+  }
+
+  private void leaveClass() {
+    graphStack.pop();
+    currentGraph = graphStack.isEmpty() ? null : graphStack.peek();
+    fieldsStack.pop();
+    currentFields = fieldsStack.isEmpty() ? null : fieldsStack.peek();
+    fieldNamesStack.pop();
+    currentFieldNames = fieldNamesStack.isEmpty() ? null : fieldNamesStack.peek();
+    methodNamesStack.pop();
+    currentMethodNames = methodNamesStack.isEmpty() ? null : methodNamesStack.peek();
   }
 }

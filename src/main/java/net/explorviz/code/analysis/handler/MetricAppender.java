@@ -3,14 +3,14 @@ package net.explorviz.code.analysis.handler;
 import com.github.javaparser.ast.Node;
 import com.github.javaparser.ast.NodeList;
 import com.github.javaparser.ast.body.ClassOrInterfaceDeclaration;
+import com.github.javaparser.ast.body.ConstructorDeclaration;
+import com.github.javaparser.ast.body.EnumDeclaration;
 import com.github.javaparser.ast.body.MethodDeclaration;
-import com.github.javaparser.ast.body.Parameter;
-import java.util.ArrayList;
 import java.util.HashMap;
-import java.util.List;
 import java.util.Map;
 import java.util.Stack;
 import net.explorviz.code.analysis.exceptions.NotFoundException;
+import net.explorviz.code.analysis.types.Verification;
 
 /**
  * The MetricAppender is a helper Object to facilitate the adding of metric data to the internal
@@ -161,7 +161,8 @@ public class MetricAppender { // NOPMD
         final String fqn = ((ClassOrInterfaceDeclaration) parent).getFullyQualifiedName()
             .orElse(UNKNOWN);
         return fileData.getClassData(fqn).getMethod(
-                fqn + "." + method.getNameAsString() + "#" + parameterHash(method.getParameters()))
+                fqn + "." + method.getNameAsString() + "#" + Verification.parameterHash(
+                    method.getParameters()))
             .addMetric(metricName, metricValue);
       }
     }
@@ -170,9 +171,8 @@ public class MetricAppender { // NOPMD
 
   /**
    * Sets the metric with metricName to metricValue. The metric is attached to the method defined by
-   * classFqn and methodFqn. Keep in mind to append the
-   * {@link MetricAppender#parameterHash(NodeList)} to the methodFqn to differentiate overloaded
-   * methods.
+   * classFqn and methodFqn. Keep in mind to append the {@link Verification#parameterHash(NodeList)}
+   * to the methodFqn to differentiate overloaded methods.
    *
    * @param metricName the name of the metric
    * @param metricValue the value of the metric
@@ -205,6 +205,10 @@ public class MetricAppender { // NOPMD
    * @param clazz the class to enter
    */
   public void enterClass(final ClassOrInterfaceDeclaration clazz) {
+    this.classStack.push(clazz.getFullyQualifiedName().orElse(UNKNOWN));
+  }
+
+  public void enterClass(final EnumDeclaration clazz) {
     this.classStack.push(clazz.getFullyQualifiedName().orElse(UNKNOWN));
   }
 
@@ -248,8 +252,16 @@ public class MetricAppender { // NOPMD
    * @param method the method to enter
    */
   public void enterMethod(final MethodDeclaration method) {
-    methodStack.push(getCurrentClassName() + "." + method.getNameAsString() + "#" + parameterHash(
-        method.getParameters()));
+    methodStack.push(
+        getCurrentClassName() + "." + method.getNameAsString() + "#" + Verification.parameterHash(
+            method.getParameters()));
+  }
+
+  public void enterMethod(final ConstructorDeclaration constructor) {
+    methodStack.push(
+        getCurrentClassName() + "." + constructor.getNameAsString() + "#"
+            + Verification.parameterHash(
+            constructor.getParameters()));
   }
 
   /**
@@ -271,29 +283,5 @@ public class MetricAppender { // NOPMD
    */
   public FileDataHandler getFileData() {
     return fileData;
-  }
-
-  /**
-   * Calculates the hash for a parameter list provided as String List.
-   *
-   * @param list a list of Types
-   * @return the hash of the types as hexadecimal string
-   */
-  public static String parameterHash(final List<String> list) {
-    return Integer.toHexString(list.hashCode());
-  }
-
-  /**
-   * Calculates the hash for a parameter list provided as {@link NodeList}.
-   *
-   * @param parameterList a list of Parameters
-   * @return the hash of the parameters as hexadecimal string
-   */
-  public static String parameterHash(final NodeList<Parameter> parameterList) {
-    final List<String> tempList = new ArrayList<>();
-    for (final Parameter parameter : parameterList) {
-      tempList.add(parameter.getName().asString());
-    }
-    return Integer.toHexString(tempList.hashCode());
   }
 }

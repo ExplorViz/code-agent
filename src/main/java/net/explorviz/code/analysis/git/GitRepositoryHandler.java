@@ -90,7 +90,7 @@ public class GitRepositoryHandler { // NOPMD
    * @return returns an opened git repository
    * @throws GitAPIException gets thrown if the git api encounters an error
    */
-  private Repository downloadGitRepository( // NOCS NOPMD TODO fix cyclomatic complexety
+  private Repository downloadGitRepository( // NOCS NOPMD
                                             final RemoteRepositoryObject remoteRepositoryObject)
       throws GitAPIException, IOException {
 

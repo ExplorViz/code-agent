@@ -1,6 +1,7 @@
 package net.explorviz.code.analysis.visitor;
 
 import com.github.javaparser.ast.body.ClassOrInterfaceDeclaration;
+import com.github.javaparser.ast.body.EnumDeclaration;
 import com.github.javaparser.ast.body.MethodDeclaration;
 import com.github.javaparser.ast.expr.LambdaExpr;
 import com.github.javaparser.ast.stmt.DoStmt;
@@ -32,6 +33,13 @@ public class NestedBlockDepthVisitor
 
   @Override
   public void visit(final ClassOrInterfaceDeclaration n, final Pair<MetricAppender, Object> data) {
+    data.a.enterClass(n);
+    super.visit(n, data);
+    data.a.leaveClass();
+  }
+
+  @Override
+  public void visit(final EnumDeclaration n, final Pair<MetricAppender, Object> data) {
     data.a.enterClass(n);
     super.visit(n, data);
     data.a.leaveClass();

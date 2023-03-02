@@ -102,7 +102,8 @@ public final class DirectoryFinder {
         if (isOptionalPath) {
           continue;
         }
-        throw new NotFoundException("directory was not found");
+        throw new NotFoundException(
+            "The search string " + path + " was not found anywhere inside " + root);
       }
       PATHS.put(path, new File(dir).getAbsolutePath()); // NOPMD
 

@@ -14,10 +14,10 @@ public class FileDataHandler implements ProtoBufConvertable<FileData> {
   private static final int STRING_BUILDER_CAPACITY = 300;
   // classStack is an internal object to keep track of the class hierarchy
   private final Stack<String> classStack;
+  private final Stack<String> methodStack;
 
   private final FileData.Builder builder;
   private final Map<String, ClassDataHandler> classDataMap;
-  private String lastAddedMethod = "";
 
   /**
    * Creates a blank FileData object.
@@ -26,6 +26,7 @@ public class FileDataHandler implements ProtoBufConvertable<FileData> {
     this.builder = FileData.newBuilder();
     this.builder.setFileName(fileName);
     this.classStack = new Stack<>();
+    this.methodStack = new Stack<>();
     this.classDataMap = new HashMap<>();
   }
 
@@ -201,11 +202,15 @@ public class FileDataHandler implements ProtoBufConvertable<FileData> {
         + "\n" + mapData;
   }
 
-  public String getLastAddedMethodFqn() {
-    return lastAddedMethod;
+  public String getCurrentMethodFqn() {
+    return methodStack.peek();
   }
 
-  public void setLastAddedMethodFqn(final String lastAddedMethodFqn) {
-    this.lastAddedMethod = lastAddedMethodFqn;
+  public void enterMethod(final String methodFqn) {
+    methodStack.push(methodFqn);
+  }
+
+  public void leaveMethod() {
+    methodStack.pop();
   }
 }
