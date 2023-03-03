@@ -26,7 +26,7 @@ public class LackOfCohesionMethodsVisitorTest {
   @Test()
   void fileDataTest1() throws FileNotFoundException { // NOCS
     FileDataHandler fileDataHandler = new FileDataHandler("LCOM4.java");
-    FileDataVisitor visitor = new FileDataVisitor(Optional.empty());
+    FileDataVisitor visitor = new FileDataVisitor(Optional.empty(), false);
     String path = "src/test/resources/files/LCOM4.java";
     final CompilationUnit compilationUnit = StaticJavaParser.parse(new File(path));
     visitor.visit(compilationUnit, fileDataHandler);

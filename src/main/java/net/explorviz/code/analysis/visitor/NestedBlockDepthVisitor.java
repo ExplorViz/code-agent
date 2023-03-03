@@ -1,9 +1,12 @@
 package net.explorviz.code.analysis.visitor;
 
 import com.github.javaparser.ast.body.ClassOrInterfaceDeclaration;
+import com.github.javaparser.ast.body.ConstructorDeclaration;
 import com.github.javaparser.ast.body.EnumDeclaration;
+import com.github.javaparser.ast.body.FieldDeclaration;
 import com.github.javaparser.ast.body.MethodDeclaration;
 import com.github.javaparser.ast.expr.LambdaExpr;
+import com.github.javaparser.ast.expr.ObjectCreationExpr;
 import com.github.javaparser.ast.stmt.DoStmt;
 import com.github.javaparser.ast.stmt.ForEachStmt;
 import com.github.javaparser.ast.stmt.ForStmt;
@@ -28,6 +31,8 @@ public class NestedBlockDepthVisitor
 
   private static final Logger LOGGER = LoggerFactory.getLogger(NestedBlockDepthVisitor.class);
 
+  private static final String METRIC_NAME = "nestedBlockDepth";
+
   private int maxDepth;
   private int currentDepth;
 
@@ -45,6 +50,13 @@ public class NestedBlockDepthVisitor
     data.a.leaveClass();
   }
 
+  @Override
+  public void visit(final FieldDeclaration n, final Pair<MetricAppender, Object> data) {
+    data.a.enterMethod(data.a.getCurrentClassName() + "." + n.getVariable(0).getNameAsString());
+    super.visit(n, data);
+    data.a.leaveMethod();
+  }
+
 
   @Override
   public void visit(final MethodDeclaration n, final Pair<MetricAppender, Object> data) {
@@ -53,7 +65,7 @@ public class NestedBlockDepthVisitor
     maxDepth = Math.max(maxDepth, currentDepth);
     super.visit(n, data);
     try {
-      data.a.putMethodMetric("nestedBlockDepth", String.valueOf(maxDepth));
+      data.a.putMethodMetric(METRIC_NAME, String.valueOf(maxDepth));
     } catch (NotFoundException e) {
       // metric was not addable.
       if (LOGGER.isErrorEnabled()) {
@@ -63,6 +75,36 @@ public class NestedBlockDepthVisitor
     data.a.leaveMethod();
     maxDepth = 0;
     currentDepth = 0;
+  }
+
+  @Override
+  public void visit(final ConstructorDeclaration n, final Pair<MetricAppender, Object> data) {
+    data.a.enterMethod(n);
+    currentDepth++;
+    maxDepth = Math.max(maxDepth, currentDepth);
+    super.visit(n, data);
+    try {
+      data.a.putMethodMetric(METRIC_NAME, String.valueOf(maxDepth));
+    } catch (NotFoundException e) {
+      // metric was not addable.
+      if (LOGGER.isErrorEnabled()) {
+        LOGGER.error(e.getMessage(), e);
+      }
+    }
+    data.a.leaveMethod();
+    maxDepth = 0;
+    currentDepth = 0;
+  }
+
+  @Override
+  public void visit(final ObjectCreationExpr n, final Pair<MetricAppender, Object> data) {
+    if (n.getAnonymousClassBody().isPresent()) {
+      data.a.enterAnonymousClass(n.getTypeAsString(), data.a.getCurrentMethodName());
+      super.visit(n, data);
+      data.a.leaveAnonymousClass();
+    } else {
+      super.visit(n, data);
+    }
   }
 
   @Override

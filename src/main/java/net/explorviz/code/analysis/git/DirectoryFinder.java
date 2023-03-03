@@ -71,6 +71,9 @@ public final class DirectoryFinder {
       throws NotFoundException {
     final List<String> pathList = new ArrayList<>();
     for (final String path : paths) {
+      if (path.isEmpty()) {
+        continue;
+      }
       // checks if a path exists in the map and is still valid
       if (PATHS.get(path) != null && new File(PATHS.get(path)).isDirectory()) { // NOPMD
         pathList.add(PATHS.get(path));

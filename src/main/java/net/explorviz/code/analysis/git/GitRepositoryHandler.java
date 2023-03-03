@@ -402,7 +402,8 @@ public class GitRepositoryHandler { // NOPMD
 
   private TreeFilter getJavaFileTreeFilter(final List<String> pathRestrictions)
       throws NotFoundException {
-    if (pathRestrictions.isEmpty()) {
+    if (pathRestrictions.isEmpty() || pathRestrictions.size() == 1 && pathRestrictions.get(0)
+        .isBlank()) {
       return PathSuffixFilter.create(JAVA_PATH_SUFFIX);
     } else {
       final List<String> pathList = DirectoryFinder.getRelativeDirectory(pathRestrictions,

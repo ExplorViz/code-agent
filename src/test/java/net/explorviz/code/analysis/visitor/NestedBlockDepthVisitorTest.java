@@ -20,7 +20,7 @@ public class NestedBlockDepthVisitorTest {
   @Test()
   void nestedBlockDepth() throws FileNotFoundException { // NOCS
     FileDataHandler fileDataHandler = new FileDataHandler("Nested.java");
-    FileDataVisitor visitor = new FileDataVisitor(Optional.empty());
+    FileDataVisitor visitor = new FileDataVisitor(Optional.empty(), false);
     String path = "src/test/resources/files/Nested.java";
     final CompilationUnit compilationUnit = StaticJavaParser.parse(new File(path));
     visitor.visit(compilationUnit, fileDataHandler);
@@ -31,7 +31,7 @@ public class NestedBlockDepthVisitorTest {
         .getMethod("com.easy.life.Nested.heavyNested#1")
         .getMetricValue("nestedBlockDepth")); // NOCS
     Assertions.assertEquals("4", fileDataHandler.getClassData("com.easy.life.Nested") // NOCS
-        .getMethod("com.easy.life.Nested.heavyNested2#80")
+        .getMethod("com.easy.life.Nested.heavyNested2#1980e")
         .getMetricValue("nestedBlockDepth")); // NOCS
 
   }

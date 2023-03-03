@@ -1,5 +1,6 @@
 package net.explorviz.code.analysis.parser;
 
+import com.github.javaparser.ParseProblemException;
 import com.github.javaparser.StaticJavaParser;
 import com.github.javaparser.ast.CompilationUnit;
 import com.github.javaparser.symbolsolver.JavaSymbolSolver;
@@ -14,12 +15,14 @@ import java.util.List;
 import java.util.NoSuchElementException;
 import java.util.Optional;
 import javax.enterprise.context.ApplicationScoped;
+import net.explorviz.code.analysis.exceptions.DebugFileWriter;
 import net.explorviz.code.analysis.handler.FileDataHandler;
 import net.explorviz.code.analysis.handler.MetricAppender;
 import net.explorviz.code.analysis.visitor.CyclomaticComplexityVisitor;
 import net.explorviz.code.analysis.visitor.FileDataVisitor;
 import net.explorviz.code.analysis.visitor.LackOfCohesionMethodsVisitor;
 import net.explorviz.code.analysis.visitor.NestedBlockDepthVisitor;
+import org.eclipse.microprofile.config.inject.ConfigProperty;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -29,6 +32,14 @@ import org.slf4j.LoggerFactory;
 @ApplicationScoped
 public class JavaParserService {
   public static final Logger LOGGER = LoggerFactory.getLogger(JavaParserService.class);
+  private static final String CRASHED_FILES_PATH = "/logs/crashedfiles/";
+
+
+  @ConfigProperty(name = "explorviz.gitanalysis.save-crashed_files")
+  /* default */ boolean saveCrashedFilesProperty;  // NOCS
+
+  @ConfigProperty(name = "explorviz.gitanalysis.assume-unresolved-types-from-wildcard-imports")
+  /* default */ boolean wildcardImportProperty;  // NOCS
 
   private List<String> sourcePaths;
   private JavaSymbolSolver javaSymbolSolver;
@@ -76,27 +87,10 @@ public class JavaParserService {
                                 final boolean calculateMetrics) {
     final FileDataHandler data = new FileDataHandler(fileName);
     final FileDataVisitor fileDataVisitor;
+    fileDataVisitor = new FileDataVisitor(Optional.of(combinedTypeSolver), wildcardImportProperty);
+    fileDataVisitor.visit(compilationUnit, data);
     if (calculateMetrics) {
-      fileDataVisitor = new FileDataVisitor(Optional.of(combinedTypeSolver));
-      fileDataVisitor.visit(compilationUnit, data);
-      try {
-        final Pair<MetricAppender, Object> pair = new Pair<>(new MetricAppender(data),
-            new Object());
-        new CyclomaticComplexityVisitor().visit(compilationUnit, pair);
-        new NestedBlockDepthVisitor().visit(compilationUnit,
-            new Pair<>(new MetricAppender(data), null));
-        new LackOfCohesionMethodsVisitor().visit(compilationUnit,
-            new Pair<>(new MetricAppender(data), null));
-      } catch (Exception e) { // NOPMD
-        // Catch everything and proceed, as these are only the metrics, the analysis has to continue
-        if (LOGGER.isErrorEnabled()) {
-          LOGGER.error(e.getMessage(), e);
-          LOGGER.error("Unable to create metric for File: " + fileName);
-        }
-      }
-    } else {
-      fileDataVisitor = new FileDataVisitor(Optional.of(combinedTypeSolver));
-      fileDataVisitor.visit(compilationUnit, data);
+      calculateMetrics(data, compilationUnit, fileName);
     }
     return data;
   }
@@ -130,15 +124,19 @@ public class JavaParserService {
       throws IOException {
     StaticJavaParser.getConfiguration().setSymbolResolver(this.javaSymbolSolver);
     final CompilationUnit compilationUnit;
-
-    if (path == null) {
-      compilationUnit = StaticJavaParser.parse(fileContent);
-    } else {
-      compilationUnit = StaticJavaParser.parse(path);
+    try {
+      if (path == null) {
+        compilationUnit = StaticJavaParser.parse(fileContent);
+      } else {
+        compilationUnit = StaticJavaParser.parse(path);
+      }
+    } catch (ParseProblemException e) {
+      if (LOGGER.isErrorEnabled()) {
+        LOGGER.error("Catched Javaparser exception, can't handle this, skipping file: " + fileName);
+        LOGGER.error(e.getMessage(), e);
+      }
+      return null;
     }
-
-    // DEBUG CODE
-    // DebugFileWriter.saveAstAsYaml(compilationUnit, "/logs/quarkus/debug.yaml");
 
     try {
       final FileDataHandler dataHandler = parse(compilationUnit, fileName, calculateMetrics);
@@ -154,6 +152,7 @@ public class JavaParserService {
       }
     } catch (Exception | Error e) { // NOPMD
       if (LOGGER.isErrorEnabled()) {
+        LOGGER.error("Catched unknown exception.");
         LOGGER.error(e.getClass().toString());
       }
     }
@@ -184,6 +183,50 @@ public class JavaParserService {
                                    final String commitSha) throws IOException {
     final Path path = Path.of(pathToFile);
     return parseAny("", path.getFileName().toString(), path, calculateMetrics, commitSha);
+  }
+
+
+  private void calculateMetrics(final FileDataHandler data, // NOPMD
+                                final CompilationUnit compilationUnit, final String fileName) {
+    try {
+      final Pair<MetricAppender, Object> pair = new Pair<>(new MetricAppender(data), new Object());
+      new CyclomaticComplexityVisitor().visit(compilationUnit, pair);
+    } catch (Exception e) { // NOPMD
+      // Catch everything and proceed, as these are only the metrics, the analysis has to continue
+      if (LOGGER.isErrorEnabled()) {
+        LOGGER.error("Unable to create cyclomatic complexity metric for File: " + fileName);
+        LOGGER.error(e.getMessage(), e);
+        if (saveCrashedFilesProperty) {
+          DebugFileWriter.saveDebugFile(CRASHED_FILES_PATH, compilationUnit.toString(), fileName);
+        }
+      }
+    }
+    try {
+      new NestedBlockDepthVisitor().visit(compilationUnit,
+          new Pair<>(new MetricAppender(data), null));
+    } catch (Exception e) { // NOPMD
+      // Catch everything and proceed, as these are only the metrics, the analysis has to continue
+      if (LOGGER.isErrorEnabled()) {
+        LOGGER.error("Unable to create nested block depth metric for File: " + fileName);
+        LOGGER.error(e.getMessage(), e);
+        if (saveCrashedFilesProperty) {
+          DebugFileWriter.saveDebugFile(CRASHED_FILES_PATH, compilationUnit.toString(), fileName);
+        }
+      }
+    }
+    try {
+      new LackOfCohesionMethodsVisitor().visit(compilationUnit,
+          new Pair<>(new MetricAppender(data), null));
+    } catch (Exception e) { // NOPMD
+      // Catch everything and proceed, as these are only the metrics, the analysis has to continue
+      if (LOGGER.isErrorEnabled()) {
+        LOGGER.error("Unable to create LCOM4 metric for File: " + fileName);
+        LOGGER.error(e.getMessage(), e);
+        if (saveCrashedFilesProperty) {
+          DebugFileWriter.saveDebugFile(CRASHED_FILES_PATH, compilationUnit.toString(), fileName);
+        }
+      }
+    }
   }
 
 }

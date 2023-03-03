@@ -4,6 +4,7 @@ import com.github.javaparser.ast.CompilationUnit;
 import com.github.javaparser.printer.YamlPrinter;
 import java.io.IOException;
 import java.nio.file.Files;
+import java.nio.file.Path;
 import java.nio.file.Paths;
 import net.explorviz.code.analysis.parser.JavaParserService;
 import org.slf4j.Logger;
@@ -30,6 +31,10 @@ public final class DebugFileWriter {
   public static void saveDebugFile(final String directoryPath, final String content,
                                    final String filename) {
     try {
+      final Path path = Paths.get(directoryPath);
+      if (!Files.exists(path)) {
+        Files.createDirectories(path);
+      }
       Files.write(Paths.get(directoryPath, filename), content.getBytes());
     } catch (IOException e) {
       if (LOGGER.isErrorEnabled()) {

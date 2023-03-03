@@ -257,11 +257,29 @@ public class MetricAppender { // NOPMD
             method.getParameters()));
   }
 
+  /**
+   * Used to handle the tracking of the current method. Call with the current constructor to use the
+   * {@link MetricAppender#getCurrentMethodName()} anywhere later. Enables the usability of
+   * {@link MetricAppender#putMethodMetric(String, String)}.
+   *
+   * @param constructor the constructor to enter
+   */
   public void enterMethod(final ConstructorDeclaration constructor) {
     methodStack.push(
         getCurrentClassName() + "." + constructor.getNameAsString() + "#"
             + Verification.parameterHash(
             constructor.getParameters()));
+  }
+
+  /**
+   * Used to handle the tracking of the current method. Call with the methodFqn to use the
+   * {@link MetricAppender#getCurrentMethodName()} anywhere later. Enables the usability of
+   * {@link MetricAppender#putMethodMetric(String, String)}.
+   *
+   * @param methodFqn the methodFqn, the user needs to make sure the fqn is correct
+   */
+  public void enterMethod(final String methodFqn) {
+    methodStack.push(methodFqn);
   }
 
   /**

@@ -25,8 +25,10 @@ import net.explorviz.code.analysis.types.Graph;
 /**
  * Basic LCOM4 implementation.
  */
-public class LackOfCohesionMethodsVisitor extends VoidVisitorAdapter<Pair<MetricAppender, Object>> {
+public class LackOfCohesionMethodsVisitor // NOPMD
+    extends VoidVisitorAdapter<Pair<MetricAppender, Object>> {
 
+  private static final String METRIC_NAME = "LCOM4";
   private Graph currentGraph;
   private final Stack<Graph> graphStack = new Stack<>();
 
@@ -59,7 +61,7 @@ public class LackOfCohesionMethodsVisitor extends VoidVisitorAdapter<Pair<Metric
     super.visit(n, data);
 
     try {
-      data.a.putClassMetric("LCOM4", String.valueOf(currentGraph.getGroups().size()));
+      data.a.putClassMetric(METRIC_NAME, String.valueOf(currentGraph.getGroups().size()));
     } catch (NotFoundException e) {
       throw new RuntimeException(e); // NOPMD
     }
@@ -89,12 +91,19 @@ public class LackOfCohesionMethodsVisitor extends VoidVisitorAdapter<Pair<Metric
     super.visit(n, data);
 
     try {
-      data.a.putClassMetric("LCOM4", String.valueOf(currentGraph.getGroups().size()));
+      data.a.putClassMetric(METRIC_NAME, String.valueOf(currentGraph.getGroups().size()));
     } catch (NotFoundException e) {
       throw new RuntimeException(e); // NOPMD
     }
     data.a.leaveClass();
     leaveClass();
+  }
+
+  @Override
+  public void visit(final FieldDeclaration n, final Pair<MetricAppender, Object> data) {
+    data.a.enterMethod(data.a.getCurrentClassName() + "." + n.getVariable(0).getNameAsString());
+    super.visit(n, data);
+    data.a.leaveMethod();
   }
 
   @Override // NOCS
@@ -195,12 +204,12 @@ public class LackOfCohesionMethodsVisitor extends VoidVisitorAdapter<Pair<Metric
 
   private void leaveClass() {
     graphStack.pop();
-    currentGraph = graphStack.isEmpty() ? null : graphStack.peek();
+    currentGraph = graphStack.isEmpty() ? null : graphStack.peek(); // NOPMD
     fieldsStack.pop();
-    currentFields = fieldsStack.isEmpty() ? null : fieldsStack.peek();
+    currentFields = fieldsStack.isEmpty() ? null : fieldsStack.peek(); // NOPMD
     fieldNamesStack.pop();
-    currentFieldNames = fieldNamesStack.isEmpty() ? null : fieldNamesStack.peek();
+    currentFieldNames = fieldNamesStack.isEmpty() ? null : fieldNamesStack.peek(); // NOPMD
     methodNamesStack.pop();
-    currentMethodNames = methodNamesStack.isEmpty() ? null : methodNamesStack.peek();
+    currentMethodNames = methodNamesStack.isEmpty() ? null : methodNamesStack.peek(); // NOPMD
   }
 }

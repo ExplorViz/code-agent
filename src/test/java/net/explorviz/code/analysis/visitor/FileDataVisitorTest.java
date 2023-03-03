@@ -25,7 +25,7 @@ public class FileDataVisitorTest {
   @Test()
   void fileDataTest1() throws FileNotFoundException { // NOCS
     FileDataHandler fileDataHandler = new FileDataHandler("Nested.java");
-    FileDataVisitor visitor = new FileDataVisitor(Optional.empty());
+    FileDataVisitor visitor = new FileDataVisitor(Optional.empty(), false);
     String path = "src/test/resources/files/Nested.java";
     final CompilationUnit compilationUnit = StaticJavaParser.parse(new File(path));
     visitor.visit(compilationUnit, fileDataHandler);
@@ -36,16 +36,17 @@ public class FileDataVisitorTest {
     Map<String, ClassData> classDataMap = data.getClassDataMap();
     ClassData clazz = classDataMap.get("com.easy.life.Nested");
     Assertions.assertTrue(clazz.containsMethodData("com.easy.life.Nested.heavyNested#1"));
-    Assertions.assertTrue(clazz.containsMethodData("com.easy.life.Nested.heavyNested2#80")); // NOCS
+    Assertions.assertTrue(
+        clazz.containsMethodData("com.easy.life.Nested.heavyNested2#1980e")); // NOCS
     Assertions.assertEquals("int",
-        clazz.getMethodDataMap().get("com.easy.life.Nested.heavyNested2#80").getParameterList()
+        clazz.getMethodDataMap().get("com.easy.life.Nested.heavyNested2#1980e").getParameterList()
             .get(0).getType());
   }
 
   @Test()
   void fileDataTest2() throws FileNotFoundException { // NOCS
     FileDataHandler fileDataHandler = new FileDataHandler("Happy.java");
-    FileDataVisitor visitor = new FileDataVisitor(Optional.empty());
+    FileDataVisitor visitor = new FileDataVisitor(Optional.empty(), false);
     String path = "src/test/resources/files/Happy.java";
     final CompilationUnit compilationUnit = StaticJavaParser.parse(new File(path));
     visitor.visit(compilationUnit, fileDataHandler);
@@ -56,15 +57,15 @@ public class FileDataVisitorTest {
     Map<String, ClassData> classDataMap = data.getClassDataMap();
     ClassData clazz = classDataMap.get("com.easy.life.Happy");
     Assertions.assertTrue(
-        clazz.containsMethodData("com.easy.life.Happy.fromArrayToList#80")); // NOCS
+        clazz.containsMethodData("com.easy.life.Happy.fromArrayToList#146d")); // NOCS
     Assertions.assertEquals("java.util.ArrayList<T>",
-        clazz.getMethodDataMap().get("com.easy.life.Happy.fromArrayToList#80").getReturnType());
+        clazz.getMethodDataMap().get("com.easy.life.Happy.fromArrayToList#146d").getReturnType());
   }
 
   @Test()
   void fileDataEnumTest() throws FileNotFoundException { // NOCS
     FileDataHandler fileDataHandler = new FileDataHandler("ColorParam.java");
-    FileDataVisitor visitor = new FileDataVisitor(Optional.empty());
+    FileDataVisitor visitor = new FileDataVisitor(Optional.empty(), false);
     String path = "src/test/resources/files/ColorParam.java";
     final CompilationUnit compilationUnit = StaticJavaParser.parse(new File(path));
     visitor.visit(compilationUnit, fileDataHandler);

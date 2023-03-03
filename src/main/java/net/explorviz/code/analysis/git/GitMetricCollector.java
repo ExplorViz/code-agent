@@ -3,11 +3,14 @@ package net.explorviz.code.analysis.git;
 import net.explorviz.code.analysis.handler.FileDataHandler;
 import net.explorviz.code.analysis.types.FileDescriptor;
 import org.eclipse.jgit.revwalk.RevCommit;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * A simple collector for metrics based on git data.
  */
 public final class GitMetricCollector {
+  private static final Logger LOGGER = LoggerFactory.getLogger(GitMetricCollector.class);
 
   private static String author = "";
 
@@ -47,7 +50,13 @@ public final class GitMetricCollector {
    */
   public static void addFileGitMetrics(final FileDataHandler fileDataHandler,
                                        final FileDescriptor fileDescriptor) {
-    fileDataHandler.setModifications(fileDescriptor.modifiedLines, fileDescriptor.addedLines,
-        fileDescriptor.removedLines);
+    try {
+      fileDataHandler.setModifications(fileDescriptor.modifiedLines, fileDescriptor.addedLines,
+          fileDescriptor.removedLines);
+    } catch (NullPointerException e) {  // NOPMD
+      if (LOGGER.isWarnEnabled()) {
+        LOGGER.warn("Failed to add modifications");
+      }
+    }
   }
 }

@@ -3,6 +3,7 @@ package net.explorviz.code.analysis.visitor;
 import com.github.javaparser.ast.body.ClassOrInterfaceDeclaration;
 import com.github.javaparser.ast.body.ConstructorDeclaration;
 import com.github.javaparser.ast.body.EnumDeclaration;
+import com.github.javaparser.ast.body.FieldDeclaration;
 import com.github.javaparser.ast.body.MethodDeclaration;
 import com.github.javaparser.ast.expr.ObjectCreationExpr;
 import com.github.javaparser.ast.stmt.CatchClause;
@@ -39,6 +40,13 @@ public class CyclomaticComplexityVisitor // NOPMD
   public CyclomaticComplexityVisitor() {
     super();
     methodCounter = new HashMap<>();
+  }
+
+  @Override
+  public void visit(final FieldDeclaration n, final Pair<MetricAppender, Object> data) {
+    data.a.enterMethod(data.a.getCurrentClassName() + "." + n.getVariable(0).getNameAsString());
+    super.visit(n, data);
+    data.a.leaveMethod();
   }
 
   @Override
@@ -134,7 +142,7 @@ public class CyclomaticComplexityVisitor // NOPMD
   }
 
   @Override
-  public void visit(ConstructorDeclaration n, Pair<MetricAppender, Object> data) {
+  public void visit(final ConstructorDeclaration n, final Pair<MetricAppender, Object> data) {
     data.a.enterMethod(n);
     super.visit(n, data);
     final int metricValue = methodCounter.getOrDefault(data.a.getCurrentMethodName(), 1);

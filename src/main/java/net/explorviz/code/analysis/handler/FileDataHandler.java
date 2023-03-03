@@ -113,8 +113,8 @@ public class FileDataHandler implements ProtoBufConvertable<FileData> {
     this.builder.setPackageName(packageName);
   }
 
-  public String getCurrentClassName() {
-    return this.classStack.lastElement();
+  public String getCurrentClassFqn() {
+    return this.classStack.peek();
   }
 
   public ClassDataHandler getClassData(final String className) {
@@ -122,7 +122,7 @@ public class FileDataHandler implements ProtoBufConvertable<FileData> {
   }
 
   public ClassDataHandler getCurrentClassData() {
-    return this.classDataMap.get(getCurrentClassName());
+    return this.classDataMap.get(getCurrentClassFqn());
   }
 
   public void leaveClass() {

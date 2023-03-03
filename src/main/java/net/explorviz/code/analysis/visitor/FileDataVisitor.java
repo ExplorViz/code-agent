@@ -33,7 +33,6 @@ import java.util.stream.Collectors;
 import net.explorviz.code.analysis.handler.FileDataHandler;
 import net.explorviz.code.analysis.handler.MethodDataHandler;
 import net.explorviz.code.analysis.types.Verification;
-import org.eclipse.microprofile.config.inject.ConfigProperty;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -47,17 +46,22 @@ public class FileDataVisitor extends VoidVisitorAdapter<FileDataHandler> { // NO
   private static final String UNKNOWN = "UNKNOWN";
   private static final String LOC = "loc";
 
-  @ConfigProperty(name = "explorviz.gitanalysis.assume-unresolved-types-from-wildcard-imports",
-      defaultValue = "false")
-  /* default */ boolean wildcardImportProperty;  // NOCS
-
   private final Optional<TypeSolver> fallbackTypeSolver;
+  private final boolean wildcardImportProperty;
   private int wildcardImportCount;
   private String wildcardImport;
 
-  public FileDataVisitor(final Optional<TypeSolver> fallbackTypeSolver) {
+  /**
+   * Create a FileDataVisitor.
+   *
+   * @param fallbackTypeSolver a fallback type solver
+   * @param wildcardImportProperty set true if wildcard imports should be handled
+   */
+  public FileDataVisitor(final Optional<TypeSolver> fallbackTypeSolver,
+                         final boolean wildcardImportProperty) {
     super();
     this.fallbackTypeSolver = fallbackTypeSolver;
+    this.wildcardImportProperty = wildcardImportProperty;
   }
 
   @Override
@@ -92,6 +96,7 @@ public class FileDataVisitor extends VoidVisitorAdapter<FileDataHandler> { // NO
 
   @Override
   public void visit(final FieldDeclaration n, final FileDataHandler data) {
+    data.enterMethod(data.getCurrentClassFqn() + "." + n.getVariable(0).getNameAsString());
     final List<String> modifierList = new ArrayList<>();
     for (final Modifier modifier : n.getModifiers()) {
       modifierList.add(modifier.getKeyword().asString());
@@ -102,6 +107,7 @@ public class FileDataVisitor extends VoidVisitorAdapter<FileDataHandler> { // NO
               modifierList);
     }
     super.visit(n, data);
+    data.leaveMethod();
   }
 
   @Override
@@ -147,7 +153,7 @@ public class FileDataVisitor extends VoidVisitorAdapter<FileDataHandler> { // NO
   @Override
   public void visit(final MethodDeclaration n, final FileDataHandler data) {
     final String methodsFullyQualifiedName =
-        data.getCurrentClassName() + "." + n.getNameAsString() + "#" + Verification.parameterHash(
+        data.getCurrentClassFqn() + "." + n.getNameAsString() + "#" + Verification.parameterHash(
             n.getParameters());
     data.enterMethod(methodsFullyQualifiedName);
     final String returnType = resolveFqn(n.getType(), data);
@@ -169,8 +175,9 @@ public class FileDataVisitor extends VoidVisitorAdapter<FileDataHandler> { // NO
   @Override
   public void visit(final ConstructorDeclaration n, final FileDataHandler data) {
     final String constructorsFullyQualifiedName =
-        data.getCurrentClassName() + "." + n.getNameAsString() + "#" + Verification.parameterHash(
+        data.getCurrentClassFqn() + "." + n.getNameAsString() + "#" + Verification.parameterHash(
             n.getParameters());
+    data.enterMethod(constructorsFullyQualifiedName);
     final MethodDataHandler constructor = data.getCurrentClassData()
         .addConstructor(constructorsFullyQualifiedName);
     for (final Modifier modifier : n.getModifiers()) {
@@ -182,6 +189,7 @@ public class FileDataVisitor extends VoidVisitorAdapter<FileDataHandler> { // NO
     }
     constructor.addMetric(LOC, String.valueOf(getLoc(n)));
     super.visit(n, data);
+    data.leaveMethod();
   }
 
   @Override
@@ -307,22 +315,23 @@ public class FileDataVisitor extends VoidVisitorAdapter<FileDataHandler> { // NO
 
     if (wildcardImportProperty && wildcardImportCount == 1) {
       if (LOGGER.isWarnEnabled()) {
-        LOGGER.warn(wildcardImport + "." + type.asString() + attachedGenerics);
+        LOGGER.warn("assumed type from wildcard import: " + wildcardImport + "." + type.asString()
+            + attachedGenerics);
       }
       return wildcardImport + "." + type.asString() + attachedGenerics;
     }
 
-    if (LOGGER.isErrorEnabled()) {
+    if (LOGGER.isWarnEnabled()) {
       // if wildcard in imports, note here that it might be possible the type is defined there
       if (wildcardImportCount > 1 && wildcardImportProperty) {
-        LOGGER.error("File contains multiple wildcard imports, type <" + type.asString() // NOPMD
+        LOGGER.warn("File contains multiple wildcard imports, type <" + type.asString() // NOPMD
             + "> is ambiguous.");
       } else {
-        if (wildcardImportCount > 0) {
-          LOGGER.error("File contains wildcard import(s), type <" + type.asString() // NOPMD
+        if (wildcardImportCount > 0 && !wildcardImportProperty) {
+          LOGGER.warn("File contains wildcard import(s), type <" + type.asString() // NOPMD
               + "> might be defined there. Type assumption by wildcards is turned off.");
         } else {
-          LOGGER.error("Unable to get FQN for <" + type.asString() + ">"); // NOPMD
+          LOGGER.warn("Unable to get FQN for <" + type.asString() + ">"); // NOPMD
         }
       }
     }

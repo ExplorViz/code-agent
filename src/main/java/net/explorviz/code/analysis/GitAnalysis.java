@@ -10,6 +10,7 @@ import java.util.Optional;
 import javax.enterprise.context.ApplicationScoped;
 import javax.enterprise.event.Observes;
 import javax.inject.Inject;
+import net.explorviz.code.analysis.exceptions.DebugFileWriter;
 import net.explorviz.code.analysis.exceptions.NotFoundException;
 import net.explorviz.code.analysis.exceptions.PropertyNotDefinedException;
 import net.explorviz.code.analysis.export.DataExporter;
@@ -69,6 +70,9 @@ public class GitAnalysis { // NOPMD
 
   @ConfigProperty(name = "explorviz.gitanalysis.end-commit-sha1")
   /* default */ Optional<String> endCommitProperty;  // NOCS
+
+  @ConfigProperty(name = "explorviz.gitanalysis.save-crashed_files")
+  /* default */ boolean saveCrashedFilesProperty;  // NOCS
 
   @Inject
   /* package */ GitRepositoryHandler gitRepositoryHandler; // NOCS
@@ -250,7 +254,14 @@ public class GitAnalysis { // NOPMD
     try {
       final FileDataHandler fileDataHandler = parser.parseFileContent(fileContent, file.fileName,
           calculateMetricsProperty, commitSha); // NOPMD
-      GitMetricCollector.addFileGitMetrics(fileDataHandler, file);
+      if (fileDataHandler == null) {
+        if (saveCrashedFilesProperty) {
+          DebugFileWriter.saveDebugFile("/logs/crashedfiles/", fileContent,
+              file.fileName);
+        }
+      } else {
+        GitMetricCollector.addFileGitMetrics(fileDataHandler, file);
+      }
       return fileDataHandler;
 
     } catch (NoSuchElementException | NoSuchFieldError e) {

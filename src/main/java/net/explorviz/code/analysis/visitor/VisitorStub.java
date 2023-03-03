@@ -26,10 +26,10 @@ public class VisitorStub extends VoidVisitorAdapter<Pair<MetricAppender, Object>
   private static final Logger LOGGER = LoggerFactory.getLogger(VisitorStub.class);
 
   @Override
-  public void visit(EnumDeclaration n, Pair<MetricAppender, Object> data) {
+  public void visit(final EnumDeclaration n, final Pair<MetricAppender, Object> data) {
     data.a.enterClass(n);
     try {
-      data.a.putClassMetric("someClassMetric", "classMetricValue");
+      data.a.putClassMetric("someEnumMetric", "enumMetricValue");
     } catch (NotFoundException e) {
       // metric was not addable.
       if (LOGGER.isErrorEnabled()) {
