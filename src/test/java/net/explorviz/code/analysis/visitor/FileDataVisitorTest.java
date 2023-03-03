@@ -57,9 +57,9 @@ public class FileDataVisitorTest {
     Map<String, ClassData> classDataMap = data.getClassDataMap();
     ClassData clazz = classDataMap.get("com.easy.life.Happy");
     Assertions.assertTrue(
-        clazz.containsMethodData("com.easy.life.Happy.fromArrayToList#146d")); // NOCS
+        clazz.containsMethodData("com.easy.life.Happy.fromArrayToList#146d5")); // NOCS
     Assertions.assertEquals("java.util.ArrayList<T>",
-        clazz.getMethodDataMap().get("com.easy.life.Happy.fromArrayToList#146d").getReturnType());
+        clazz.getMethodDataMap().get("com.easy.life.Happy.fromArrayToList#146d5").getReturnType());
   }
 
   @Test()
