@@ -10,6 +10,7 @@ import net.explorviz.code.proto.StateData;
 import net.explorviz.code.proto.StateDataRequest;
 import net.explorviz.code.proto.StateDataServiceGrpc;
 import net.explorviz.code.proto.StructureEventServiceGrpc;
+import org.eclipse.microprofile.config.inject.ConfigProperty;
 
 /**
  * Basic GRPC handler.
@@ -30,6 +31,11 @@ public final class GrpcExporter implements DataExporter {
   @GrpcClient(GRPC_CLIENT_NAME)
   /* package */ StructureEventServiceGrpc.StructureEventServiceBlockingStub grpcClient; // NOCS
 
+  @ConfigProperty(name = "explorviz.landscape.token")
+  /* default */ String landscapeTokenProperty;  // NOCS
+
+  @ConfigProperty(name = "explorviz.landscape.secret")
+  /* default */ String landscapeSecretProperty;  // NOCS
 
   /**
    * Requests the state data from the remote endpoint.
@@ -38,9 +44,12 @@ public final class GrpcExporter implements DataExporter {
    * @return the state of the remote database
    */
   @Override
-  public StateData requestStateData(final String branchName) {
+  public StateData requestStateData(final String upstreamName, final String branchName) {
     final StateDataRequest.Builder requestBuilder = StateDataRequest.newBuilder();
     requestBuilder.setBranchName(branchName);
+    requestBuilder.setUpstreamName(upstreamName);
+    requestBuilder.setLandscapeToken(landscapeTokenProperty);
+    requestBuilder.setLandscapeSecret(landscapeSecretProperty);
     return stateDataGrpcClient.requestStateData(requestBuilder.build());
   }
 

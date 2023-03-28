@@ -12,9 +12,15 @@ service StateDataService {
 
 message StateData {
   string commitID = 1;
-  string branchName = 2;
+  string upstreamName = 2;
+  string branchName = 3;
+  string landscapeToken = 4;
+  string landscapeSecret = 5;
 }
 
 message StateDataRequest {
-  optional string branchName = 1;
+  string upstreamName = 1;
+  string branchName = 2;
+  string landscapeToken = 3;
+  string landscapeSecret = 4;
 }

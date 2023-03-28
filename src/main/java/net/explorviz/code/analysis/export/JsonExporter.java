@@ -50,7 +50,7 @@ public class JsonExporter implements DataExporter {
   }
 
   @Override
-  public StateData requestStateData(final String branchName) {
+  public StateData requestStateData(final String upstreamName, final String branchName) {
     return StateData.newBuilder().build();
   }
 

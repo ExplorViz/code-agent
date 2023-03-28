@@ -170,7 +170,7 @@ public class GitAnalysis { // NOPMD
 
   private Optional<String> findStartCommit(final DataExporter exporter, final String branch) {
     if (fetchRemoteDataProperty) {
-      final StateData remoteState = exporter.requestStateData(branch);
+      final StateData remoteState = exporter.requestStateData(getUnambiguousUpstreamName(), branch);
       if (remoteState.getCommitID().isEmpty() || remoteState.getCommitID().isBlank()) {
         return Optional.empty();
       } else {
@@ -300,6 +300,20 @@ public class GitAnalysis { // NOPMD
                                     final String branchName) {
     return "The given " + position + " commit <" + commitId
         + "> was not found in the current branch <" + branchName + ">";
+  }
+
+  private String getUnambiguousUpstreamName() {
+    if (repoRemoteUrlProperty.isPresent()) {
+      // truncate https or anything else before the double slash
+      String upstream = repoRemoteUrlProperty.get();
+      // delete http(s):// or git@ in the front
+      upstream = upstream.replaceFirst("^(https?://|.+@)", "");
+      // replace potential .git ending
+      upstream = upstream.replaceFirst("\\.git$", "");
+      return upstream;
+    } else {
+      return "";
+    }
   }
 
 }
