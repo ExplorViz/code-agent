@@ -21,6 +21,7 @@ import net.explorviz.code.analysis.exceptions.PropertyNotDefinedException;
 import net.explorviz.code.analysis.types.FileDescriptor;
 import net.explorviz.code.analysis.types.RemoteRepositoryObject;
 import net.explorviz.code.analysis.types.Triple;
+import org.eclipse.jgit.api.CreateBranchCommand;
 import org.eclipse.jgit.api.Git;
 import org.eclipse.jgit.api.errors.GitAPIException;
 import org.eclipse.jgit.api.errors.InvalidRemoteException;
@@ -177,7 +178,13 @@ public class GitRepositoryHandler { // NOPMD
     this.git = Git.open(localRepositoryDirectory);
     if (!branchName.isBlank()) {
       try {
-        this.git.checkout().setName(branchName).call();
+        if ("true".equals(System.getenv("GITLAB_CI"))) {
+          this.git.checkout().setName(branchName).setCreateBranch(true)
+              .setUpstreamMode(CreateBranchCommand.SetupUpstreamMode.TRACK)
+              .setStartPoint("origin/" + branchName).call();
+        } else {
+          this.git.checkout().setName(branchName).call();
+        }
       } catch (RefNotFoundException e) {
         if (LOGGER.isErrorEnabled()) {
           LOGGER.error("The given branch name <{}> was not found", branchName);
