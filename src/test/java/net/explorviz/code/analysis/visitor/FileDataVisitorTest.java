@@ -2,6 +2,8 @@ package net.explorviz.code.analysis.visitor;
 
 import com.github.javaparser.StaticJavaParser;
 import com.github.javaparser.ast.CompilationUnit;
+import com.github.javaparser.symbolsolver.JavaSymbolSolver;
+import com.github.javaparser.symbolsolver.resolution.typesolvers.ReflectionTypeSolver;
 import io.quarkus.test.junit.QuarkusTest;
 import java.io.File;
 import java.io.FileNotFoundException;
@@ -13,6 +15,7 @@ import net.explorviz.code.proto.ClassData;
 import net.explorviz.code.proto.ClassType;
 import net.explorviz.code.proto.FieldData;
 import net.explorviz.code.proto.FileData;
+import net.explorviz.code.proto.MethodData;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 
@@ -77,6 +80,31 @@ public class FileDataVisitorTest {
     Assertions.assertTrue(contains(clazz.getFieldList(), "isBackground"));
     Assertions.assertTrue(containsConstant(clazz.getEnumConstantList(), "classArrow"));
     Assertions.assertTrue(containsConstant(clazz.getEnumConstantList(), "noteBorder"));
+  }
+
+  @Test()
+  void fileDataAnnotationTest() throws FileNotFoundException { // NOCS
+    FileDataHandler fileDataHandler = new FileDataHandler("SimpleJdbcClinic.java");
+    FileDataVisitor visitor = new FileDataVisitor(Optional.empty(), false);
+    String path = "src/test/resources/files/SimpleJdbcClinic.java";
+    StaticJavaParser.getConfiguration()
+        .setSymbolResolver(new JavaSymbolSolver(new ReflectionTypeSolver(false)));
+    final CompilationUnit compilationUnit = StaticJavaParser.parse(new File(path));
+    visitor.visit(compilationUnit, fileDataHandler);
+    FileData data = fileDataHandler.getProtoBufObject();
+    // Assertions.assertEquals("net.sourceforge.plantuml", data.getPackageName());
+    Map<String, ClassData> classDataMap = data.getClassDataMap();
+    ClassData clazz = classDataMap.get(
+        "org.springframework.samples.petclinic.jdbc.SimpleJdbcClinic");
+    // Assertions.assertTrue(contains(clazz.getFieldList(), "isBackground"));
+    Assertions.assertTrue(containsConstant(clazz.getAnnotationList(), "Service"));
+    // TODO how to handle annotations with content
+    // Assertions.assertTrue(
+    // containsConstant(clazz.getAnnotationList(), "@ManagedResource(\"petclinic:type=Clinic\")"));
+    MethodData method = clazz.getMethodDataOrThrow(
+        "org.springframework.samples.petclinic.jdbc.SimpleJdbcClinic.init#c2aa38a4");
+
+    Assertions.assertTrue(containsConstant(method.getAnnotationList(), "Autowired"));
   }
 
   private boolean contains(final List<FieldData> fields, final String value) {

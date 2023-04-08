@@ -16,7 +16,8 @@ message  MethodData {
   repeated ParameterData parameter = 3;
   repeated string outgoingMethodCalls = 4;
   bool isConstructor = 5;
-  map<string, string> metric = 6;
+  repeated string annotation = 6;
+  map<string, string> metric = 7;
 }
 
 enum ClassType {
@@ -49,11 +50,10 @@ message ClassData {
   map<string, MethodData>  methodData = 7;
   repeated string variable = 8;
   string superClass = 9;
+  repeated string enumConstant = 10;
+  repeated string annotation = 11;
 
-  map<string, string> metric = 10;
-  repeated string enumConstant = 11;
-  repeated string tightCoupled = 12;
-  repeated string looseCoupled = 13;
+  map<string, string> metric = 12;
 }
 
 message FileData {

@@ -39,6 +39,10 @@ public class MethodDataHandler implements ProtoBufConvertable<MethodData> {
     this.builder.addModifier(modifier);
   }
 
+  public void addAnnotation(final String annotation) {
+    this.builder.addAnnotation(annotation);
+  }
+
   /**
    * Add a parameter to the method.
    *

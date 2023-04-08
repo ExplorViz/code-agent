@@ -63,6 +63,10 @@ public class ClassDataHandler implements ProtoBufConvertable<ClassData> {
     this.builder.addModifier(modifier);
   }
 
+  public void addAnnotation(final String annotation) {
+    this.builder.addAnnotation(annotation);
+  }
+
   public void addInnerClass(final String name) {
     this.builder.addInnerClass(name);
   }

@@ -14,6 +14,7 @@ import com.github.javaparser.ast.body.MethodDeclaration;
 import com.github.javaparser.ast.body.Parameter;
 import com.github.javaparser.ast.body.VariableDeclarator;
 import com.github.javaparser.ast.comments.Comment;
+import com.github.javaparser.ast.expr.AnnotationExpr;
 import com.github.javaparser.ast.expr.MethodCallExpr;
 import com.github.javaparser.ast.expr.ObjectCreationExpr;
 import com.github.javaparser.ast.type.ClassOrInterfaceType;
@@ -110,8 +111,8 @@ public class FileDataVisitor extends VoidVisitorAdapter<FileDataHandler> { // NO
     data.leaveMethod();
   }
 
-  @Override
-  public void visit(final ClassOrInterfaceDeclaration n, final FileDataHandler data) { // NOPMD
+  @Override // NOCS
+  public void visit(final ClassOrInterfaceDeclaration n, final FileDataHandler data) { // NOCS NOPMD
     data.enterClass(n.getFullyQualifiedName().orElse(UNKNOWN));
     data.getCurrentClassData().addMetric(LOC, String.valueOf(getLoc(n)));
 
@@ -145,6 +146,18 @@ public class FileDataVisitor extends VoidVisitorAdapter<FileDataHandler> { // NO
     for (final ClassOrInterfaceType classOrInterfaceType : n.getImplementedTypes()) {
       data.getCurrentClassData().addImplementedInterface(resolveFqn(classOrInterfaceType, data));
     }
+    for (final AnnotationExpr annotation : n.getAnnotations()) {
+      // TODO change resolve pipeline to accommodate for annotations
+      try {
+        final String ann = annotation.resolve().getQualifiedName();
+        data.getCurrentClassData().addAnnotation(ann);
+      } catch (UnsolvedSymbolException e) {
+        if (LOGGER.isWarnEnabled()) {
+          LOGGER.warn("Annotation's FQN for class was not resolvable");
+        }
+        data.getCurrentClassData().addAnnotation(annotation.getNameAsString());
+      }
+    }
     super.visit(n, data);
     data.leaveClass();
   }
@@ -166,6 +179,18 @@ public class FileDataVisitor extends VoidVisitorAdapter<FileDataHandler> { // NO
     for (final Parameter parameter : n.getParameters()) {
       method.addParameter(parameter.getNameAsString(), resolveFqn(parameter.getType(), data),
           parameter.getModifiers());
+    }
+    for (final AnnotationExpr annotation : n.getAnnotations()) {
+      // TODO change resolve pipeline to accommodate for annotations
+      try {
+        final String ann = annotation.resolve().getQualifiedName();
+        method.addAnnotation(ann);
+      } catch (UnsolvedSymbolException e) {
+        if (LOGGER.isWarnEnabled()) {
+          LOGGER.warn("Annotation's FQN for method was not resolvable");
+        }
+        method.addAnnotation(annotation.getNameAsString());
+      }
     }
     method.addMetric(LOC, String.valueOf(getLoc(n)));
     super.visit(n, data);
