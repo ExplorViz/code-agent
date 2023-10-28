@@ -31,8 +31,9 @@ import org.slf4j.LoggerFactory;
  */
 public class CyclomaticComplexityVisitor // NOPMD
     extends VoidVisitorAdapter<Pair<MetricAppender, Object>> { // NOPMD
+
+  public static final String CYCLOMATIC_COMPLEXITY = "cyclomatic_complexity";
   private static final Logger LOGGER = LoggerFactory.getLogger(CyclomaticComplexityVisitor.class);
-  private static final String CYCLOMATIC_COMPLEXITY = "cyclomatic_complexity";
   private static final String CYCLOMATIC_COMPLEXITY_WEIGHTED = "cyclomatic_complexity_weighted";
 
   private final Map<String, Integer> methodCounter;

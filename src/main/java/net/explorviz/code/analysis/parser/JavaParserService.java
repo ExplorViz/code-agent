@@ -185,7 +185,6 @@ public class JavaParserService {
     return parseAny("", path.getFileName().toString(), path, calculateMetrics, commitSha);
   }
 
-
   private void calculateMetrics(final FileDataHandler data, // NOPMD
                                 final CompilationUnit compilationUnit, final String fileName) {
     try {

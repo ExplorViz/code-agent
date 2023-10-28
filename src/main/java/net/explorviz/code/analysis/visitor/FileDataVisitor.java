@@ -31,6 +31,7 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.Optional;
 import java.util.stream.Collectors;
+import net.explorviz.code.analysis.GitAnalysis;
 import net.explorviz.code.analysis.handler.FileDataHandler;
 import net.explorviz.code.analysis.handler.MethodDataHandler;
 import net.explorviz.code.analysis.types.Verification;
@@ -43,9 +44,9 @@ import org.slf4j.LoggerFactory;
  */
 public class FileDataVisitor extends VoidVisitorAdapter<FileDataHandler> { // NOPMD
 
+  public static final String LOC = "loc";
   private static final Logger LOGGER = LoggerFactory.getLogger(FileDataVisitor.class);
   private static final String UNKNOWN = "UNKNOWN";
-  private static final String LOC = "loc";
 
   private final Optional<TypeSolver> fallbackTypeSolver;
   private final boolean wildcardImportProperty;
@@ -226,6 +227,7 @@ public class FileDataVisitor extends VoidVisitorAdapter<FileDataHandler> { // NO
   @Override
   public void visit(final CompilationUnit n, final FileDataHandler data) {
     data.addMetric(LOC, String.valueOf(getLoc(n)));
+    LoggerFactory.getLogger(GitAnalysis.class).info("LOC: {}", String.valueOf(getLoc(n)));
     super.visit(n, data);
   }
 

@@ -1,0 +1,14 @@
+{
+  "commitID": "749f7fa5073bfa1650555df2ae38774247094228",
+  "parentCommitID": "0ef20270ef938590970d04198085aa290c4cd011",
+  "branchName": "refs/heads/master",
+  "files": ["src/main/java/B.java"],
+  "modified": ["src/main/java/B.java"],
+  "fileMetric": {
+    "src/main/java/B.java": {
+      "loc": 5,
+      "cyclomaticComplexity": 1,
+      "numberOfMethods": 1
+    }
+  }
+}

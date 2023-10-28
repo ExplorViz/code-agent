@@ -3,8 +3,11 @@ package net.explorviz.code.analysis;
 import io.quarkus.runtime.Quarkus;
 import io.quarkus.runtime.StartupEvent;
 import java.io.IOException;
+import java.util.ArrayList;
 import java.util.Collection;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.NoSuchElementException;
 import java.util.Optional;
 import javax.enterprise.context.ApplicationScoped;
@@ -21,8 +24,12 @@ import net.explorviz.code.analysis.git.GitMetricCollector;
 import net.explorviz.code.analysis.git.GitRepositoryHandler;
 import net.explorviz.code.analysis.handler.CommitReportHandler;
 import net.explorviz.code.analysis.handler.FileDataHandler;
+import net.explorviz.code.analysis.handler.FileMetricHandler;
 import net.explorviz.code.analysis.parser.JavaParserService;
 import net.explorviz.code.analysis.types.FileDescriptor;
+import net.explorviz.code.analysis.types.Triple;
+import net.explorviz.code.analysis.visitor.CyclomaticComplexityVisitor;
+import net.explorviz.code.analysis.visitor.FileDataVisitor;
 import net.explorviz.code.proto.StateData;
 import org.eclipse.jgit.api.Git;
 import org.eclipse.jgit.api.errors.GitAPIException;
@@ -125,12 +132,24 @@ public class GitAnalysis { // NOPMD
             }
           }
 
-          final List<FileDescriptor> descriptorList = gitRepositoryHandler.listDiff(repository,
-              Optional.ofNullable(lastCheckedCommit), commit,
-              restrictAnalysisToFoldersProperty.orElse(""));
+          final Triple<List<FileDescriptor>, List<FileDescriptor>, List<FileDescriptor>> 
+              descriptorTriple = gitRepositoryHandler.listDiff(repository, 
+                  Optional.ofNullable(lastCheckedCommit), commit,
+                  restrictAnalysisToFoldersProperty.orElse(""));
 
-          if (descriptorList.isEmpty()) {
-            createCommitReport(repository, commit, lastCheckedCommit, exporter, branch);
+          final List<FileDescriptor> descriptorAddedList = descriptorTriple.getRight();
+          final List<FileDescriptor> descriptorModifiedList = descriptorTriple.getLeft();
+
+          // DirectoryFinder.resetDirectory(sourceDirectoryProperty.orElse(""));
+          // Git.wrap(repository).checkout().setName(commit.getName()).call();
+
+          // javaParserService.reset(DirectoryFinder.getDirectory(List.of(sourceDirectoryProperty
+          //     .orElse("").split(",")), GitRepositoryHandler.getCurrentRepositoryPath()));
+          // GitMetricCollector.resetAuthor();
+
+          if (descriptorAddedList.isEmpty() && descriptorModifiedList.isEmpty()) {
+            createCommitReport(repository, commit, lastCheckedCommit, exporter, branch, 
+                descriptorTriple, new HashMap<>()); // NOPMD
 
             commitCount++;
             lastCheckedCommit = commit;
@@ -140,7 +159,12 @@ public class GitAnalysis { // NOPMD
             continue;
           }
 
-          commitAnalysis(repository, commit, lastCheckedCommit, descriptorList, exporter, branch);
+          final List<FileDescriptor> descriptorList = new ArrayList<FileDescriptor>(); // NOPMD
+          descriptorList.addAll(descriptorAddedList);
+          descriptorList.addAll(descriptorModifiedList);
+
+          commitAnalysis(repository, commit, lastCheckedCommit, descriptorList, exporter, branch, 
+              descriptorTriple);
 
           commitCount++;
           lastCheckedCommit = commit;
@@ -205,7 +229,9 @@ public class GitAnalysis { // NOPMD
 
   private void commitAnalysis(final Repository repository, final RevCommit commit,
                               final RevCommit lastCommit, final List<FileDescriptor> descriptorList,
-                              final DataExporter exporter, final String branchName)
+                              final DataExporter exporter, final String branchName,
+                              final Triple<List<FileDescriptor>, List<FileDescriptor>,
+                                  List<FileDescriptor>> descriptorTriple)
       throws GitAPIException, NotFoundException, IOException {
     DirectoryFinder.resetDirectory(sourceDirectoryProperty.orElse(""));
 
@@ -217,6 +243,8 @@ public class GitAnalysis { // NOPMD
             GitRepositoryHandler.getCurrentRepositoryPath()));
     GitMetricCollector.resetAuthor();
 
+    final Map<String, FileDataHandler> fileNameToFileDataHandlerMap = new HashMap<>();
+
     for (final FileDescriptor fileDescriptor : descriptorList) {
       final FileDataHandler fileDataHandler = fileAnalysis(repository, fileDescriptor,
           javaParserService, commit.getName());
@@ -227,15 +255,21 @@ public class GitAnalysis { // NOPMD
       } else {
         GitMetricCollector.addCommitGitMetrics(fileDataHandler, commit);
         exporter.sendFileData(fileDataHandler.getProtoBufObject());
+        fileNameToFileDataHandlerMap.put(fileDescriptor.relativePath, fileDataHandler);
       }
     }
-    createCommitReport(repository, commit, lastCommit, exporter, branchName);
+    createCommitReport(repository, commit, lastCommit, exporter, branchName, 
+        descriptorTriple, fileNameToFileDataHandlerMap);
 
   }
 
   private void createCommitReport(final Repository repository, final RevCommit commit,
                                   final RevCommit lastCommit, final DataExporter exporter,
-                                  final String branchName) throws NotFoundException, IOException {
+                                  final String branchName, 
+                                  final Triple<List<FileDescriptor>, List<FileDescriptor>, 
+                                      List<FileDescriptor>> descriptorTriple, 
+                                  final Map<String, FileDataHandler> fileNameToFileDataHandlerMap) 
+      throws NotFoundException, IOException {
     if (lastCommit == null) {
       commitReportHandler.init(commit.getId().getName(), null, branchName);
     } else {
@@ -244,8 +278,46 @@ public class GitAnalysis { // NOPMD
     final List<FileDescriptor> files = gitRepositoryHandler.listFilesInCommit(repository, commit,
         restrictAnalysisToFoldersProperty.orElse(""));
     commitReportHandler.add(files);
+
+    for (final FileDescriptor file : files) {
+      final FileDataHandler fileDataHandler = fileNameToFileDataHandlerMap.get(file.relativePath);
+
+      if (fileDataHandler != null) { // add metrics
+        final FileMetricHandler fileMetricHandler = commitReportHandler
+              .getFileMetricHandler(file.relativePath);
+
+        // Set loc metric
+        fileMetricHandler.setLoc(Integer.parseInt(fileDataHandler
+            .getMetricValue(FileDataVisitor.LOC)));
+
+        // Set number of methods
+        fileMetricHandler.setNumberOfMethods(fileDataHandler.getMethodCount());
+
+        // Set cyclomatic complexity
+        fileMetricHandler.setCyclomaticComplexity(Integer.parseInt(fileDataHandler
+            .getMetricValue(CyclomaticComplexityVisitor.CYCLOMATIC_COMPLEXITY)));
+      }
+    }
+
+    final List<FileDescriptor> modifiedFiles = descriptorTriple.getLeft();
+    final List<FileDescriptor> deletedFiles = descriptorTriple.getMiddle();
+    final List<FileDescriptor> addedFiles = descriptorTriple.getRight();
+
+    for (final FileDescriptor modifiedFile : modifiedFiles) {
+      commitReportHandler.addModified(modifiedFile);
+    }
+
+    for (final FileDescriptor deletedFile : deletedFiles) {
+      commitReportHandler.addDeleted(deletedFile);
+    }
+
+    for (final FileDescriptor addedFile : addedFiles) {
+      commitReportHandler.addAdded(addedFile);
+    }
+
     exporter.sendCommitReport(commitReportHandler.getCommitReport());
   }
+
 
   private FileDataHandler fileAnalysis(final Repository repository, final FileDescriptor file,
                                        final JavaParserService parser, final String commitSha)

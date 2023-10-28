@@ -31,6 +31,7 @@ import org.eclipse.jgit.diff.DiffEntry;
 import org.eclipse.jgit.diff.DiffFormatter;
 import org.eclipse.jgit.diff.Edit;
 import org.eclipse.jgit.diff.EditList;
+import org.eclipse.jgit.errors.CorruptObjectException;
 import org.eclipse.jgit.errors.MissingObjectException;
 import org.eclipse.jgit.lib.ObjectId;
 import org.eclipse.jgit.lib.ObjectLoader;
@@ -269,12 +270,14 @@ public class GitRepositoryHandler { // NOPMD
    * @param newCommit the new commit, gets checked against the old commit
    * @param pathRestrictions a comma separated list of search strings specifying the folders to
    *     analyze
-   * @return a list of pairs containing the objectsIds and filenames of all files changed files
+   * @return a Triple of a list of pairs containing the objectsIds and filenames of 
+   *         all (modified, deleted, added) files
    * @throws GitAPIException   thrown if git encounters an exception
    * @throws IOException       thrown if files are not available
    * @throws NotFoundException thrown if the restrictionPath was not found
    */
-  public List<FileDescriptor> listDiff(final Repository repository,
+  public Triple<List<FileDescriptor>, List<FileDescriptor>, List<FileDescriptor>> 
+      listDiff(final Repository repository,
                                        final Optional<RevCommit> oldCommit,
                                        final RevCommit newCommit, final String pathRestrictions)
       throws GitAPIException, IOException, NotFoundException {
@@ -290,21 +293,27 @@ public class GitRepositoryHandler { // NOPMD
    * @param repository the current repository
    * @param oldCommit the old commit, as a baseline for the difference calculation
    * @param newCommit the new commit, gets checked against the old commit
-   * @return a list of pairs containing the objectsIds and filenames of all files changed files
+   * @return a Triple of a list of pairs containing the objectsIds and filenames of 
+   *         all (modified, deleted, added) files
    * @throws GitAPIException thrown if git encounters an exception
    * @throws IOException     thrown if files are not available
    */
-  public List<FileDescriptor> listDiff(final Repository repository, // NOPMD
+  public Triple<List<FileDescriptor>, List<FileDescriptor>, List<FileDescriptor>> 
+      listDiff(final Repository repository, // NOPMD
                                        final Optional<RevCommit> oldCommit,
                                        final RevCommit newCommit,
                                        final List<String> pathRestrictions)
       throws GitAPIException, IOException, NotFoundException {
-    List<FileDescriptor> objectIdList = new ArrayList<>();
+    final List<FileDescriptor> modifiedObjectIdList = new ArrayList<>();
+    final List<FileDescriptor> deletedObjectIdList = new ArrayList<>();
+    List<FileDescriptor> addedObjectIdList = new ArrayList<>();
+
+
 
     final TreeFilter filter = getJavaFileTreeFilter(pathRestrictions);
 
     if (oldCommit.isEmpty()) {
-      objectIdList = listFilesInCommit(repository, newCommit, filter);
+      addedObjectIdList = listFilesInCommit(repository, newCommit, filter);
     } else {
       final List<DiffEntry> diffs = this.git.diff()
           .setOldTree(prepareTreeParser(repository, oldCommit.get().getTree()))
@@ -314,25 +323,56 @@ public class GitRepositoryHandler { // NOPMD
 
       for (final DiffEntry diff : diffs) {
         if (diff.getChangeType().equals(DiffEntry.ChangeType.DELETE)) {
+          LOGGER.info("File Deleted");
+          putInList2(repository, diff, deletedObjectIdList);
           continue;
         } else if (diff.getChangeType().equals(DiffEntry.ChangeType.RENAME)) {
           LOGGER.info("File Renamed");
+          putInList(repository, diff, addedObjectIdList);
         } else if (diff.getChangeType().equals(DiffEntry.ChangeType.COPY)) {
           LOGGER.info("File Copied");
+          putInList(repository, diff, addedObjectIdList);
+        } else if (diff.getChangeType().equals(DiffEntry.ChangeType.MODIFY)) {
+          LOGGER.info("File Modified");
+          putInList(repository, diff, modifiedObjectIdList);
+        } else if (diff.getChangeType().equals(DiffEntry.ChangeType.ADD)) {
+          LOGGER.info("File Added");
+          putInList(repository, diff, addedObjectIdList);
         }
-        Triple<Integer, Integer, Integer> mods;
-        try (DiffFormatter diffFormatter = new DiffFormatter(// NOPMD
-            DisabledOutputStream.INSTANCE)) {
-          diffFormatter.setRepository(repository);
-          final FileHeader fileHeader = diffFormatter.toFileHeader(diff);
-          mods = countModifications(fileHeader.toEditList());
-        }
-        final String[] parts = diff.getNewPath().split("/");
-        objectIdList.add(new FileDescriptor(diff.getNewId().toObjectId(), parts[parts.length - 1],
-            diff.getNewPath(), mods));
       }
     }
-    return objectIdList;
+    return new Triple<List<FileDescriptor>, List<FileDescriptor>, 
+        List<FileDescriptor>>(modifiedObjectIdList, deletedObjectIdList, addedObjectIdList);
+  }
+
+  private void putInList(final Repository repository, final DiffEntry diff, 
+      final List<FileDescriptor> objectIdList) 
+      throws CorruptObjectException, MissingObjectException, IOException {
+    Triple<Integer, Integer, Integer> mods;
+    try (DiffFormatter diffFormatter = new DiffFormatter(// NOPMD
+        DisabledOutputStream.INSTANCE)) {
+      diffFormatter.setRepository(repository);
+      final FileHeader fileHeader = diffFormatter.toFileHeader(diff);
+      mods = countModifications(fileHeader.toEditList()); //TODO: don't need to do that when deleted
+    }
+    final String[] parts = diff.getNewPath().split("/");
+    objectIdList.add(new FileDescriptor(diff.getNewId().toObjectId(), parts[parts.length - 1],
+        diff.getNewPath(), mods));
+  }
+
+  private void putInList2(final Repository repository, final DiffEntry diff, 
+      final List<FileDescriptor> objectIdList) 
+      throws CorruptObjectException, MissingObjectException, IOException {
+    Triple<Integer, Integer, Integer> mods;
+    try (DiffFormatter diffFormatter = new DiffFormatter(// NOPMD
+        DisabledOutputStream.INSTANCE)) {
+      diffFormatter.setRepository(repository);
+      final FileHeader fileHeader = diffFormatter.toFileHeader(diff);
+      mods = countModifications(fileHeader.toEditList()); //TODO: don't need to do that when deleted
+    }
+    final String[] parts = diff.getOldPath().split("/");
+    objectIdList.add(new FileDescriptor(diff.getOldId().toObjectId(), parts[parts.length - 1],
+        diff.getOldPath(), mods));
   }
 
   private Triple<Integer, Integer, Integer> countModifications(final EditList editList) {

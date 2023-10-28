@@ -15,4 +15,14 @@ message  CommitReportData {
   string parentCommitID = 2;
   string branchName = 3;
   repeated string files = 4;
+  repeated string modified = 5;
+  repeated string deleted = 6;
+  repeated string added = 7;
+  map<string, FileMetric> fileMetric = 8;
+}
+
+message FileMetric {
+  int32 loc = 1;
+  int32 cyclomaticComplexity = 2;
+  int32 numberOfMethods = 3;
 }

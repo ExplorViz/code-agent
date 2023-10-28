@@ -1,0 +1,33 @@
+{
+  "commitID": "fcb1cc2c1cd73b7be7c0c079e4aba48862a83e06",
+  "fileName": "A.java",
+  "packageName": "com.test",
+  "classData": {
+    "com.test.A": {
+      "type": "CLASS",
+      "modifier": ["public"],
+      "methodData": {
+        "com.test.A.test#1": {
+          "returnType": "void",
+          "modifier": ["public"],
+          "metric": {
+            "loc": "1",
+            "cyclomatic_complexity": "1",
+            "nestedBlockDepth": "1"
+          }
+        }
+      },
+      "metric": {
+        "loc": "3",
+        "cyclomatic_complexity": "1",
+        "cyclomatic_complexity_weighted": "1",
+        "LCOM4": "0"
+      }
+    }
+  },
+  "metric": {
+    "loc": "5",
+    "cyclomatic_complexity": "1"
+  },
+  "author": "stu203590@mail.uni-kiel.de"
+}
