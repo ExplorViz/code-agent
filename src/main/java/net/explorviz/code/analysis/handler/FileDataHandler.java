@@ -168,13 +168,21 @@ public class FileDataHandler implements ProtoBufConvertable<FileData> {
    */
   public void setModifications(final int modifiedLines, final int addedLines,
                                final int deletedLines) {
-    this.builder.setModifiedLines(modifiedLines);
-    this.builder.setAddedLines(addedLines);
-    this.builder.setDeletedLines(deletedLines);
+    this.builder.setModifiedLines(Integer.toString(modifiedLines));
+    this.builder.setAddedLines(Integer.toString(addedLines));
+    this.builder.setDeletedLines(Integer.toString(deletedLines));
   }
 
   public void setAuthor(final String author) {
     this.builder.setAuthor(author);
+  }
+
+  public void setLandscapeToken(final String landscapeToken) {
+    this.builder.setLandscapeToken(landscapeToken);
+  }
+
+  public void setApplicationName(final String applicationName) {
+    this.builder.setApplicationName(applicationName);
   }
 
   @Override

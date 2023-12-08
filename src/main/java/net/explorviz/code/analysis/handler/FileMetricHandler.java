@@ -17,6 +17,15 @@ public class FileMetricHandler implements ProtoBufConvertable<FileMetric> {
     this.builder = FileMetric.newBuilder();
   }
 
+
+  public void setFileName(final String fileName) {
+    this.builder.setFileName(fileName);
+  }
+
+  public String getFileName() {
+    return this.builder.getFileName();
+  }
+
   public void setLoc(final int loc) {
     this.builder.setLoc(loc);
   }

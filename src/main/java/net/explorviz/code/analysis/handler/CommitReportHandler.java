@@ -6,6 +6,7 @@ import java.util.Map;
 import javax.enterprise.context.ApplicationScoped;
 import net.explorviz.code.analysis.types.FileDescriptor;
 import net.explorviz.code.proto.CommitReportData;
+//import org.slf4j.LoggerFactory;
 
 /**
  * The CommitReportHandler is used to create commit reports.
@@ -54,6 +55,7 @@ public class CommitReportHandler {
     this.fileNameToFileMetricHandlerMap.put(fileDescriptor.relativePath, new FileMetricHandler());
   }
 
+
   /**
    * Add multiple {@link FileDescriptor} to the report.
    *
@@ -63,6 +65,13 @@ public class CommitReportHandler {
     for (final FileDescriptor fileDescriptor : fileDescriptorList) {
       this.add(fileDescriptor);
     }
+  }
+
+  public void addFileHash(final FileDescriptor fileDescriptor) {
+    String s = fileDescriptor.objectId.toString();
+    String[] sa = s.split("\\[");
+    s = sa[1].substring(0, sa[1].length() - 1);
+    builder.addFileHash(s);
   }
 
   public void addModified(final FileDescriptor fileDescriptor) {
@@ -77,8 +86,26 @@ public class CommitReportHandler {
     builder.addAdded(fileDescriptor.relativePath);
   }
 
+
   public FileMetricHandler getFileMetricHandler(final String fileName) {
     return this.fileNameToFileMetricHandlerMap.get(fileName);
+  }
+
+  /**
+   * ... 
+   */
+  public void addTags(final List<String> tags) {
+    for (final String tag : tags) {
+      builder.addTags(tag);
+    }
+  }
+
+  public void addToken(final String token) {
+    builder.setLandscapeToken(token);
+  }
+
+  public void addApplicationName(final String applicationName) {
+    builder.setApplicationName(applicationName);
   }
 
   /**
@@ -127,7 +154,10 @@ public class CommitReportHandler {
   public CommitReportData getCommitReport() {
     for (final Map.Entry<String, FileMetricHandler> entry : this.fileNameToFileMetricHandlerMap
         .entrySet()) {
-      this.builder.putFileMetric(entry.getKey(), entry.getValue().getProtoBufObject());
+      if (entry.getValue().getFileName() != "") { // NOPMD
+        this.builder.addFileMetric(entry.getValue()
+            .getProtoBufObject()); // only add FileMetrics that do have metric data
+      }
     }
     return builder.build();
   }

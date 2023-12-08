@@ -18,11 +18,16 @@ message  CommitReportData {
   repeated string modified = 5;
   repeated string deleted = 6;
   repeated string added = 7;
-  map<string, FileMetric> fileMetric = 8;
+  repeated FileMetric fileMetric = 8;
+  repeated string tags = 9;
+  string landscapeToken = 10;
+  string applicationName = 11;
+  repeated string fileHash = 12;
 }
 
 message FileMetric {
-  int32 loc = 1;
-  int32 cyclomaticComplexity = 2;
-  int32 numberOfMethods = 3;
+  string fileName = 1;
+  int32 loc = 2;
+  int32 cyclomaticComplexity = 3;
+  int32 numberOfMethods = 4;
 }

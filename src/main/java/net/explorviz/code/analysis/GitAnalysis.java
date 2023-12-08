@@ -81,6 +81,12 @@ public class GitAnalysis { // NOPMD
   @ConfigProperty(name = "explorviz.gitanalysis.save-crashed_files")
   /* default */ boolean saveCrashedFilesProperty;  // NOCS
 
+  @ConfigProperty(name = "explorviz.landscape.token")
+  /* default */ String landscapeTokenProperty;  // NOCS
+
+  @ConfigProperty(name = "explorviz.gitanalysis.application-name")
+  /* default */ String applicationNameProperty;  // NOCS
+
   @Inject
   /* package */ GitRepositoryHandler gitRepositoryHandler; // NOCS
 
@@ -137,8 +143,12 @@ public class GitAnalysis { // NOPMD
                   Optional.ofNullable(lastCheckedCommit), commit,
                   restrictAnalysisToFoldersProperty.orElse(""));
 
-          final List<FileDescriptor> descriptorAddedList = descriptorTriple.getRight();
+          final List<FileDescriptor> descriptorAddedList = descriptorTriple.getRight(); // NOPMD
           final List<FileDescriptor> descriptorModifiedList = descriptorTriple.getLeft();
+
+          // TODO: delete this line. It was just used for mocking purposes
+          // descriptorAddedList = gitRepositoryHandler.listFilesInCommit(repository, commit, 
+          //     restrictAnalysisToFoldersProperty.orElse(""));
 
           // DirectoryFinder.resetDirectory(sourceDirectoryProperty.orElse(""));
           // Git.wrap(repository).checkout().setName(commit.getName()).call();
@@ -254,6 +264,8 @@ public class GitAnalysis { // NOPMD
         }
       } else {
         GitMetricCollector.addCommitGitMetrics(fileDataHandler, commit);
+        fileDataHandler.setLandscapeToken(landscapeTokenProperty);
+        fileDataHandler.setApplicationName(applicationNameProperty);
         exporter.sendFileData(fileDataHandler.getProtoBufObject());
         fileNameToFileDataHandlerMap.put(fileDescriptor.relativePath, fileDataHandler);
       }
@@ -263,13 +275,14 @@ public class GitAnalysis { // NOPMD
 
   }
 
-  private void createCommitReport(final Repository repository, final RevCommit commit,
+  private void createCommitReport(final Repository repository, final RevCommit commit, // NOPMD
                                   final RevCommit lastCommit, final DataExporter exporter,
                                   final String branchName, 
                                   final Triple<List<FileDescriptor>, List<FileDescriptor>, 
                                       List<FileDescriptor>> descriptorTriple, 
                                   final Map<String, FileDataHandler> fileNameToFileDataHandlerMap) 
-      throws NotFoundException, IOException {
+      throws NotFoundException, IOException, GitAPIException {
+    //final String commitTag = Git.wrap(repository).describe().setTarget(commit.getId()).call();
     if (lastCommit == null) {
       commitReportHandler.init(commit.getId().getName(), null, branchName);
     } else {
@@ -279,23 +292,35 @@ public class GitAnalysis { // NOPMD
         restrictAnalysisToFoldersProperty.orElse(""));
     commitReportHandler.add(files);
 
+
     for (final FileDescriptor file : files) {
+      commitReportHandler.addFileHash(file);
       final FileDataHandler fileDataHandler = fileNameToFileDataHandlerMap.get(file.relativePath);
 
       if (fileDataHandler != null) { // add metrics
         final FileMetricHandler fileMetricHandler = commitReportHandler
               .getFileMetricHandler(file.relativePath);
 
+        fileMetricHandler.setFileName(file.relativePath);
+
         // Set loc metric
-        fileMetricHandler.setLoc(Integer.parseInt(fileDataHandler
-            .getMetricValue(FileDataVisitor.LOC)));
+        final String loc = fileDataHandler
+            .getMetricValue(FileDataVisitor.LOC);
+
+        if (loc != null) {
+          fileMetricHandler.setLoc(Integer.parseInt(loc));
+        }
 
         // Set number of methods
         fileMetricHandler.setNumberOfMethods(fileDataHandler.getMethodCount());
 
         // Set cyclomatic complexity
-        fileMetricHandler.setCyclomaticComplexity(Integer.parseInt(fileDataHandler
-            .getMetricValue(CyclomaticComplexityVisitor.CYCLOMATIC_COMPLEXITY)));
+        final String cyclomaticComplexity = fileDataHandler
+            .getMetricValue(CyclomaticComplexityVisitor.CYCLOMATIC_COMPLEXITY);
+
+        if (cyclomaticComplexity != null) {
+          fileMetricHandler.setCyclomaticComplexity(Integer.parseInt(cyclomaticComplexity));
+        }
       }
     }
 
@@ -314,6 +339,17 @@ public class GitAnalysis { // NOPMD
     for (final FileDescriptor addedFile : addedFiles) {
       commitReportHandler.addAdded(addedFile);
     }
+
+    final List<Ref> list = Git.wrap(repository).tagList().call();
+    final List<String> tags = new ArrayList<>();
+    for (final Ref tag : list) {
+      if (tag.getObjectId().equals(commit.getId())) {
+        tags.add(tag.getName());
+      }
+    }
+    commitReportHandler.addTags(tags);
+    commitReportHandler.addToken(landscapeTokenProperty);
+    commitReportHandler.addApplicationName(applicationNameProperty);
 
     exporter.sendCommitReport(commitReportHandler.getCommitReport());
   }
