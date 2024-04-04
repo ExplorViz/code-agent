@@ -12,7 +12,7 @@ import net.explorviz.code.proto.CommitReportData;
  * The CommitReportHandler is used to create commit reports.
  */
 @ApplicationScoped
-public class CommitReportHandler {
+public class CommitReportHandler { // NOPMD
 
   private CommitReportData.Builder builder;
   private final Map<String, FileMetricHandler> fileNameToFileMetricHandlerMap;
@@ -67,9 +67,13 @@ public class CommitReportHandler {
     }
   }
 
+  /**
+   * ...
+   ** @param fileDescriptor ...
+   */
   public void addFileHash(final FileDescriptor fileDescriptor) {
     String s = fileDescriptor.objectId.toString();
-    String[] sa = s.split("\\[");
+    final String[] sa = s.split("\\[");
     s = sa[1].substring(0, sa[1].length() - 1);
     builder.addFileHash(s);
   }

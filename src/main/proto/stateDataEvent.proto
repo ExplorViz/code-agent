@@ -23,4 +23,5 @@ message StateDataRequest {
   string branchName = 2;
   string landscapeToken = 3;
   string landscapeSecret = 4;
+  string applicationName = 5;
 }

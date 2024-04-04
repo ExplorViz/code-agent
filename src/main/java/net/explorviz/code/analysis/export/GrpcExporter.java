@@ -37,6 +37,9 @@ public final class GrpcExporter implements DataExporter {
   @ConfigProperty(name = "explorviz.landscape.secret")
   /* default */ String landscapeSecretProperty;  // NOCS
 
+  @ConfigProperty(name = "explorviz.gitanalysis.application-name")
+  /* default */ String applicationNameProperty;  // NOCS
+
   /**
    * Requests the state data from the remote endpoint.
    *
@@ -50,6 +53,7 @@ public final class GrpcExporter implements DataExporter {
     requestBuilder.setUpstreamName(upstreamName);
     requestBuilder.setLandscapeToken(landscapeTokenProperty);
     requestBuilder.setLandscapeSecret(landscapeSecretProperty);
+    requestBuilder.setApplicationName(applicationNameProperty);
     return stateDataGrpcClient.requestStateData(requestBuilder.build());
   }
 
