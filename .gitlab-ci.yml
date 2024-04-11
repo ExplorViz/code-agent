@@ -64,7 +64,7 @@ unit-test:
       -Dquarkus.package.type=native -Dquarkus.container-image.push=true
       -Dquarkus.container-image.name=${DOCKERHUB_IMAGE_NAME_NATIVE}
       -Dquarkus.container-image.additional-tags=$CI_COMMIT_SHORT_SHA
-      -Dquarkus.native.additional-build-args="--initialize-at-run-time=com.github.javaparser.symbolsolver.reflectionmodel.ReflectionInterfaceDeclaration"
+      -Dquarkus.native.additional-build-args="--initialize-at-run-time=com.github.javaparser.symbolsolver.reflectionmodel.ReflectionInterfaceDeclaration//com.github.javaparser.resolution.types.ResolvedReferenceType"
       -Dquarkus.container-image.username=$DOCKERHUB_USERNAME
       -Dquarkus.container-image.password=$DOCKERHUB_PASSWORD
   after_script:
