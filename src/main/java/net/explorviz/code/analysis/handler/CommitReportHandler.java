@@ -3,7 +3,7 @@ package net.explorviz.code.analysis.handler;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import javax.enterprise.context.ApplicationScoped;
+import jakarta.enterprise.context.ApplicationScoped;
 import net.explorviz.code.analysis.types.FileDescriptor;
 import net.explorviz.code.proto.CommitReportData;
 //import org.slf4j.LoggerFactory;

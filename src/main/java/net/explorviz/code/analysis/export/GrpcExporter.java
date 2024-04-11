@@ -1,7 +1,7 @@
 package net.explorviz.code.analysis.export;
 
 import io.quarkus.grpc.GrpcClient;
-import javax.enterprise.context.ApplicationScoped;
+import jakarta.enterprise.context.ApplicationScoped;
 import net.explorviz.code.proto.CommitReportData;
 import net.explorviz.code.proto.CommitReportServiceGrpc;
 import net.explorviz.code.proto.FileData;

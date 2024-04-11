@@ -1,86 +1,121 @@
-image: openjdk:11-jdk
+default:
+  tags:
+    - exec-docker
+  image: ghcr.io/graalvm/graalvm-community:21
+  cache: # Cache modules in between jobs
+    key: $CI_COMMIT_REF_SLUG
+    paths:
+      - .gradle
+  before_script:
+    - export GRADLE_USER_HOME=`pwd`/.gradle
 
-# Disable the Gradle daemon for Continuous Integration servers as correctness
-# is usually a priority over speed in CI environments. Using a fresh
-# runtime for each build is more reliable since the runtime is completely
-# isolated from any previous builds.
 variables:
   GRADLE_OPTS: "-Dorg.gradle.daemon=false"
 
-before_script:
-  - export GRADLE_USER_HOME=`pwd`/.gradle
-
-cache:
-  policy: pull
-  paths:
-    - .gradle
+workflow:
+  rules:
+    - if: '$CI_PIPELINE_SOURCE == "merge_request_event"'
+    - if: "$CI_COMMIT_BRANCH && $CI_OPEN_MERGE_REQUESTS"
+      when: never
+    - if: "$CI_COMMIT_BRANCH"
 
 stages:
   - build
   - code-analysis
   - test
-  - coverage
-  - visualize
-  - deploy
+  - publish
 
 build:
   stage: build
-  tags:
-    - exec-docker
-  script: ./gradlew --build-cache assemble
-  cache:
-    policy: push
-    paths:
-      - .gradle
+  script: ./gradlew assemble
   artifacts:
     paths:
       - build
 
 pmd:
   stage: code-analysis
-  tags:
-    - exec-docker
   script: ./gradlew pmdMain
-  allow_failure: true
+  artifacts:
+    paths:
+      - build
 
 checkstyle:
   stage: code-analysis
-  tags:
-    - exec-docker
   script: ./gradlew checkstyleMain
-  allow_failure: true
-
-test:
-  stage: test
-  tags:
-    - exec-docker
-  script: 
-    - ./gradlew jacocoTestReport
-    # Print test coverage to console (for coverage badge)
-    - cat build/reports/jacoco/test/html/index.html | grep -o 'Total[^%]*%' | sed 's/<.*>/ /; s/Total/Jacoco Coverage Total:/'
-  coverage: '/Jacoco Coverage Total: ([0-9]{1,3})%/'
   artifacts:
-    when: always
-    reports:
-      junit: build/test-results/test/**/TEST-*.xml
     paths:
-      - build/reports/jacoco/test/jacocoTestReport.xml
-  
-coverage:
-  stage: visualize
-  tags:
-    - exec-docker
-  image: registry.gitlab.com/haynes/jacoco2cobertura:1.0.7
+      - build
+
+unit-test:
+  stage: test
   script:
-    # convert report from jacoco to cobertura
-    - python /opt/cover2cover.py build/reports/jacoco/test/jacocoTestReport.xml $CI_PROJECT_DIR/src/main/java/ > build/cobertura.xml
-    # read the <source></source> tag and prepend the path to every filename attribute
-    - python /opt/source2filename.py build/cobertura.xml
-  needs: ["test"]
-  dependencies:
-    - test
+    - ./gradlew test
   artifacts:
-    reports:
-      coverage_report:
-        coverage_format: cobertura
-        path: build/cobertura.xml
+    paths:
+      - build
+
+.push-dockerhub-native-base-job:
+  stage: publish
+  image: explorviz/ubi-quarkus-mandrel-builder-image
+  rules:
+    - if: $CI_COMMIT_REF_NAME == $CI_DEFAULT_BRANCH
+  script:
+    - ./gradlew clean assemble
+      -Dquarkus.package.type=native -Dquarkus.container-image.push=true
+      -Dquarkus.container-image.name=${DOCKERHUB_IMAGE_NAME_NATIVE}
+      -Dquarkus.container-image.additional-tags=$CI_COMMIT_SHORT_SHA
+      -Dquarkus.native.additional-build-args="--initialize-at-run-time=org.apache.kafka.common.security.authenticator.SaslClientAuthenticator\\,org.apache.kafka.common.security.oauthbearer.internals.expiring.ExpiringCredentialRefreshingLogin"
+      -Dquarkus.container-image.username=$DOCKERHUB_USERNAME
+      -Dquarkus.container-image.password=$DOCKERHUB_PASSWORD
+  after_script:
+    - echo "Image was uploaded to Dockerhub; explorviz/${DOCKERHUB_IMAGE_NAME_NATIVE}:latest and explorviz/${DOCKERHUB_IMAGE_NAME_NATIVE}:$CI_COMMIT_SHORT_SHA"
+
+push-dockerhub-native-main:
+  extends: .push-dockerhub-native-base-job
+
+push-dockerhub-native-mr:
+  stage: publish
+  image: explorviz/ubi-quarkus-mandrel-builder-image
+  rules:
+    - if: $CI_PIPELINE_SOURCE == "merge_request_event"
+  script:
+    - ./gradlew clean assemble
+      -Dquarkus.package.type=native
+      -Dquarkus.container-image.push=true
+      -Dquarkus.container-image.name=${DOCKERHUB_IMAGE_NAME_NATIVE}
+      -Dquarkus.container-image.tag=$CI_MERGE_REQUEST_ID
+      -Dquarkus.container-image.username=$DOCKERHUB_USERNAME
+      -Dquarkus.container-image.password=$DOCKERHUB_PASSWORD
+  after_script:
+    - echo "Image was uploaded to Dockerhub; explorviz/user-service-native:$CI_MERGE_REQUEST_ID"
+
+.push-dockerhub-base-job:
+  stage: publish
+  rules:
+    - if: $CI_COMMIT_REF_NAME == $CI_DEFAULT_BRANCH
+  script:
+    - ./gradlew clean assemble
+      -Dquarkus.container-image.build=true
+      -Dquarkus.container-image.push=true
+      -Dquarkus.container-image.additional-tags=$CI_COMMIT_SHORT_SHA
+      -Dquarkus.container-image.username=$DOCKERHUB_USERNAME
+      -Dquarkus.container-image.password=$DOCKERHUB_PASSWORD
+  after_script:
+    - echo "Image was uploaded to Dockerhub; explorviz/${DOCKERHUB_IMAGE_NAME}:latest and explorviz/${DOCKERHUB_IMAGE_NAME}:$CI_COMMIT_SHORT_SHA"
+
+push-dockerhub-main:
+  extends: .push-dockerhub-base-job
+
+push-dockerhub-mr:
+  stage: publish
+  rules:
+    - if: $CI_PIPELINE_SOURCE == "merge_request_event"
+  script:
+    - ./gradlew clean assemble
+      -Dquarkus.container-image.build=true
+      -Dquarkus.container-image.push=true
+      -Dquarkus.container-image.tag=$CI_MERGE_REQUEST_ID
+      -Dquarkus.container-image.username=$DOCKERHUB_USERNAME
+      -Dquarkus.container-image.password=$DOCKERHUB_PASSWORD
+  after_script:
+    - echo "Image was uploaded to Dockerhub; explorviz/${DOCKERHUB_IMAGE_NAME}:$CI_MERGE_REQUEST_ID"

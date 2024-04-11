@@ -1,6 +1,7 @@
 package net.explorviz.code.analysis.git; // NOPMD
 
 
+import jakarta.enterprise.context.ApplicationScoped;
 import java.io.File;
 import java.io.IOException;
 import java.net.MalformedURLException;
@@ -14,7 +15,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
-import javax.enterprise.context.ApplicationScoped;
 import net.explorviz.code.analysis.FileIO;
 import net.explorviz.code.analysis.exceptions.NotFoundException;
 import net.explorviz.code.analysis.exceptions.PropertyNotDefinedException;
