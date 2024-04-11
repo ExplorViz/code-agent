@@ -1,6 +1,7 @@
 package net.explorviz.code.analysis.git;
 
 import io.quarkus.test.junit.QuarkusTest;
+import jakarta.inject.Inject;
 import java.io.File;
 import java.io.IOException;
 import java.net.MalformedURLException;
@@ -10,7 +11,6 @@ import java.nio.file.Path;
 import java.util.Comparator;
 import java.util.Map;
 import java.util.stream.Stream;
-import javax.inject.Inject;
 import net.explorviz.code.analysis.types.RemoteRepositoryObject;
 import org.eclipse.jgit.api.errors.GitAPIException;
 import org.eclipse.jgit.api.errors.InvalidRemoteException;
