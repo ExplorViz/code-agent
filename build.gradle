@@ -26,7 +26,7 @@ dependencies {
     implementation 'com.github.javaparser:javaparser-symbol-solver-core:3.24.2'
 
     // Git
-    implementation 'org.eclipse.jgit:org.eclipse.jgit:6.4.0.202211300538-r'
+    implementation 'org.eclipse.jgit:org.eclipse.jgit:6.8.0.202311291450-r'
 
     // otel
     implementation 'io.opentelemetry:opentelemetry-exporter-otlp-logs:1.22.0-alpha'
@@ -42,8 +42,8 @@ group 'net.explorviz'
 version '1.0-SNAPSHOT'
 
 java {
-    sourceCompatibility = JavaVersion.VERSION_11
-    targetCompatibility = JavaVersion.VERSION_11
+    sourceCompatibility = JavaVersion.VERSION_21
+    targetCompatibility = JavaVersion.VERSION_21
 }
 
 compileJava {
@@ -62,3 +62,37 @@ sourceSets {
         }
     }
 }
+
+// Regarding jandex dependency for each task
+// https://github.com/kordamp/jandex-gradle-plugin/issues/9
+
+tasks.named('checkstyleMain') {
+    dependsOn 'jandex'
+}
+
+tasks.named('pmdMain') {
+    dependsOn 'jandex'
+}
+
+tasks.named('compileTestJava') {
+    dependsOn 'jandex'
+}
+
+tasks.named('test') {
+    dependsOn 'jandex'
+}
+
+tasks.named('quarkusDependenciesBuild') {
+    dependsOn 'jandex'
+}
+
+tasks.withType(JavaCompile).configureEach {
+    // Turn on all javac warnings except classfile and processing, which produces many false-positives about annotations
+    options.compilerArgs << "-Xlint:all" << "-Xlint:-classfile" << "-Xlint:-processing"
+}
+
+test {
+    useJUnitPlatform()
+    testLogging.showStandardStreams = true
+}
+
