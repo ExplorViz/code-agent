@@ -162,8 +162,7 @@ public class GitRepositoryHandler { // NOPMD
    * @throws GitAPIException gets thrown if the git api encounters an error
    */
   private Repository downloadGitRepository( // NOCS NOPMD
-      final RemoteRepositoryObject remoteRepositoryObject)
-      throws GitAPIException, IOException {
+      final RemoteRepositoryObject remoteRepositoryObject) throws GitAPIException, IOException {
 
     final Map.Entry<Boolean, String> checkedRepositoryUrl = convertSshToHttps(
         remoteRepositoryObject.getUrl());
@@ -281,8 +280,7 @@ public class GitRepositoryHandler { // NOPMD
    * @throws GitAPIException gets thrown if the git api encounters an error
    */
   public Repository getGitRepository(final String localRepositoryPath,
-      final RemoteRepositoryObject remoteRepositoryObject)
-      throws IOException, GitAPIException {
+      final RemoteRepositoryObject remoteRepositoryObject) throws IOException, GitAPIException {
 
     if (localRepositoryPath.isBlank()) {
       if (LOGGER.isInfoEnabled()) {
@@ -337,19 +335,15 @@ public class GitRepositoryHandler { // NOPMD
    * @param repository       the current repository
    * @param oldCommit        the old commit, as a baseline for the difference calculation
    * @param newCommit        the new commit, gets checked against the old commit
-   * @param pathRestrictions a comma separated list of search strings specifying the folders to
-   *                         analyze
-   * @return a Triple of a list of pairs containing the objectsIds and filenames of all (modified,
-   * deleted, added) files
+   * @param pathRestrictions comma sep. list of search strings specifying the folders to analyze
+   * @return triple of FileDescriptor specifying modified, delete and added files
    * @throws GitAPIException   thrown if git encounters an exception
    * @throws IOException       thrown if files are not available
    * @throws NotFoundException thrown if the restrictionPath was not found
    */
-  public Triple<List<FileDescriptor>, List<FileDescriptor>, List<FileDescriptor>>
-  listDiff(final Repository repository,
-      final Optional<RevCommit> oldCommit,
-      final RevCommit newCommit, final String pathRestrictions)
-      throws GitAPIException, IOException, NotFoundException {
+  public Triple<List<FileDescriptor>, List<FileDescriptor>, List<FileDescriptor>> listDiff(
+      final Repository repository, final Optional<RevCommit> oldCommit, final RevCommit newCommit,
+      final String pathRestrictions) throws GitAPIException, IOException, NotFoundException {
     if (pathRestrictions == null || pathRestrictions.isEmpty()) {
       return listDiff(repository, oldCommit, newCommit, new ArrayList<>());
     }
@@ -362,17 +356,14 @@ public class GitRepositoryHandler { // NOPMD
    * @param repository the current repository
    * @param oldCommit  the old commit, as a baseline for the difference calculation
    * @param newCommit  the new commit, gets checked against the old commit
-   * @return a Triple of a list of pairs containing the objectsIds and filenames of all (modified,
-   * deleted, added) files
+   * @return triple of FileDescriptor specifying modified, delete and added files
    * @throws GitAPIException thrown if git encounters an exception
    * @throws IOException     thrown if files are not available
    */
-  public Triple<List<FileDescriptor>, List<FileDescriptor>, List<FileDescriptor>>
-  listDiff(final Repository repository, // NOPMD
-      final Optional<RevCommit> oldCommit,
-      final RevCommit newCommit,
-      final List<String> pathRestrictions)
-      throws GitAPIException, IOException, NotFoundException {
+  public Triple<List<FileDescriptor>, List<FileDescriptor>, List<FileDescriptor>> listDiff(
+      final Repository repository, // NOPMD
+      final Optional<RevCommit> oldCommit, final RevCommit newCommit,
+      final List<String> pathRestrictions) throws GitAPIException, IOException, NotFoundException {
     final List<FileDescriptor> modifiedObjectIdList = new ArrayList<>();
     final List<FileDescriptor> deletedObjectIdList = new ArrayList<>();
     List<FileDescriptor> addedObjectIdList = new ArrayList<>();
@@ -407,8 +398,8 @@ public class GitRepositoryHandler { // NOPMD
         }
       }
     }
-    return new Triple<List<FileDescriptor>, List<FileDescriptor>,
-        List<FileDescriptor>>(modifiedObjectIdList, deletedObjectIdList, addedObjectIdList);
+    return new Triple<List<FileDescriptor>, List<FileDescriptor>, List<FileDescriptor>>(
+        modifiedObjectIdList, deletedObjectIdList, addedObjectIdList);
   }
 
   private void putInList(final Repository repository, final DiffEntry diff,
@@ -422,8 +413,9 @@ public class GitRepositoryHandler { // NOPMD
       mods = countModifications(fileHeader.toEditList()); //TODO: don't need to do that when deleted
     }
     final String[] parts = diff.getNewPath().split("/");
-    objectIdList.add(new FileDescriptor(diff.getNewId().toObjectId(), parts[parts.length - 1],
-        diff.getNewPath(), mods));
+    objectIdList.add(
+        new FileDescriptor(diff.getNewId().toObjectId(), parts[parts.length - 1], diff.getNewPath(),
+            mods));
   }
 
   private void putInList2(final Repository repository, final DiffEntry diff,
@@ -437,8 +429,9 @@ public class GitRepositoryHandler { // NOPMD
       mods = countModifications(fileHeader.toEditList()); //TODO: don't need to do that when deleted
     }
     final String[] parts = diff.getOldPath().split("/");
-    objectIdList.add(new FileDescriptor(diff.getOldId().toObjectId(), parts[parts.length - 1],
-        diff.getOldPath(), mods));
+    objectIdList.add(
+        new FileDescriptor(diff.getOldId().toObjectId(), parts[parts.length - 1], diff.getOldPath(),
+            mods));
   }
 
   private Triple<Integer, Integer, Integer> countModifications(final EditList editList) {
@@ -471,8 +464,7 @@ public class GitRepositoryHandler { // NOPMD
    * @throws NotFoundException thrown if the restrictionPath was not found
    */
   public List<FileDescriptor> listFilesInCommit(final Repository repository, // NOPMD
-      final RevCommit commit,
-      final List<String> pathRestrictions)
+      final RevCommit commit, final List<String> pathRestrictions)
       throws IOException, NotFoundException {
     return listFilesInCommit(repository, commit, getJavaFileTreeFilter(pathRestrictions));
   }
@@ -489,16 +481,13 @@ public class GitRepositoryHandler { // NOPMD
    * @throws NotFoundException thrown if the restrictionPath was not found
    */
   public List<FileDescriptor> listFilesInCommit(final Repository repository, // NOPMD
-      final RevCommit commit,
-      final String pathRestrictions)
-      throws IOException, NotFoundException {
+      final RevCommit commit, final String pathRestrictions) throws IOException, NotFoundException {
     return listFilesInCommit(repository, commit,
         getJavaFileTreeFilter(Arrays.asList(pathRestrictions.split(","))));
   }
 
   private List<FileDescriptor> listFilesInCommit(final Repository repository, // NOPMD
-      final RevCommit commit, final TreeFilter filter)
-      throws IOException {
+      final RevCommit commit, final TreeFilter filter) throws IOException {
     final List<FileDescriptor> objectIdList = new ArrayList<>();
     try (final TreeWalk treeWalk = new TreeWalk(repository)) { // NOPMD
       treeWalk.addTree(commit.getTree());

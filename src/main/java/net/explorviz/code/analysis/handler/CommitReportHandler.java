@@ -1,9 +1,9 @@
 package net.explorviz.code.analysis.handler;
 
+import jakarta.enterprise.context.ApplicationScoped;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import jakarta.enterprise.context.ApplicationScoped;
 import net.explorviz.code.analysis.types.FileDescriptor;
 import net.explorviz.code.proto.CommitReportData;
 //import org.slf4j.LoggerFactory;
@@ -116,8 +116,8 @@ public class CommitReportHandler { // NOPMD
    * corresponding file we want to set the lines of code for * @param loc the lines of code
    */
   public void setLoc(final FileDescriptor fileDescriptor, final int loc) {
-    final FileMetricHandler fileMetricHandler = this.fileNameToFileMetricHandlerMap
-        .get(fileDescriptor.relativePath);
+    final FileMetricHandler fileMetricHandler = this.fileNameToFileMetricHandlerMap.get(
+        fileDescriptor.relativePath);
     fileMetricHandler.setLoc(loc);
   }
 
@@ -128,8 +128,8 @@ public class CommitReportHandler { // NOPMD
    */
   public void setCyclomaticComplexity(final FileDescriptor fileDescriptor,
       final int cyclomaticComplexity) {
-    final FileMetricHandler fileMetricHandler = this.fileNameToFileMetricHandlerMap
-        .get(fileDescriptor.relativePath);
+    final FileMetricHandler fileMetricHandler = this.fileNameToFileMetricHandlerMap.get(
+        fileDescriptor.relativePath);
     fileMetricHandler.setCyclomaticComplexity(cyclomaticComplexity);
   }
 
@@ -140,10 +140,9 @@ public class CommitReportHandler { // NOPMD
    *                        of methods for
    * @param numberOfMethods the number of methods
    */
-  public void setNumberOfMethods(final FileDescriptor fileDescriptor,
-      final int numberOfMethods) {
-    final FileMetricHandler fileMetricHandler = this.fileNameToFileMetricHandlerMap
-        .get(fileDescriptor.relativePath);
+  public void setNumberOfMethods(final FileDescriptor fileDescriptor, final int numberOfMethods) {
+    final FileMetricHandler fileMetricHandler = this.fileNameToFileMetricHandlerMap.get(
+        fileDescriptor.relativePath);
     fileMetricHandler.setNumberOfMethods(numberOfMethods);
   }
 
@@ -151,11 +150,11 @@ public class CommitReportHandler { // NOPMD
    * Returns the commit report data. * * @return commit report data object
    */
   public CommitReportData getCommitReport() {
-    for (final Map.Entry<String, FileMetricHandler> entry : this.fileNameToFileMetricHandlerMap
-        .entrySet()) {
+    for (final Map.Entry<String, FileMetricHandler> entry :
+        this.fileNameToFileMetricHandlerMap.entrySet()) {
       if (entry.getValue().getFileName() != "") { // NOPMD
-        this.builder.addFileMetric(entry.getValue()
-            .getProtoBufObject()); // only add FileMetrics that do have metric data
+        this.builder.addFileMetric(
+            entry.getValue().getProtoBufObject()); // only add FileMetrics that do have metric data
       }
     }
     return builder.build();
