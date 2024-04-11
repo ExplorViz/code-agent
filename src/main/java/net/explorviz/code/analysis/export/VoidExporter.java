@@ -8,6 +8,7 @@ import net.explorviz.code.proto.StateData;
  * Dummy to dump the data into void.
  */
 public class VoidExporter implements DataExporter {
+
   @Override
   public StateData requestStateData(final String upstreamName, final String branchName) {
     return StateData.newBuilder().build();

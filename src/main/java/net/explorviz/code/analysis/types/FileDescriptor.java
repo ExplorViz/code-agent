@@ -8,6 +8,7 @@ import org.eclipse.jgit.lib.ObjectId;
  * on {@link com.github.javaparser.utils.Pair}
  */
 public class FileDescriptor {
+
   public final ObjectId objectId; // NOCS
   public final String fileName;   // NOCS
   public final String relativePath; // NOCS
@@ -18,10 +19,9 @@ public class FileDescriptor {
   /**
    * Create a new FileDescriptor.
    *
-   * @param objectId the ObjectId of the File
-   * @param fileName the name of the File
-   * @param relativePath the relative path of the file starting from the repository's
-   *     directory.
+   * @param objectId     the ObjectId of the File
+   * @param fileName     the name of the File
+   * @param relativePath the relative path of the file starting from the repository's directory.
    */
   public FileDescriptor(final ObjectId objectId, final String fileName, final String relativePath) {
     this.objectId = objectId;
@@ -32,16 +32,16 @@ public class FileDescriptor {
   /**
    * Create a new FileDescriptor with modification data added.
    *
-   * @param objectId the ObjectId of the File
-   * @param fileName the name of the File
-   * @param relativePath the relative path of the file starting from the repository's
-   *     directory.
-   * @param modificationData a {@link Triple} containing the modification data of the file. left
-   *     -> amount of modified lines, middle -> amount of added lines, right -> amount of removed
-   *     lines
+   * @param objectId         the ObjectId of the File
+   * @param fileName         the name of the File
+   * @param relativePath     the relative path of the file starting from the repository's
+   *                         directory.
+   * @param modificationData a {@link Triple} containing the modification data of the file. left ->
+   *                         amount of modified lines, middle -> amount of added lines, right ->
+   *                         amount of removed lines
    */
   public FileDescriptor(final ObjectId objectId, final String fileName, final String relativePath,
-                        final Triple<Integer, Integer, Integer> modificationData) {
+      final Triple<Integer, Integer, Integer> modificationData) {
     this(objectId, fileName, relativePath);
     if (modificationData != null) {
       this.modifiedLines = modificationData.getLeft();

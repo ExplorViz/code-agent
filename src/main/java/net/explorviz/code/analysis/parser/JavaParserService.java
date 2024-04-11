@@ -31,6 +31,7 @@ import org.slf4j.LoggerFactory;
  */
 @ApplicationScoped
 public class JavaParserService {
+
   public static final Logger LOGGER = LoggerFactory.getLogger(JavaParserService.class);
   private static final String CRASHED_FILES_PATH = "/logs/crashedfiles/";
 
@@ -84,7 +85,7 @@ public class JavaParserService {
   }
 
   private FileDataHandler parse(final CompilationUnit compilationUnit, final String fileName,
-                                final boolean calculateMetrics) {
+      final boolean calculateMetrics) {
     final FileDataHandler data = new FileDataHandler(fileName);
     final FileDataVisitor fileDataVisitor;
     fileDataVisitor = new FileDataVisitor(Optional.of(combinedTypeSolver), wildcardImportProperty);
@@ -120,7 +121,7 @@ public class JavaParserService {
   }
 
   private FileDataHandler parseAny(final String fileContent, final String fileName, final Path path,
-                                   final boolean calculateMetrics, final String commitSha)
+      final boolean calculateMetrics, final String commitSha)
       throws IOException {
     StaticJavaParser.getConfiguration().setSymbolResolver(this.javaSymbolSolver);
     final CompilationUnit compilationUnit;
@@ -165,7 +166,7 @@ public class JavaParserService {
    * @param fileContent stringified java file
    */
   public FileDataHandler parseFileContent(final String fileContent, final String fileName,
-                                          final boolean calculateMetrics, final String commitSha) {
+      final boolean calculateMetrics, final String commitSha) {
     try {
       return parseAny(fileContent, fileName, null, calculateMetrics, commitSha);
     } catch (IOException e) {
@@ -180,13 +181,13 @@ public class JavaParserService {
    * @throws IOException Gets thrown if the file is not reachable
    */
   public FileDataHandler parseFile(final String pathToFile, final boolean calculateMetrics,
-                                   final String commitSha) throws IOException {
+      final String commitSha) throws IOException {
     final Path path = Path.of(pathToFile);
     return parseAny("", path.getFileName().toString(), path, calculateMetrics, commitSha);
   }
 
   private void calculateMetrics(final FileDataHandler data, // NOPMD
-                                final CompilationUnit compilationUnit, final String fileName) {
+      final CompilationUnit compilationUnit, final String fileName) {
     try {
       final Pair<MetricAppender, Object> pair = new Pair<>(new MetricAppender(data), new Object());
       new CyclomaticComplexityVisitor().visit(compilationUnit, pair);

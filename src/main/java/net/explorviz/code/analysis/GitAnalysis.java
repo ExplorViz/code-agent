@@ -99,6 +99,12 @@ public class GitAnalysis { // NOPMD
   @Inject
   /* package */ GrpcExporter grpcExporter; // NOCS
 
+  // only done because checkstyle does not like the duplication of literals
+  private static String toErrorText(final String position, final String commitId,
+      final String branchName) {
+    return "The given " + position + " commit <" + commitId
+        + "> was not found in the current branch <" + branchName + ">";
+  }
 
   private void analyzeAndSendRepo(final DataExporter exporter) // NOCS NOPMD
       throws IOException, GitAPIException, PropertyNotDefinedException, NotFoundException { // NOPMD
@@ -138,16 +144,16 @@ public class GitAnalysis { // NOPMD
             }
           }
 
-          final Triple<List<FileDescriptor>, List<FileDescriptor>, List<FileDescriptor>> 
-              descriptorTriple = gitRepositoryHandler.listDiff(repository, 
-                  Optional.ofNullable(lastCheckedCommit), commit,
-                  restrictAnalysisToFoldersProperty.orElse(""));
+          final Triple<List<FileDescriptor>, List<FileDescriptor>, List<FileDescriptor>>
+              descriptorTriple = gitRepositoryHandler.listDiff(repository,
+              Optional.ofNullable(lastCheckedCommit), commit,
+              restrictAnalysisToFoldersProperty.orElse(""));
 
           final List<FileDescriptor> descriptorAddedList = descriptorTriple.getRight(); // NOPMD
           final List<FileDescriptor> descriptorModifiedList = descriptorTriple.getLeft();
 
           // TODO: delete this line. It was just used for mocking purposes
-          // descriptorAddedList = gitRepositoryHandler.listFilesInCommit(repository, commit, 
+          // descriptorAddedList = gitRepositoryHandler.listFilesInCommit(repository, commit,
           //     restrictAnalysisToFoldersProperty.orElse(""));
 
           // DirectoryFinder.resetDirectory(sourceDirectoryProperty.orElse(""));
@@ -158,7 +164,7 @@ public class GitAnalysis { // NOPMD
           // GitMetricCollector.resetAuthor();
 
           if (descriptorAddedList.isEmpty() && descriptorModifiedList.isEmpty()) {
-            createCommitReport(repository, commit, lastCheckedCommit, exporter, branch, 
+            createCommitReport(repository, commit, lastCheckedCommit, exporter, branch,
                 descriptorTriple, new HashMap<>()); // NOPMD
 
             commitCount++;
@@ -173,7 +179,7 @@ public class GitAnalysis { // NOPMD
           descriptorList.addAll(descriptorAddedList);
           descriptorList.addAll(descriptorModifiedList);
 
-          commitAnalysis(repository, commit, lastCheckedCommit, descriptorList, exporter, branch, 
+          commitAnalysis(repository, commit, lastCheckedCommit, descriptorList, exporter, branch,
               descriptorTriple);
 
           commitCount++;
@@ -193,7 +199,7 @@ public class GitAnalysis { // NOPMD
   }
 
   private void checkIfCommitsAreReachable(final Optional<String> startCommit,
-                                          final Optional<String> endCommit, final String branch)
+      final Optional<String> endCommit, final String branch)
       throws NotFoundException {
     if (this.gitRepositoryHandler.isUnreachableCommit(startCommit, branch)) {
       throw new NotFoundException(toErrorText("start", startCommit.orElse(""), branch));
@@ -220,7 +226,7 @@ public class GitAnalysis { // NOPMD
   }
 
   private void prepareRevWalk(final Repository repository, final RevWalk revWalk,
-                              final String branch) throws IOException {
+      final String branch) throws IOException {
     revWalk.sort(RevSort.COMMIT_TIME_DESC, true);
     revWalk.sort(RevSort.REVERSE, true);
 
@@ -238,10 +244,10 @@ public class GitAnalysis { // NOPMD
   }
 
   private void commitAnalysis(final Repository repository, final RevCommit commit,
-                              final RevCommit lastCommit, final List<FileDescriptor> descriptorList,
-                              final DataExporter exporter, final String branchName,
-                              final Triple<List<FileDescriptor>, List<FileDescriptor>,
-                                  List<FileDescriptor>> descriptorTriple)
+      final RevCommit lastCommit, final List<FileDescriptor> descriptorList,
+      final DataExporter exporter, final String branchName,
+      final Triple<List<FileDescriptor>, List<FileDescriptor>,
+          List<FileDescriptor>> descriptorTriple)
       throws GitAPIException, NotFoundException, IOException {
     DirectoryFinder.resetDirectory(sourceDirectoryProperty.orElse(""));
 
@@ -270,17 +276,17 @@ public class GitAnalysis { // NOPMD
         fileNameToFileDataHandlerMap.put(fileDescriptor.relativePath, fileDataHandler);
       }
     }
-    createCommitReport(repository, commit, lastCommit, exporter, branchName, 
+    createCommitReport(repository, commit, lastCommit, exporter, branchName,
         descriptorTriple, fileNameToFileDataHandlerMap);
 
   }
 
   private void createCommitReport(final Repository repository, final RevCommit commit, // NOPMD
-                                  final RevCommit lastCommit, final DataExporter exporter,
-                                  final String branchName, 
-                                  final Triple<List<FileDescriptor>, List<FileDescriptor>, 
-                                      List<FileDescriptor>> descriptorTriple, 
-                                  final Map<String, FileDataHandler> fileNameToFileDataHandlerMap) 
+      final RevCommit lastCommit, final DataExporter exporter,
+      final String branchName,
+      final Triple<List<FileDescriptor>, List<FileDescriptor>,
+          List<FileDescriptor>> descriptorTriple,
+      final Map<String, FileDataHandler> fileNameToFileDataHandlerMap)
       throws NotFoundException, IOException, GitAPIException {
     //final String commitTag = Git.wrap(repository).describe().setTarget(commit.getId()).call();
     if (lastCommit == null) {
@@ -292,14 +298,13 @@ public class GitAnalysis { // NOPMD
         restrictAnalysisToFoldersProperty.orElse(""));
     commitReportHandler.add(files);
 
-
     for (final FileDescriptor file : files) {
       commitReportHandler.addFileHash(file);
       final FileDataHandler fileDataHandler = fileNameToFileDataHandlerMap.get(file.relativePath);
 
       if (fileDataHandler != null) { // add metrics
         final FileMetricHandler fileMetricHandler = commitReportHandler
-              .getFileMetricHandler(file.relativePath);
+            .getFileMetricHandler(file.relativePath);
 
         fileMetricHandler.setFileName(file.relativePath);
 
@@ -354,9 +359,8 @@ public class GitAnalysis { // NOPMD
     exporter.sendCommitReport(commitReportHandler.getCommitReport());
   }
 
-
   private FileDataHandler fileAnalysis(final Repository repository, final FileDescriptor file,
-                                       final JavaParserService parser, final String commitSha)
+      final JavaParserService parser, final String commitSha)
       throws IOException {
     final String fileContent = GitRepositoryHandler.getContent(file.objectId, repository);
     try {
@@ -400,14 +404,6 @@ public class GitAnalysis { // NOPMD
     // Quarkus.waitForExit();
     // System.exit(-1); // NOPMD
 
-  }
-
-
-  // only done because checkstyle does not like the duplication of literals
-  private static String toErrorText(final String position, final String commitId,
-                                    final String branchName) {
-    return "The given " + position + " commit <" + commitId
-        + "> was not found in the current branch <" + branchName + ">";
   }
 
   private String getUnambiguousUpstreamName() {

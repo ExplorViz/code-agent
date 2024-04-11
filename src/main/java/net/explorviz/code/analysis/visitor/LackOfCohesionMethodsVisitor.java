@@ -29,15 +29,14 @@ public class LackOfCohesionMethodsVisitor // NOPMD
     extends VoidVisitorAdapter<Pair<MetricAppender, Object>> {
 
   private static final String METRIC_NAME = "LCOM4";
-  private Graph currentGraph;
   private final Stack<Graph> graphStack = new Stack<>();
-
-  private List<FieldDeclaration> currentFields;
   private final Stack<List<FieldDeclaration>> fieldsStack = new Stack<>();
-  private List<String> currentFieldNames;
   private final Stack<List<String>> fieldNamesStack = new Stack<>();
-  private List<String> currentMethodNames;
   private final Stack<List<String>> methodNamesStack = new Stack<>();
+  private Graph currentGraph;
+  private List<FieldDeclaration> currentFields;
+  private List<String> currentFieldNames;
+  private List<String> currentMethodNames;
 
   @Override
   public void visit(final ClassOrInterfaceDeclaration n, final Pair<MetricAppender, Object> data) {
@@ -108,7 +107,7 @@ public class LackOfCohesionMethodsVisitor // NOPMD
 
   @Override // NOCS
   public void visit(final MethodDeclaration n, // NOCS NOPMD
-                    final Pair<MetricAppender, Object> data) { // NOCS NOPMD
+      final Pair<MetricAppender, Object> data) { // NOCS NOPMD
     data.a.enterMethod(n);
     // Skip this method if it is inherited, remove the graph entry
     if (n.isAnnotationPresent("Override")) {

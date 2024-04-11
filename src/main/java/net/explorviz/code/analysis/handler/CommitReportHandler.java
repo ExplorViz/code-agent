@@ -14,8 +14,8 @@ import net.explorviz.code.proto.CommitReportData;
 @ApplicationScoped
 public class CommitReportHandler { // NOPMD
 
-  private CommitReportData.Builder builder;
   private final Map<String, FileMetricHandler> fileNameToFileMetricHandlerMap;
+  private CommitReportData.Builder builder;
 
   /**
    * Creates a blank handler, use {@link CommitReportHandler#init(String, String, String)} to
@@ -32,16 +32,16 @@ public class CommitReportHandler { // NOPMD
    */
   public void clear() {
     this.builder = CommitReportData.newBuilder();
-    this.fileNameToFileMetricHandlerMap.clear(); /* TODO: unmodified files 
-                                                  * should be kept for a better performance*/
+    this.fileNameToFileMetricHandlerMap.clear(); /* TODO: unmodified files
+     * should be kept for a better performance*/
   }
 
   /**
    * Initialize the current report handler.
    *
-   * @param commitId the id of the commit
+   * @param commitId       the id of the commit
    * @param parentCommitId the id of the parent commit, can be null if no parent exists
-   * @param branchName the name of the branch
+   * @param branchName     the name of the branch
    */
   public void init(final String commitId, final String parentCommitId, final String branchName) {
     clear();
@@ -68,8 +68,7 @@ public class CommitReportHandler { // NOPMD
   }
 
   /**
-   * ...
-   ** @param fileDescriptor ...
+   * ... * @param fileDescriptor ...
    */
   public void addFileHash(final FileDescriptor fileDescriptor) {
     String s = fileDescriptor.objectId.toString();
@@ -96,7 +95,7 @@ public class CommitReportHandler { // NOPMD
   }
 
   /**
-   * ... 
+   * ...
    */
   public void addTags(final List<String> tags) {
     for (final String tag : tags) {
@@ -113,11 +112,9 @@ public class CommitReportHandler { // NOPMD
   }
 
   /**
-  * Sets the lines of code (loc) metric.
-  ** @param fileDescriptor the file descriptor of the corresponding file we want
-  *     to set the lines of code for
-  ** @param loc the lines of code
-  */
+   * Sets the lines of code (loc) metric. * @param fileDescriptor the file descriptor of the
+   * corresponding file we want to set the lines of code for * @param loc the lines of code
+   */
   public void setLoc(final FileDescriptor fileDescriptor, final int loc) {
     final FileMetricHandler fileMetricHandler = this.fileNameToFileMetricHandlerMap
         .get(fileDescriptor.relativePath);
@@ -125,12 +122,11 @@ public class CommitReportHandler { // NOPMD
   }
 
   /**
-  * Sets the cyclomatic complexity metric. 
-  ** @param fileDescriptor the file descriptor of the corresponding file we want
-  *     to set the cyclomatic complexity for 
-  * * @param cyclomaticComplexity the cyclomatic complexity
-  */
-  public void setCyclomaticComplexity(final FileDescriptor fileDescriptor, 
+   * Sets the cyclomatic complexity metric. * @param fileDescriptor the file descriptor of the
+   * corresponding file we want to set the cyclomatic complexity for * @param cyclomaticComplexity
+   * the cyclomatic complexity
+   */
+  public void setCyclomaticComplexity(final FileDescriptor fileDescriptor,
       final int cyclomaticComplexity) {
     final FileMetricHandler fileMetricHandler = this.fileNameToFileMetricHandlerMap
         .get(fileDescriptor.relativePath);
@@ -138,22 +134,21 @@ public class CommitReportHandler { // NOPMD
   }
 
   /**
-  * Sets the number of methods metric.
-  *
-  * @param fileDescriptor the file descriptor of the corresponding file we want
-  *     to set the number of methods for
-  * @param numberOfMethods the number of methods
-  */
-  public void setNumberOfMethods(final FileDescriptor fileDescriptor, 
+   * Sets the number of methods metric.
+   *
+   * @param fileDescriptor  the file descriptor of the corresponding file we want to set the number
+   *                        of methods for
+   * @param numberOfMethods the number of methods
+   */
+  public void setNumberOfMethods(final FileDescriptor fileDescriptor,
       final int numberOfMethods) {
     final FileMetricHandler fileMetricHandler = this.fileNameToFileMetricHandlerMap
         .get(fileDescriptor.relativePath);
     fileMetricHandler.setNumberOfMethods(numberOfMethods);
   }
 
-  /** Returns the commit report data.
-   ** 
-   ** @return commit report data object
+  /**
+   * Returns the commit report data. * * @return commit report data object
    */
   public CommitReportData getCommitReport() {
     for (final Map.Entry<String, FileMetricHandler> entry : this.fileNameToFileMetricHandlerMap

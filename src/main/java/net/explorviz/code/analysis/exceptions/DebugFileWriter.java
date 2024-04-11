@@ -14,6 +14,7 @@ import org.slf4j.LoggerFactory;
  * Simple Class to write failing file content to files.
  */
 public final class DebugFileWriter {
+
   private static final Logger LOGGER = LoggerFactory.getLogger(JavaParserService.class);
   private static final String UNABLE_TO_WRITE = "Unable to write the content to file.";
 
@@ -25,11 +26,11 @@ public final class DebugFileWriter {
    * Saves the given content to a file.
    *
    * @param directoryPath the path where the file should be created
-   * @param content the content that should be written
-   * @param filename the name of the file
+   * @param content       the content that should be written
+   * @param filename      the name of the file
    */
   public static void saveDebugFile(final String directoryPath, final String content,
-                                   final String filename) {
+      final String filename) {
     try {
       final Path path = Paths.get(directoryPath);
       if (!Files.exists(path)) {
@@ -49,7 +50,7 @@ public final class DebugFileWriter {
    * Saves the given compilationUnit as a YAML represented file.
    *
    * @param compilationUnit the Abstract syntax tree
-   * @param path the storage path
+   * @param path            the storage path
    */
   public static void saveAstAsYaml(final CompilationUnit compilationUnit, final String path) {
     final YamlPrinter printer = new YamlPrinter(true);

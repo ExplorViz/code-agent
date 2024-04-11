@@ -11,6 +11,7 @@ import net.explorviz.code.proto.ParameterData;
  * MethodData object holds data from analyzed method.
  */
 public class MethodDataHandler implements ProtoBufConvertable<MethodData> {
+
   private static final int STRING_BUILDER_CAPACITY = 300;
 
   private final MethodData.Builder builder;
@@ -46,12 +47,12 @@ public class MethodDataHandler implements ProtoBufConvertable<MethodData> {
   /**
    * Add a parameter to the method.
    *
-   * @param name name of the parameter
-   * @param type type of the parameter
+   * @param name      name of the parameter
+   * @param type      type of the parameter
    * @param modifiers modifiers of the parameter
    */
   public void addParameter(final String name, final String type,
-                           final NodeList<Modifier> modifiers) {
+      final NodeList<Modifier> modifiers) {
     final ParameterData.Builder parameterBuilder = ParameterData.newBuilder();
     parameterBuilder.setName(name);
     parameterBuilder.setType(type);
@@ -64,8 +65,8 @@ public class MethodDataHandler implements ProtoBufConvertable<MethodData> {
   /**
    * Add a parameter to the method.
    *
-   * @param name name of the parameter
-   * @param type type of the parameter
+   * @param name      name of the parameter
+   * @param type      type of the parameter
    * @param modifiers modifiers of the parameter
    */
   public void addParameter(final String name, final String type, final List<String> modifiers) {
@@ -83,7 +84,7 @@ public class MethodDataHandler implements ProtoBufConvertable<MethodData> {
   /**
    * Adds a metric to the Method.
    *
-   * @param metricName the name of the metric
+   * @param metricName  the name of the metric
    * @param metricValue the value of the metric
    * @return the old metric value if it existed, null otherwise
    */

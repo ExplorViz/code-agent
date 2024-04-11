@@ -9,6 +9,7 @@ import net.explorviz.code.proto.StateData;
  * {@link StateData}.
  */
 public interface DataExporter {
+
   StateData requestStateData(final String upstreamName, final String branchName);
 
   void sendFileData(final FileData fileData);

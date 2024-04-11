@@ -15,6 +15,7 @@ import org.slf4j.LoggerFactory;
  * Class to bundle some file deletion methods.
  */
 public final class FileIO { // NOCS
+
   private static final Logger LOGGER = LoggerFactory.getLogger(FileIO.class);
 
   private FileIO() {

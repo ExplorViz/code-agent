@@ -6,6 +6,7 @@ import java.util.Objects;
  * Vertex to be used in the Graph. Holds a flag if it is a field vertex and holds a group label.
  */
 public class Vertex {
+
   private final String label;
   private boolean isField; // NOPMD
   private int group;
@@ -13,10 +14,6 @@ public class Vertex {
   public Vertex(final String label, final int group) {
     this.label = label;
     this.group = group;
-  }
-
-  public void setField(final boolean isField) {
-    this.isField = isField;
   }
 
   @Override
@@ -47,6 +44,10 @@ public class Vertex {
 
   public boolean isField() {
     return isField;
+  }
+
+  public void setField(final boolean isField) {
+    this.isField = isField;
   }
 
   public int getGroup() {

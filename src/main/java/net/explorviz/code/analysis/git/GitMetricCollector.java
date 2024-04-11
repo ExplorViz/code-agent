@@ -10,6 +10,7 @@ import org.slf4j.LoggerFactory;
  * A simple collector for metrics based on git data.
  */
 public final class GitMetricCollector {
+
   private static final Logger LOGGER = LoggerFactory.getLogger(GitMetricCollector.class);
 
   private static String author = "";
@@ -32,10 +33,10 @@ public final class GitMetricCollector {
    * {@link GitMetricCollector#resetAuthor()} once for every new commit.
    *
    * @param fileDataHandler the fileDataHandler to add the metric to
-   * @param commit the current commit
+   * @param commit          the current commit
    */
   public static void addCommitGitMetrics(final FileDataHandler fileDataHandler,
-                                         final RevCommit commit) {
+      final RevCommit commit) {
     if (author.isBlank()) {
       author = commit.getAuthorIdent().getEmailAddress();
     }
@@ -46,10 +47,10 @@ public final class GitMetricCollector {
    * Adds git metrics that are valid for a specific file.
    *
    * @param fileDataHandler the fileDataHandler to add the metric to
-   * @param fileDescriptor the fileDescriptor holding the file data
+   * @param fileDescriptor  the fileDescriptor holding the file data
    */
   public static void addFileGitMetrics(final FileDataHandler fileDataHandler,
-                                       final FileDescriptor fileDescriptor) {
+      final FileDescriptor fileDescriptor) {
     try {
       fileDataHandler.setModifications(fileDescriptor.modifiedLines, fileDescriptor.addedLines,
           fileDescriptor.removedLines);

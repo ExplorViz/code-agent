@@ -275,7 +275,7 @@ public class CyclomaticComplexityVisitor // NOPMD
 
 
   private void regexCheck(final String haystack, final Pattern pattern,
-                          final Pair<MetricAppender, Object> data) {
+      final Pair<MetricAppender, Object> data) {
     final Matcher matcher = pattern.matcher(haystack);
 
     while (matcher.find()) {

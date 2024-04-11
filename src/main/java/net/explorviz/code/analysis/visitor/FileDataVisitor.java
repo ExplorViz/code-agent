@@ -56,11 +56,11 @@ public class FileDataVisitor extends VoidVisitorAdapter<FileDataHandler> { // NO
   /**
    * Create a FileDataVisitor.
    *
-   * @param fallbackTypeSolver a fallback type solver
+   * @param fallbackTypeSolver     a fallback type solver
    * @param wildcardImportProperty set true if wildcard imports should be handled
    */
   public FileDataVisitor(final Optional<TypeSolver> fallbackTypeSolver,
-                         final boolean wildcardImportProperty) {
+      final boolean wildcardImportProperty) {
     super();
     this.fallbackTypeSolver = fallbackTypeSolver;
     this.wildcardImportProperty = wildcardImportProperty;

@@ -11,6 +11,7 @@ import java.util.Set;
  * Class to represent a simple Graph for easy cohesion checks.
  */
 public class Graph {
+
   private final Map<Vertex, List<Vertex>> adjVertices;
   private final Map<String, Vertex> vertexMap;
   private int groupCounter = 1;
@@ -35,7 +36,7 @@ public class Graph {
   /**
    * Add a vertex to the graph, allows to set the isField flag conveniently.
    *
-   * @param label the label for the new vertex
+   * @param label   the label for the new vertex
    * @param isField if the current vertex is a field
    */
   public void addVertex(final String label, final boolean isField) {

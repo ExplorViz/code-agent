@@ -41,7 +41,7 @@ public class MetricAppender { // NOPMD
   /**
    * Sets the metric with metricName to metricValue. The metric is attached to the current file.
    *
-   * @param metricName the name of the metric
+   * @param metricName  the name of the metric
    * @param metricValue the value of the metric
    * @return returns the old value of the metric if the metric exists, otherwise null
    */
@@ -53,7 +53,7 @@ public class MetricAppender { // NOPMD
    * Sets the metric with metricName to metricValue. The metric is attached to the current class set
    * by {@link #enterClass(ClassOrInterfaceDeclaration)}
    *
-   * @param metricName the name of the metric
+   * @param metricName  the name of the metric
    * @param metricValue the value of the metric
    * @return returns the old value of the metric if the metric exists, otherwise null
    * @throws NotFoundException gets thrown if the class object was not found and therefore the
@@ -75,15 +75,15 @@ public class MetricAppender { // NOPMD
   /**
    * Sets the metric with metricName to metricValue. The metric is attached to the given class.
    *
-   * @param metricName the name of the metric
+   * @param metricName  the name of the metric
    * @param metricValue the value of the metric
-   * @param clazz the class object to add the metric to
+   * @param clazz       the class object to add the metric to
    * @return returns the old value of the metric if the metric exists, otherwise null
    * @throws NotFoundException gets thrown if the method object was not found and therefore the
    *                           metric could not be added
    */
   public String putClassMetric(final String metricName, final String metricValue,
-                               final ClassOrInterfaceDeclaration clazz) throws NotFoundException {
+      final ClassOrInterfaceDeclaration clazz) throws NotFoundException {
     try {
       return fileData.getClassData(clazz.getFullyQualifiedName().orElse(UNKNOWN))
           .addMetric(metricName, metricValue);
@@ -98,15 +98,15 @@ public class MetricAppender { // NOPMD
    * Sets the metric with metricName to metricValue. The metric is attached to the class defined by
    * classFqn.
    *
-   * @param metricName the name of the metric
+   * @param metricName  the name of the metric
    * @param metricValue the value of the metric
-   * @param classFqn the fqn of the class
+   * @param classFqn    the fqn of the class
    * @return returns the old value of the metric if the metric exists, otherwise null
    * @throws NotFoundException gets thrown if the method object was not found and therefore the
    *                           metric could not be added
    */
   public String putClassMetric(final String metricName, final String metricValue,
-                               final String classFqn)
+      final String classFqn)
 
       throws NotFoundException {
     try {
@@ -122,7 +122,7 @@ public class MetricAppender { // NOPMD
    * Sets the metric with metricName to metricValue. The metric is attached to the current method
    * set by {@link #enterMethod(MethodDeclaration)}
    *
-   * @param metricName the name of the metric
+   * @param metricName  the name of the metric
    * @param metricValue the value of the metric
    * @return returns the old value of the metric if the metric exists, otherwise null
    * @throws NotFoundException gets thrown if the method object was not found and therefore the
@@ -146,15 +146,15 @@ public class MetricAppender { // NOPMD
    * Sets the metric with metricName to metricValue. The metric is attached to the given method. If
    * the method's name can't be resolved, null gets returned
    *
-   * @param metricName the name of the metric
+   * @param metricName  the name of the metric
    * @param metricValue the value of the metric
-   * @param method the method to add the metric to
+   * @param method      the method to add the metric to
    * @return returns the old value of the metric if the metric exists, otherwise null
    * @throws NotFoundException gets thrown if the method object was not found and therefore the
    *                           metric could not be added
    */
   public String putMethodMetric(final String metricName, final String metricValue,
-                                final MethodDeclaration method) throws NotFoundException {
+      final MethodDeclaration method) throws NotFoundException {
     if (method.getParentNode().isPresent()) {
       final Node parent = method.getParentNode().get();
       if (parent instanceof ClassOrInterfaceDeclaration) {
@@ -174,16 +174,16 @@ public class MetricAppender { // NOPMD
    * classFqn and methodFqn. Keep in mind to append the {@link Verification#parameterHash(NodeList)}
    * to the methodFqn to differentiate overloaded methods.
    *
-   * @param metricName the name of the metric
+   * @param metricName  the name of the metric
    * @param metricValue the value of the metric
-   * @param classFqn the fqn of the method's class
-   * @param methodFqn the fqn of the method
+   * @param classFqn    the fqn of the method's class
+   * @param methodFqn   the fqn of the method
    * @return returns the old value of the metric if the metric exists, otherwise null
    * @throws NotFoundException gets thrown if the method object was not found and therefore the
    *                           metric could not be added
    */
   public String putMethodMetric(final String metricName, final String metricValue, // NOPMD
-                                final String classFqn, final String methodFqn)
+      final String classFqn, final String methodFqn)
       throws NotFoundException {
     try {
       return fileData.getClassData(classFqn).getMethod(methodFqn)
@@ -223,7 +223,7 @@ public class MetricAppender { // NOPMD
    * Used to signal the entering of an anonymous class.
    *
    * @param anonymousClassName the name used to identify the anonymous class.
-   * @param parentFqn the parent fqn, e.g the fqn of the method the anonymous class is in
+   * @param parentFqn          the parent fqn, e.g the fqn of the method the anonymous class is in
    */
   public void enterAnonymousClass(final String anonymousClassName, final String parentFqn) {
     String fqn = parentFqn + "." + anonymousClassName;

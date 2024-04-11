@@ -17,6 +17,7 @@ import org.eclipse.microprofile.config.inject.ConfigProperty;
  */
 @ApplicationScoped
 public final class GrpcExporter implements DataExporter {
+
   private static final String GRPC_CLIENT_NAME = "codeAnalysisGrpcClient";
 
   @GrpcClient(GRPC_CLIENT_NAME)

@@ -16,9 +16,9 @@ public class Triple<L, M, R> {
   /**
    * Creates a Triple of data entries.
    *
-   * @param left the left data entry
+   * @param left   the left data entry
    * @param middle the middle data entry
-   * @param right the right data entry
+   * @param right  the right data entry
    */
   public Triple(final L left, final M middle, final R right) {
     this.left = left;

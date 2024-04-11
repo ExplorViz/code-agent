@@ -52,7 +52,7 @@ public class FileDataHandler implements ProtoBufConvertable<FileData> {
    * Enters an anonymous class, used while walking the AST.
    *
    * @param anonymousClassName the type of the anonymous class, as no real name is available
-   * @param parentFqn the fqn of the parent, may be the method it is created in.
+   * @param parentFqn          the fqn of the parent, may be the method it is created in.
    */
   public void enterAnonymousClass(final String anonymousClassName, final String parentFqn) {
     String fqn = parentFqn + "." + anonymousClassName;
@@ -72,7 +72,7 @@ public class FileDataHandler implements ProtoBufConvertable<FileData> {
    * Adds a new metric entry to the FileData, returns the old value of the metric if it existed,
    * null otherwise.
    *
-   * @param metricName the name/idetifier of the metric
+   * @param metricName  the name/idetifier of the metric
    * @param metricValue the value of the metric
    * @return the old value of the metric if it existed, null otherwise.
    */
@@ -163,11 +163,11 @@ public class FileDataHandler implements ProtoBufConvertable<FileData> {
    * Set the modifications entries.
    *
    * @param modifiedLines the amount of modified lines in this file
-   * @param addedLines the amount of added lines in this file
-   * @param deletedLines the amount of deleted line in this file
+   * @param addedLines    the amount of added lines in this file
+   * @param deletedLines  the amount of deleted line in this file
    */
   public void setModifications(final int modifiedLines, final int addedLines,
-                               final int deletedLines) {
+      final int deletedLines) {
     this.builder.setModifiedLines(Integer.toString(modifiedLines));
     this.builder.setAddedLines(Integer.toString(addedLines));
     this.builder.setDeletedLines(Integer.toString(deletedLines));
