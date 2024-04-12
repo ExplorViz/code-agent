@@ -123,7 +123,7 @@ public class JavaParserService {
   private FileDataHandler parseAny(final String fileContent, final String fileName, final Path path,
       final boolean calculateMetrics, final String commitSha)
       throws IOException {
-    StaticJavaParser.getConfiguration().setSymbolResolver(this.javaSymbolSolver);
+    StaticJavaParser.getParserConfiguration().setSymbolResolver(this.javaSymbolSolver);
     final CompilationUnit compilationUnit;
     try {
       if (path == null) {
