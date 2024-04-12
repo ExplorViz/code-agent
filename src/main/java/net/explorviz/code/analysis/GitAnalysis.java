@@ -144,6 +144,8 @@ public class GitAnalysis { // NOPMD
             }
           }
 
+          LOGGER.atDebug().addArgument(commit.getName()).log("Analyzing commit: {}");
+
           final Triple<List<FileDescriptor>, List<FileDescriptor>, List<FileDescriptor>>
               descriptorTriple = gitRepositoryHandler.listDiff(repository,
               Optional.ofNullable(lastCheckedCommit), commit,
