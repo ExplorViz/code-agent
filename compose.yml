@@ -1,0 +1,17 @@
+version: "3.5"
+services:
+  code-agent:
+    image: explorviz/code-agent-jvm:mr-4
+    networks:
+      - explorviz
+    volumes:
+      - ./.analysis-data:/home/jboss/analysis-data
+    environment:
+      - ANALYSIS_REMOTE_URL=https://github.com/spring-projects/spring-petclinic
+      #- ANALYSIS_SEND_TO_REMOTE=true
+      #- GRPC_HOST=localhost
+      #- GRPC_PORT=9000
+
+networks:
+  explorviz:
+    name: explorviz
