@@ -8,9 +8,13 @@ services:
       - ./.analysis-data:/home/jboss/analysis-data
     environment:
       - ANALYSIS_REMOTE_URL=https://github.com/spring-projects/spring-petclinic
-      #- ANALYSIS_SEND_TO_REMOTE=true
+      - ANALYSIS_SEND_TO_REMOTE=true
       #- GRPC_HOST=localhost
-      #- GRPC_PORT=9000
+      - GRPC_HOST=code-service
+      - GRPC_PORT=9000
+      - EXPLORVIZ_LANDSCAPE_TOKEN=mytokenvalue
+      - EXPLORVIZ_LANDSCAPE_SECRET=mytokensecret
+      - ANALYSIS_APPLICATION_NAME=petclinic
 
 networks:
   explorviz:
