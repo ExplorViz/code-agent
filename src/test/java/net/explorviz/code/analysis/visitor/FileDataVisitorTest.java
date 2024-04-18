@@ -87,7 +87,7 @@ public class FileDataVisitorTest {
     FileDataHandler fileDataHandler = new FileDataHandler("SimpleJdbcClinic.java");
     FileDataVisitor visitor = new FileDataVisitor(Optional.empty(), false);
     String path = "src/test/resources/files/SimpleJdbcClinic.java";
-    StaticJavaParser.getConfiguration()
+    StaticJavaParser.getParserConfiguration()
         .setSymbolResolver(new JavaSymbolSolver(new ReflectionTypeSolver(false)));
     final CompilationUnit compilationUnit = StaticJavaParser.parse(new File(path));
     visitor.visit(compilationUnit, fileDataHandler);

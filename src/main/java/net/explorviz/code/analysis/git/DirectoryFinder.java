@@ -7,7 +7,6 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.function.Predicate;
-import java.util.stream.Collectors;
 import net.explorviz.code.analysis.exceptions.MalformedPathException;
 import net.explorviz.code.analysis.exceptions.NotFoundException;
 import org.slf4j.Logger;
@@ -19,7 +18,7 @@ import org.slf4j.LoggerFactory;
 public final class DirectoryFinder {
 
   private static final Logger LOGGER = LoggerFactory.getLogger(DirectoryFinder.class);
-  private static final Map<String, String> PATHS = new HashMap<>();
+  private static final Map<String, List<String>> PATHS = new HashMap<>();
 
   private DirectoryFinder() {
 
@@ -75,14 +74,17 @@ public final class DirectoryFinder {
       if (path.isEmpty()) {
         continue;
       }
-      // checks if a path exists in the map and is still valid
-      if (PATHS.get(path) != null && new File(PATHS.get(path)).isDirectory()) { // NOPMD
-        pathList.add(PATHS.get(path));
+      // Handle existing valid paths
+      if (PATHS.containsKey(path) && PATHS.get(path).stream()
+          .allMatch(p -> new File(p).isDirectory())) {
+
+        pathList.addAll(PATHS.get(path));
         continue;
       }
-      String sourceDir = path;  // NOPMD
+
+      String sourceDir = path;
       boolean isOptionalPath = false;
-      // check if path is enclosed in brackets and therefore optional
+
       if (sourceDir.matches("^\\[.*\\]$")) {
         sourceDir = sourceDir.replaceAll("\\[|\\]", "");
         isOptionalPath = true;
@@ -93,77 +95,83 @@ public final class DirectoryFinder {
                 + sourceDir);
       }
       if (sourceDir.matches("\\\\\\\\|//")) {
-        sourceDir = sourceDir.replaceAll("\\\\", "\\").replaceAll("//", "/");
+        sourceDir = sourceDir.replaceAll("\\\\", "/").replaceAll("//", "/");
         LOGGER.warn("found double file separator, replaced input with -> {}", sourceDir);
       }
-      // Strip leading slashes
       sourceDir = sourceDir.replaceAll("^\\\\+|^/+", "");
       final String[] arr = sourceDir.split("[\\\\/]");
-      final List<String> traverseFolders = new ArrayList<>(Arrays.asList(arr)); // NOPMD
-      final String dir = findFolder(root, traverseFolders);
-      if (dir.isEmpty()) {
-        // skip this path if not found as it was declared as optional
-        if (isOptionalPath) {
-          continue;
-        }
+      final List<String> traverseFolders = new ArrayList<>(Arrays.asList(arr));
+
+      final List<String> dirs = findFolder(root, traverseFolders);
+
+      if (dirs.isEmpty() && !isOptionalPath) {
         throw new NotFoundException(
             "The search string " + path + " was not found anywhere inside " + root);
       }
-      PATHS.put(path, new File(dir).getAbsolutePath()); // NOPMD
-
-      pathList.add(PATHS.get(path));
+      // Store all found directories
+      PATHS.put(path, dirs);
+      dirs.forEach(dir -> {
+        File dirFile = new File(dir);
+        if (dirFile.isDirectory()) {
+          pathList.add(dirFile.getAbsolutePath());
+        }
+      });
     }
     return pathList;
   }
 
-  private static String findFolder(final String currentPath, // NOPMD
+
+  private static List<String> findFolder(final String currentPath,
       final List<String> traverseFolders) {
+    List<String> foundFolders = new ArrayList<>();
 
     // the current path is the folder we searched for, as the traverse folders are empty
     if (traverseFolders.isEmpty()) {
-      return currentPath;
+      foundFolders.add(currentPath);
+      return foundFolders;
     }
+
     // get all directories in the current directory, so we can search for the right one
     final String[] directories = new File(currentPath).list(
         (current, name) -> new File(current, name).isDirectory());
-    // if this folder is empty, throw an exception. we only get here if the traverse folder
-    // hierarchy is not right, or we got here through a wildcard operator
+
+    // if this folder is empty, return empty list
     if (directories == null) {
-      return "";
+      return foundFolders;
     }
-    // if the next traverse folder is found in the list, search there
-    if (Arrays.stream(directories)
-        .anyMatch(Predicate.isEqual(traverseFolders.get(0)))) {
+
+    // Check if the next traverse folder is found in the list, search there
+    if (Arrays.stream(directories).anyMatch(Predicate.isEqual(traverseFolders.get(0)))) {
       final String folderName = traverseFolders.get(0);
       traverseFolders.remove(0);
-      return findFolder(currentPath + File.separator + folderName, traverseFolders);
+      return findFolder(currentPath + File.separator + folderName,
+          new ArrayList<>(traverseFolders));
     }
-    // this is a wildcard, perform depth-first search
+
+    // Handle wildcard searches
     if ("*".equals(traverseFolders.get(0))) {
-      // maybe the wildcard is there, but we are already in the right directory
-      if (Arrays.stream(directories)
-          .anyMatch(Predicate.isEqual(traverseFolders.get(1)))) {
-        traverseFolders.remove(0);
-        final String folderName = traverseFolders.get(0);
-        traverseFolders.remove(0);
-        return findFolder(currentPath + File.separator + folderName, traverseFolders);
-      }
+
+      traverseFolders.remove(0); // Remove the wildcard for deeper searches
+
       for (final String directory : directories) {
-        final List<String> folders = traverseFolders.stream().skip(1).collect(Collectors.toList());
-        // search in the next level as the folder is there
-        String path = findFolder(currentPath + File.separator + directory, folders);
-        if (!path.isEmpty()) {
-          return path;
-        }
-        // search the next level with wildcard
-        path = findFolder(currentPath + File.separator + directory, traverseFolders);
-        if (!path.isEmpty()) {
-          return path;
+        List<String> folders = new ArrayList<>(
+            traverseFolders); // Copy remaining paths for recursive search
+
+        // Search recursively without the wildcard
+        List<String> pathResults = findFolder(currentPath + File.separator + directory, folders);
+        foundFolders.addAll(pathResults);
+
+        // Continue to search in remaining directories using wildcard if needed
+        if (!traverseFolders.isEmpty()) {
+          folders = new ArrayList<>(traverseFolders); // Restore traverse folders for next iteration
+          folders.add(0, "*"); // Add wildcard back for the next directory
+          pathResults = findFolder(currentPath + File.separator + directory, folders);
+          foundFolders.addAll(pathResults);
         }
       }
     }
-    // folder was not found
-    return "";
+
+    return foundFolders;
   }
 
 }
