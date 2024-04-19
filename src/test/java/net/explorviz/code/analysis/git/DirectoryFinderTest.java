@@ -36,8 +36,8 @@ public class DirectoryFinderTest {
   @BeforeEach
   void setup() throws IOException {
     tempLocation = Files.createTempDirectory("explorviz-test").toFile();
-    Files.createDirectories(Paths.get(tempLocation.getAbsolutePath(), SRC, "main", JAVA));
-    Files.createDirectories(Paths.get(tempLocation.getAbsolutePath(), SRC, "test", JAVA));
+    Files.createDirectories(Paths.get(tempLocation.getAbsolutePath(), "src", "main", "java"));
+    Files.createDirectories(Paths.get(tempLocation.getAbsolutePath(), "src", "test", "java"));
   }
 
 
@@ -52,15 +52,32 @@ public class DirectoryFinderTest {
 
 
   @Test()
-  void testRelativePath() {
+  void testRelativePathWithWildcard() {
     List<String> searchPaths = new ArrayList<>();
-    searchPaths.add(MAIN_SOURCE_PATH);
+    searchPaths.add("**main/java");
     try {
-      List<String> absolutePaths = DirectoryFinder.getDirectory(searchPaths,
-          tempLocation.getAbsolutePath());
+      List<String> absolutePaths = DirectoryFinder.getDirectories(tempLocation.getAbsolutePath(),
+          searchPaths);
       Assertions.assertEquals(1, absolutePaths.size());
       // clean string from mutiple slashes and bring to system seperator
-      String s = (tempLocation.getAbsolutePath() + searchPaths.get(0)).replaceAll(
+      final String expected = (tempLocation.getAbsolutePath() + MAIN_SOURCE_PATH).replaceAll(
+          REGEX_CONTAINS_SLASH,
+          Matcher.quoteReplacement(File.separator));
+      Assertions.assertEquals(expected, absolutePaths.get(0));
+    } catch (NotFoundException e) {
+      Assertions.fail(NOT_FOUND);
+    }
+  }
+
+  @Test()
+  void testLeadingWildcardPath() {
+    List<String> searchPaths = new ArrayList<>();
+    searchPaths.add("**src/main/java");
+    try {
+      List<String> absolutePaths = DirectoryFinder.getDirectories(tempLocation.getAbsolutePath(),
+          searchPaths);
+      Assertions.assertEquals(1, absolutePaths.size());
+      String s = (tempLocation.getAbsolutePath() + "/src/main/java").replaceAll(
           REGEX_CONTAINS_SLASH,
           Matcher.quoteReplacement(File.separator));
       Assertions.assertEquals(absolutePaths.get(0), s);
@@ -70,14 +87,16 @@ public class DirectoryFinderTest {
   }
 
   @Test()
-  void testLeadingWildcardPath() {
+  void testForNoDuplicates() {
     List<String> searchPaths = new ArrayList<>();
-    searchPaths.add("*/main/java");
+    searchPaths.add("**src/main/java");
+    searchPaths.add("**main/java");
+    searchPaths.add("src/main/java");
     try {
-      List<String> absolutePaths = DirectoryFinder.getDirectory(searchPaths,
-          tempLocation.getAbsolutePath());
+      List<String> absolutePaths = DirectoryFinder.getDirectories(tempLocation.getAbsolutePath(),
+          searchPaths);
       Assertions.assertEquals(1, absolutePaths.size());
-      String s = (tempLocation.getAbsolutePath() + MAIN_SOURCE_PATH).replaceAll(
+      String s = (tempLocation.getAbsolutePath() + "/src/main/java").replaceAll(
           REGEX_CONTAINS_SLASH,
           Matcher.quoteReplacement(File.separator));
       Assertions.assertEquals(absolutePaths.get(0), s);
@@ -91,8 +110,8 @@ public class DirectoryFinderTest {
     List<String> searchPaths = new ArrayList<>();
     searchPaths.add("src/*/java");
     try {
-      List<String> absolutePaths = DirectoryFinder.getDirectory(searchPaths,
-          tempLocation.getAbsolutePath());
+      List<String> absolutePaths = DirectoryFinder.getDirectories(tempLocation.getAbsolutePath(),
+          searchPaths);
       Assertions.assertEquals(2, absolutePaths.size());
       String expected1 = (tempLocation.getAbsolutePath() + TEST_SOURCE_PATH).replaceAll(
           REGEX_CONTAINS_SLASH,
@@ -108,32 +127,40 @@ public class DirectoryFinderTest {
   }
 
   @Test()
-  void testConsecutiveInfixWildcardPath() throws IOException {
+  void testZeroOrMoreDirectoriesWildcardPath() throws IOException {
     List<String> searchPaths = new ArrayList<>();
-    searchPaths.add("src/*/*/java");
+    searchPaths.add("src/**/java");
 
     Files.createDirectories(
         Paths.get(tempLocation.getAbsolutePath(), SRC, "test", "integration", JAVA));
 
     try {
-      List<String> absolutePaths = DirectoryFinder.getDirectory(searchPaths,
-          tempLocation.getAbsolutePath());
-      Assertions.assertEquals(1, absolutePaths.size());
+      List<String> absolutePaths = DirectoryFinder.getDirectories(tempLocation.getAbsolutePath(),
+          searchPaths);
+      Assertions.assertEquals(3, absolutePaths.size());
       String expected1 = (tempLocation.getAbsolutePath() + "/src/test/integration/java").replaceAll(
           REGEX_CONTAINS_SLASH,
           Matcher.quoteReplacement(File.separator));
+      String expected2 = (tempLocation.getAbsolutePath() + "/src/main/java").replaceAll(
+          REGEX_CONTAINS_SLASH,
+          Matcher.quoteReplacement(File.separator));
+      String expected3 = (tempLocation.getAbsolutePath() + "/src/test/java").replaceAll(
+          REGEX_CONTAINS_SLASH,
+          Matcher.quoteReplacement(File.separator));
       Assertions.assertTrue(absolutePaths.contains(expected1));
+      Assertions.assertTrue(absolutePaths.contains(expected2));
+      Assertions.assertTrue(absolutePaths.contains(expected3));
     } catch (NotFoundException e) {
       Assertions.fail(NOT_FOUND);
     }
-
   }
 
   @Test()
-  void testConsecutiveInfixWildcardUnresolvablePath() {
+  void testConsecutiveInfixWildcardUnresolvablePath() throws NotFoundException {
     List<String> searchPaths = new ArrayList<>();
     searchPaths.add("src/*/*/main/java");
-    Assertions.assertThrows(NotFoundException.class, () -> DirectoryFinder.getDirectory(searchPaths,
-        tempLocation.getAbsolutePath()));
+    List<String> result = DirectoryFinder.getDirectories(tempLocation.getAbsolutePath(),
+        searchPaths);
+    Assertions.assertEquals(0, result.size());
   }
 }

@@ -257,8 +257,8 @@ public class GitAnalysis { // NOPMD
     Git.wrap(repository).checkout().setName(commit.getName()).call();
 
     javaParserService.reset(
-        DirectoryFinder.getDirectory(List.of(sourceDirectoryProperty.orElse("").split(",")),
-            GitRepositoryHandler.getCurrentRepositoryPath()));
+        DirectoryFinder.getDirectories(GitRepositoryHandler.getCurrentRepositoryPath(),
+            List.of(sourceDirectoryProperty.orElse("").split(","))));
     GitMetricCollector.resetAuthor();
 
     final Map<String, FileDataHandler> fileNameToFileDataHandlerMap = new HashMap<>();
