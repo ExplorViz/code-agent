@@ -111,10 +111,6 @@ public class CommitReportHandler { // NOPMD
     builder.setApplicationName(applicationName);
   }
 
-  public void setRelevantForAnalysis(final boolean isRelevantForAnalysis) {
-    builder.setIsRelevantToAnalysis(isRelevantForAnalysis);
-  }
-
   /**
    * Sets the lines of code (loc) metric. * @param fileDescriptor the file descriptor of the
    * corresponding file we want to set the lines of code for * @param loc the lines of code

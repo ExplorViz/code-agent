@@ -84,6 +84,9 @@ public class GitAnalysis { // NOPMD
   @ConfigProperty(name = "explorviz.landscape.token")
   /* default */ String landscapeTokenProperty;  // NOCS
 
+  @ConfigProperty(name = "explorviz.gitanalysis.send-unrelated-commits")
+  /* default */ boolean sendUnrelatedCommits;  // NOCS
+
   @ConfigProperty(name = "explorviz.gitanalysis.application-name")
   /* default */ String applicationNameProperty;  // NOCS
 
@@ -361,8 +364,13 @@ public class GitAnalysis { // NOPMD
     boolean isRelatedToDesiredAnalysisFolder =
         !modifiedFiles.isEmpty() || !deletedFiles.isEmpty() || !addedFiles.isEmpty();
 
-    commitReportHandler.setRelevantForAnalysis(isRelatedToDesiredAnalysisFolder);
-    exporter.sendCommitReport(commitReportHandler.getCommitReport());
+    if (this.sendUnrelatedCommits) {// NOCS
+      exporter.sendCommitReport(commitReportHandler.getCommitReport());
+    } else if (isRelatedToDesiredAnalysisFolder) { // NOCS
+      exporter.sendCommitReport(commitReportHandler.getCommitReport());
+    }
+
+
   }
 
   private FileDataHandler fileAnalysis(final Repository repository, final FileDescriptor file,
