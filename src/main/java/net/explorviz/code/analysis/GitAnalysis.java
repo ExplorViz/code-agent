@@ -191,9 +191,8 @@ public class GitAnalysis { // NOPMD
             break;
           }
         }
-        if (LOGGER.isInfoEnabled()) {
-          LOGGER.info("Analyzed {} commits", commitCount);
-        }
+
+        LOGGER.atTrace().addArgument(commitCount).log("Analyzed {} commits");
       }
       // checkout the branch, so not a single commit is checked out after the run
       Git.wrap(repository).checkout().setName(branch).call();
@@ -232,9 +231,8 @@ public class GitAnalysis { // NOPMD
     revWalk.sort(RevSort.COMMIT_TIME_DESC, true);
     revWalk.sort(RevSort.REVERSE, true);
 
-    if (LOGGER.isInfoEnabled()) {
-      LOGGER.info("analyzing branch " + branch);
-    }
+    LOGGER.atTrace().addArgument(branch).log("Analyzing branch: {}");
+
     // get a list of all known heads, tags, remotes, ...
     final Collection<Ref> allRefs = repository.getRefDatabase().getRefs();
     for (final Ref ref : allRefs) {
@@ -399,9 +397,9 @@ public class GitAnalysis { // NOPMD
       exporter = new JsonExporter();
     }
     analyzeAndSendRepo(exporter);
-    if (LOGGER.isInfoEnabled()) {
-      LOGGER.info("Analysis finished successfully, exiting now.");
-    }
+
+    LOGGER.atInfo().log("Analysis finished successfully, exiting now.");
+
     Quarkus.asyncExit();
     // Quarkus.waitForExit();
     // System.exit(-1); // NOPMD

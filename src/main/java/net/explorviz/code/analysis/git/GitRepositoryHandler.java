@@ -170,27 +170,24 @@ public class GitRepositoryHandler { // NOPMD
     String repoPath = remoteRepositoryObject.getStoragePath();
     if (remoteRepositoryObject.getStoragePath().isBlank()) {
       repoPath = Files.createTempDirectory("TemporaryRepository").toAbsolutePath().toString();
-      if (LOGGER.isInfoEnabled()) {
-        LOGGER.info("No path given, repository will be cloned to " + repoPath);
-      }
+      LOGGER.atInfo().addArgument(repoPath)
+          .log("No path given, repository will be cloned to: {}");
     } else if (new File(repoPath).isAbsolute()) {
-      if (LOGGER.isInfoEnabled()) {
-        LOGGER.info("Repository will be cloned to " + repoPath);
-      }
+      LOGGER.atInfo().addArgument(repoPath)
+          .log("Repository will be cloned to: {}");
     } else {
       String systemPath = System.getProperty("user.dir");
       systemPath = systemPath.replace("\\build\\classes\\java\\main", "");
       systemPath = systemPath.replace("/build/classes/java/main", "");
       repoPath = Paths.get(systemPath, repoPath).toString();
-      if (LOGGER.isInfoEnabled()) {
-        LOGGER.info("Detected relative path, absolute is: " + repoPath);
-      }
+      LOGGER.atInfo().addArgument(repoPath)
+          .log("Detected relative path, absolute is: {}");
     }
 
     try {
-      if (LOGGER.isInfoEnabled()) {
-        LOGGER.info("Cloning repository from " + checkedRepositoryUrl.getValue());
-      }
+      LOGGER.atInfo().addArgument(checkedRepositoryUrl.getValue())
+          .log("Cloning repository from: {}");
+
       FileIO.cleanDirectory(repoPath);
       this.git = Git.cloneRepository().setURI(checkedRepositoryUrl.getValue())
           .setCredentialsProvider(remoteRepositoryObject.getCredentialsProvider())
@@ -283,9 +280,7 @@ public class GitRepositoryHandler { // NOPMD
       final RemoteRepositoryObject remoteRepositoryObject) throws IOException, GitAPIException {
 
     if (localRepositoryPath.isBlank()) {
-      if (LOGGER.isInfoEnabled()) {
-        LOGGER.info("No local repository given, using remote");
-      }
+      LOGGER.atInfo().log("No local repository given, using remote");
 
       return this.downloadGitRepository(remoteRepositoryObject);
     } else {
@@ -380,20 +375,20 @@ public class GitRepositoryHandler { // NOPMD
 
       for (final DiffEntry diff : diffs) {
         if (diff.getChangeType().equals(DiffEntry.ChangeType.DELETE)) {
-          LOGGER.info("File Deleted");
+          //LOGGER.info("File Deleted");
           putInList2(repository, diff, deletedObjectIdList);
           continue;
         } else if (diff.getChangeType().equals(DiffEntry.ChangeType.RENAME)) {
-          LOGGER.info("File Renamed");
+          //LOGGER.info("File Renamed");
           putInList(repository, diff, addedObjectIdList);
         } else if (diff.getChangeType().equals(DiffEntry.ChangeType.COPY)) {
-          LOGGER.info("File Copied");
+          //LOGGER.info("File Copied");
           putInList(repository, diff, addedObjectIdList);
         } else if (diff.getChangeType().equals(DiffEntry.ChangeType.MODIFY)) {
-          LOGGER.info("File Modified");
+          //LOGGER.info("File Modified");
           putInList(repository, diff, modifiedObjectIdList);
         } else if (diff.getChangeType().equals(DiffEntry.ChangeType.ADD)) {
-          LOGGER.info("File Added");
+          //LOGGER.info("File Added");
           putInList(repository, diff, addedObjectIdList);
         }
       }

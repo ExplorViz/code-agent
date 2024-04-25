@@ -33,9 +33,10 @@ public class JsonExporter implements DataExporter {
     systemPath = systemPath.replace("/build/classes/java/main", "");
     this.storageDirectory = Paths.get(systemPath, "analysis-data").toString();
     Files.createDirectories(Paths.get(storageDirectory));
-    if (LOGGER.isInfoEnabled()) {
-      LOGGER.info("The analysis-data folder is created here: {}", storageDirectory);
-    }
+
+    LOGGER.atInfo().addArgument(storageDirectory)
+        .log("The analysis-data folder is created here: {}");
+
     this.commitCount = 0;
   }
 
