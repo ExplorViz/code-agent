@@ -226,8 +226,9 @@ public class FileDataVisitor extends VoidVisitorAdapter<FileDataHandler> { // NO
 
   @Override
   public void visit(final CompilationUnit n, final FileDataHandler data) {
-    data.addMetric(LOC, String.valueOf(getLoc(n)));
-    LoggerFactory.getLogger(GitAnalysis.class).info("LOC: {}", String.valueOf(getLoc(n)));
+    final String locValue = String.valueOf(getLoc(n));
+    data.addMetric(LOC, locValue);
+    LOGGER.atTrace().addArgument(locValue).log("LOC: {}");
     super.visit(n, data);
   }
 
