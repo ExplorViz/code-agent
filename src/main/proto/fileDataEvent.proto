@@ -1,0 +1,72 @@
+syntax = "proto3";
+
+option java_multiple_files = true;
+option java_package = "net.explorviz.code.proto";
+option java_outer_classname = "FileDataEvent";
+
+import "google/protobuf/empty.proto";
+
+service FileDataService {
+  rpc sendFileData (FileData) returns (google.protobuf.Empty) {}
+}
+
+message  MethodData {
+  string returnType = 1;
+  repeated string modifier = 2;
+  repeated ParameterData parameter = 3;
+  repeated string outgoingMethodCalls = 4;
+  bool isConstructor = 5;
+  repeated string annotation = 6;
+  map<string, string> metric = 7;
+}
+
+enum ClassType {
+  INTERFACE = 0;
+  ABSTRACT_CLASS = 1;
+  CLASS = 2;
+  ENUM = 3;
+  ANONYMOUS_CLASS = 4;
+}
+
+message ParameterData {
+  string name = 1;
+  string type = 2;
+  repeated string modifier = 3;
+}
+
+message FieldData {
+  string name = 1;
+  string type = 2;
+  repeated string modifier = 3;
+}
+
+message ClassData {
+  ClassType type = 1;
+  repeated string modifier = 2;
+  repeated string interface = 3;
+  repeated FieldData field = 4;
+  repeated string innerClass = 5;
+  repeated MethodData constructor = 6;
+  map<string, MethodData>  methodData = 7;
+  repeated string variable = 8;
+  string superClass = 9;
+  repeated string enumConstant = 10;
+  repeated string annotation = 11;
+
+  map<string, string> metric = 12;
+}
+
+message FileData {
+  string commitID = 1;
+  string fileName = 2;
+  string packageName = 3;
+  repeated string importName = 4;
+  map<string, ClassData> classData = 5;
+  map<string, string> metric = 6;
+  string author = 7;
+  string modifiedLines = 8;
+  string addedLines = 9;
+  string deletedLines = 10;
+  string landscapeToken = 11;
+  string applicationName = 12;
+}

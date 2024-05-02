@@ -1,0 +1,27 @@
+syntax = "proto3";
+
+option java_multiple_files = true;
+option java_package = "net.explorviz.code.proto";
+option java_outer_classname = "StateDataEvent";
+
+//import "google/protobuf/empty.proto";
+
+service StateDataService {
+  rpc RequestStateData (StateDataRequest) returns (StateData) {}
+}
+
+message StateData {
+  string commitID = 1;
+  string upstreamName = 2;
+  string branchName = 3;
+  string landscapeToken = 4;
+  string landscapeSecret = 5;
+}
+
+message StateDataRequest {
+  string upstreamName = 1;
+  string branchName = 2;
+  string landscapeToken = 3;
+  string landscapeSecret = 4;
+  string applicationName = 5;
+}

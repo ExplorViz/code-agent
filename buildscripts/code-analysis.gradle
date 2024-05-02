@@ -4,29 +4,21 @@ apply plugin: 'jacoco'
 
 jacocoTestReport {
 
+  executionData { tasks.withType(Test).findAll { it.jacoco.destinationFile.exists() }*.jacoco.destinationFile }
+
   reports {
-    xml.enabled true
-    html.enabled true
-  }
-  
-  afterEvaluate {
-    classDirectories.setFrom(files(classDirectories.files.collect {
-      fileTree(dir: it, exclude: [
-        '**/opencensus/**',
-        '**/proto/**'
-      ])
-    }))
+    xml.required = true
+    html.required = true
   }
 }
 
-jacocoTestReport.dependsOn test
-
 pmd {
   // Empty ruleset is necessary for exclude-pattern
+  // https://stackoverflow.com/questions/32247190/pmd-exclude-pattern-with-gradle
   ruleSets = []
   ruleSetFiles = files("code-analysis/pmd.xml")
   ignoreFailures = false
-  toolVersion = "6.40.0"
+  toolVersion = "6.53.0"
 }
 
 checkstyle {
@@ -34,21 +26,5 @@ checkstyle {
   configFile = file("code-analysis/checkstyle.xml")
   maxWarnings = 0
   ignoreFailures = false
-  toolVersion = "8.44"
-}
-
-task checkstyle {
-  group 'Quality Assurance'
-  description 'Run Checkstyle'
-  
-  dependsOn 'checkstyleMain'
-  dependsOn 'checkstyleTest'
-}
-
-task pmd {
-  group 'Quality Assurance'
-  description 'Run PMD'
-
-  dependsOn 'pmdMain'
-  dependsOn 'pmdTest'
+  toolVersion = "10.12.5"
 }
