@@ -1,4 +1,3 @@
-version: "3.5"
 services:
   code-agent:
     image: explorviz/code-agent-jvm:mr-4
@@ -16,8 +15,10 @@ services:
       - ANALYSIS_BRANCH=main
       - ANALYSIS_SOURCE_DIRS=src/main/java
       - ANALYSIS_RESTRICT_DIRS=src/main/java
-      #- ANALYSIS_END_COMMIT=521d01db950e357cf81ef78c50daf290e92b309c
+      - EXPLORVIZ_LOG_LVL=DEBUG
+      - ANALYSIS_END_COMMIT=f48227aea0e4056e1b9105494ea2f6360f3975f3
 
 networks:
   explorviz:
     name: explorviz
+    external: true

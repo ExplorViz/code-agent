@@ -31,7 +31,6 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.Optional;
 import java.util.stream.Collectors;
-import net.explorviz.code.analysis.GitAnalysis;
 import net.explorviz.code.analysis.handler.FileDataHandler;
 import net.explorviz.code.analysis.handler.MethodDataHandler;
 import net.explorviz.code.analysis.types.Verification;
@@ -226,8 +225,9 @@ public class FileDataVisitor extends VoidVisitorAdapter<FileDataHandler> { // NO
 
   @Override
   public void visit(final CompilationUnit n, final FileDataHandler data) {
-    data.addMetric(LOC, String.valueOf(getLoc(n)));
-    LoggerFactory.getLogger(GitAnalysis.class).info("LOC: {}", String.valueOf(getLoc(n)));
+    final String locValue = String.valueOf(getLoc(n));
+    data.addMetric(LOC, locValue);
+    LOGGER.atTrace().addArgument(locValue).log("LOC: {}");
     super.visit(n, data);
   }
 
