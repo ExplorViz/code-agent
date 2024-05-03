@@ -17,7 +17,7 @@ services:
       - ANALYSIS_SOURCE_DIRS=src/main/java
       - ANALYSIS_RESTRICT_DIRS=src/main/java
       - EXPLORVIZ_LOG_LVL=DEBUG
-      - ANALYSIS_END_COMMIT=9ecdc1111e3da388a750ace41a125287d9620534
+      - ANALYSIS_END_COMMIT=f48227aea0e4056e1b9105494ea2f6360f3975f3
 
 networks:
   explorviz:
