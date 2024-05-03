@@ -1,6 +1,6 @@
 services:
   code-agent:
-    image: explorviz/code-agent-jvm:mr-4
+    image: explorviz/code-agent-jvm:latest
     networks:
       - explorviz
     environment:
