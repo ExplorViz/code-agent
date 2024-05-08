@@ -51,6 +51,8 @@ public class GitAnalysis { // NOPMD
 
   private static final Logger LOGGER = LoggerFactory.getLogger(GitAnalysis.class);
 
+  private static final int ONE_SECOND_IN_MILLISECONDS = 1000;
+
   @ConfigProperty(name = "explorviz.gitanalysis.local.storage-path")
   /* default */ Optional<String> repoPathProperty;  // NOCS
 
@@ -387,6 +389,8 @@ public class GitAnalysis { // NOPMD
   /* package */ void onStart(@Observes final StartupEvent ev)
       throws IOException, GitAPIException, PropertyNotDefinedException, NotFoundException {
 
+    final long startTime = System.currentTimeMillis();
+
     if (repoPathProperty.isEmpty() && repoRemoteUrlProperty.isEmpty()) {
       return;
     }
@@ -398,7 +402,10 @@ public class GitAnalysis { // NOPMD
     }
     analyzeAndSendRepo(exporter);
 
-    LOGGER.atInfo().log("Analysis finished successfully, exiting now.");
+    final long endTime = System.currentTimeMillis();
+
+    LOGGER.atInfo().addArgument((endTime - startTime) / ONE_SECOND_IN_MILLISECONDS)
+        .log("Analysis finished successfully and took {} seconds, exiting now. ");
 
     Quarkus.asyncExit();
     // Quarkus.waitForExit();
