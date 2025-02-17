@@ -1,6 +1,6 @@
 # code-agent
 
-This project is a tool that analyzes a git repository containg a java project.
+This project is a tool that analyzes a git repository containing a java project.
 
 ## Usage and Run Modes
 
@@ -15,7 +15,7 @@ By changing some settings in the ``application.properties`` file, it is possible
 | explorviz.gitanalysis.start-commit-sha1 | ${CI_COMMIT_BEFORE_SHA:} |
 | explorviz.gitanalysis.end-commit-sha1   | ${CI_COMMIT_SHA:}        |
 
-Setting the ``explorviz.gitanalysis.remote.url`` and the ``explorviz.gitanalysis.branch`` properties is mandatory,
+Setting the ``explorviz.gitanalysis.remote.url`` property is mandatory,
 the ``explorviz.gitanalysis.start-commit-sha1`` can be helpful if no fetching from a remote is done, as the
 analysis will only be performed on subsequent commits. The ``explorviz.gitanalysis.end-commit-sha1`` shouldn't be
 necessary at all. The CI-Pipeline normally runs on the latest commit so the value of the property is always the
@@ -160,7 +160,7 @@ If more than one wildcard import is found, this setting automatically is disable
 ### Search Expressions
 
 Search expressions are simple strings to define paths relative to the repository path. Multiple expressions can be
-defined by simply comma-seperating them.
+defined by simply comma-separating them.
 
 #### Wildcard
 
@@ -177,9 +177,9 @@ the wildcard.
 Infix Wildcards:
 
 E.g. the folder location ``/src/*/java`` is searched in the repository starting with ``src`` and must end with ``java``.
-The path ``src/main/java`` would match as well as ``/src/some/deep/hierarchy/to/serach/java``. If both folder structures
+The path ``src/main/java`` would match as well as ``/src/some/deep/hierarchy/to/search/java``. If both folder structures
 would exist, one of these could be returned as the folders are not searched in a specific order. Make sure the folder is
-unambigous.
+unambiguous.
 
 Single wildcards do not guarantee a deeper folder level, the search string ``/some/*/path`` will match the
 folder ``some/path`` even if ``some/other/path/`` exists and might be the wanted.
@@ -189,10 +189,11 @@ matches ``/some/other/path/``, ``/some/deeper/other/path/`` or even deeper but n
 
 **WARNING: paths ending with wildcards are not allowed!**
 
+<!-- The following can produce syntax errors
 #### Optional Paths
 
 If a folder, like the test folder, is not present from the first commit onwards, it is possible to define these type of
 folders as optional. Optional folders are considered if they are found and ignored if not present.
 
 To define a search expression as optional, simply put it in brackets: ``[\src\test\java]``. Wildcards are supported in
-optional search expressions.
+optional search expressions. -->
