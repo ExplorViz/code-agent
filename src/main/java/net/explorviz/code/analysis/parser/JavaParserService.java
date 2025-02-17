@@ -1,6 +1,7 @@
 package net.explorviz.code.analysis.parser;
 
 import com.github.javaparser.ParseProblemException;
+import com.github.javaparser.ParserConfiguration.LanguageLevel;
 import com.github.javaparser.StaticJavaParser;
 import com.github.javaparser.ast.CompilationUnit;
 import com.github.javaparser.symbolsolver.JavaSymbolSolver;
@@ -123,6 +124,8 @@ public class JavaParserService {
   private FileDataHandler parseAny(final String fileContent, final String fileName, final Path path,
       final boolean calculateMetrics, final String commitSha)
       throws IOException {
+    // ToDo: Make this configurable
+    StaticJavaParser.getParserConfiguration().setLanguageLevel(LanguageLevel.JAVA_21);
     StaticJavaParser.getParserConfiguration().setSymbolResolver(this.javaSymbolSolver);
     final CompilationUnit compilationUnit;
     try {
