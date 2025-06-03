@@ -46,6 +46,7 @@ import org.eclipse.jgit.treewalk.AbstractTreeIterator;
 import org.eclipse.jgit.treewalk.CanonicalTreeParser;
 import org.eclipse.jgit.treewalk.TreeWalk;
 import org.eclipse.jgit.treewalk.filter.AndTreeFilter;
+import org.eclipse.jgit.treewalk.filter.OrTreeFilter;
 import org.eclipse.jgit.treewalk.filter.PathFilterGroup;
 import org.eclipse.jgit.treewalk.filter.PathSuffixFilter;
 import org.eclipse.jgit.treewalk.filter.TreeFilter;
@@ -62,6 +63,8 @@ public class GitRepositoryHandler { // NOPMD
 
   private static final Logger LOGGER = LoggerFactory.getLogger(GitRepositoryHandler.class);
   private static final String JAVA_PATH_SUFFIX = ".java";
+  private static final String C_PATH_SUFFIX = ".c";
+  private static final String C_HEADER_PATH_SUFFIX = ".h";
   private static String repositoryPath;
 
   @ConfigProperty(name = "explorviz.gitanalysis.local.storage-path")
@@ -363,7 +366,7 @@ public class GitRepositoryHandler { // NOPMD
     final List<FileDescriptor> deletedObjectIdList = new ArrayList<>();
     List<FileDescriptor> addedObjectIdList = new ArrayList<>();
 
-    final TreeFilter filter = getJavaFileTreeFilter(pathRestrictions);
+    final TreeFilter filter = getJavaOrCfileTreeFilter(pathRestrictions);
 
     if (oldCommit.isEmpty()) {
       addedObjectIdList = listFilesInCommit(repository, newCommit, filter);
@@ -461,24 +464,26 @@ public class GitRepositoryHandler { // NOPMD
   public List<FileDescriptor> listFilesInCommit(final Repository repository, // NOPMD
       final RevCommit commit, final List<String> pathRestrictions)
       throws IOException, NotFoundException {
-    return listFilesInCommit(repository, commit, getJavaFileTreeFilter(pathRestrictions));
+    return listFilesInCommit(repository, commit,
+        getJavaOrCfileTreeFilter(pathRestrictions));
   }
 
   /**
-   * Returns a list of all Java Files in the repository.
+   * Returns a list of all Java or C (-header) Files in the repository.
    *
    * @param repository       the current repository
    * @param commit           the commit to get the list of files for
    * @param pathRestrictions a comma separated list of search strings specifying the folders to
    *                         analyze, if omitted, the entire repository will be searched
-   * @return returns a list of FileDescriptors of all java files within the specified folders
+   * @return returns a list of FileDescriptors of all java or C (-header) files within the 
+   *         specified folders
    * @throws IOException       thrown if files are not available
    * @throws NotFoundException thrown if the restrictionPath was not found
    */
   public List<FileDescriptor> listFilesInCommit(final Repository repository, // NOPMD
       final RevCommit commit, final String pathRestrictions) throws IOException, NotFoundException {
     return listFilesInCommit(repository, commit,
-        getJavaFileTreeFilter(Arrays.asList(pathRestrictions.split(","))));
+        getJavaOrCfileTreeFilter(Arrays.asList(pathRestrictions.split(","))));
   }
 
   private List<FileDescriptor> listFilesInCommit(final Repository repository, // NOPMD
@@ -497,11 +502,18 @@ public class GitRepositoryHandler { // NOPMD
 
   }
 
-  private TreeFilter getJavaFileTreeFilter(final List<String> pathRestrictions)
+  private TreeFilter getJavaOrCfileTreeFilter(final List<String> pathRestrictions)
       throws NotFoundException {
     if (pathRestrictions.isEmpty() || pathRestrictions.size() == 1 && pathRestrictions.get(0)
         .isBlank()) {
-      return PathSuffixFilter.create(JAVA_PATH_SUFFIX);
+        
+      final PathSuffixFilter suffixFilterJava = PathSuffixFilter.create(JAVA_PATH_SUFFIX);
+      final PathSuffixFilter suffixFilterC = PathSuffixFilter.create(C_PATH_SUFFIX);
+      final PathSuffixFilter suffixFilterCheader = PathSuffixFilter.create(C_HEADER_PATH_SUFFIX);
+
+      return OrTreeFilter.create(
+          OrTreeFilter.create(suffixFilterJava, suffixFilterC),
+          suffixFilterCheader);
     } else {
       final List<String> pathList = DirectoryFinder.getRelativeDirectory(pathRestrictions,
           getCurrentRepositoryPath());
@@ -510,7 +522,11 @@ public class GitRepositoryHandler { // NOPMD
         newPathList.add(path.replaceFirst("^\\\\|/", "").replaceAll("\\\\", "/"));
       }
       final TreeFilter pathFilter = PathFilterGroup.createFromStrings(newPathList);
-      final PathSuffixFilter suffixFilter = PathSuffixFilter.create(JAVA_PATH_SUFFIX);
+      final PathSuffixFilter suffixFilterJava = PathSuffixFilter.create(JAVA_PATH_SUFFIX);
+      final PathSuffixFilter suffixFilterC = PathSuffixFilter.create(C_PATH_SUFFIX);
+      final PathSuffixFilter suffixFilterCheader = PathSuffixFilter.create(C_HEADER_PATH_SUFFIX);
+      final TreeFilter suffixFilter = OrTreeFilter.create(
+          OrTreeFilter.create(suffixFilterJava, suffixFilterC), suffixFilterCheader);
       return AndTreeFilter.create(pathFilter, suffixFilter);
     }
   }

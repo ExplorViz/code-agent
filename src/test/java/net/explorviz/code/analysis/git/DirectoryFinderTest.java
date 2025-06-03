@@ -27,8 +27,13 @@ public class DirectoryFinderTest {
   private static final String TEST_SOURCE_PATH = "/src/test/java";
   private static final String JAVA = "java";
   private static final String SRC = "src";
+  private static final String TEST = "test";
   private static final String REGEX_CONTAINS_SLASH = "\\\\+|/+";
   private static final String NOT_FOUND = "Not Found";
+  private static final String SEARCHPATH_STRING = "**src/main/java";
+  private static final String SEARCHPATH_STRING2 = "**main/java";
+
+  private static final int THREE = 3;
 
   private static File tempLocation;
   private static DirectoryFinder directoryFinder;
@@ -36,8 +41,8 @@ public class DirectoryFinderTest {
   @BeforeEach
   void setup() throws IOException {
     tempLocation = Files.createTempDirectory("explorviz-test").toFile();
-    Files.createDirectories(Paths.get(tempLocation.getAbsolutePath(), "src", "main", "java"));
-    Files.createDirectories(Paths.get(tempLocation.getAbsolutePath(), "src", "test", "java"));
+    Files.createDirectories(Paths.get(tempLocation.getAbsolutePath(), SRC, "main", JAVA));
+    Files.createDirectories(Paths.get(tempLocation.getAbsolutePath(), SRC, TEST, JAVA));
   }
 
 
@@ -54,7 +59,7 @@ public class DirectoryFinderTest {
   @Test()
   void testRelativePathWithWildcard() {
     List<String> searchPaths = new ArrayList<>();
-    searchPaths.add("**main/java");
+    searchPaths.add(SEARCHPATH_STRING2);
     try {
       List<String> absolutePaths = DirectoryFinder.getDirectories(tempLocation.getAbsolutePath(),
           searchPaths);
@@ -72,12 +77,12 @@ public class DirectoryFinderTest {
   @Test()
   void testLeadingWildcardPath() {
     List<String> searchPaths = new ArrayList<>();
-    searchPaths.add("**src/main/java");
+    searchPaths.add(SEARCHPATH_STRING);
     try {
       List<String> absolutePaths = DirectoryFinder.getDirectories(tempLocation.getAbsolutePath(),
           searchPaths);
       Assertions.assertEquals(1, absolutePaths.size());
-      String s = (tempLocation.getAbsolutePath() + "/src/main/java").replaceAll(
+      String s = (tempLocation.getAbsolutePath() + MAIN_SOURCE_PATH).replaceAll(
           REGEX_CONTAINS_SLASH,
           Matcher.quoteReplacement(File.separator));
       Assertions.assertEquals(absolutePaths.get(0), s);
@@ -89,14 +94,14 @@ public class DirectoryFinderTest {
   @Test()
   void testForNoDuplicates() {
     List<String> searchPaths = new ArrayList<>();
-    searchPaths.add("**src/main/java");
-    searchPaths.add("**main/java");
+    searchPaths.add(SEARCHPATH_STRING);
+    searchPaths.add(SEARCHPATH_STRING2);
     searchPaths.add("src/main/java");
     try {
       List<String> absolutePaths = DirectoryFinder.getDirectories(tempLocation.getAbsolutePath(),
           searchPaths);
       Assertions.assertEquals(1, absolutePaths.size());
-      String s = (tempLocation.getAbsolutePath() + "/src/main/java").replaceAll(
+      String s = (tempLocation.getAbsolutePath() + MAIN_SOURCE_PATH).replaceAll(
           REGEX_CONTAINS_SLASH,
           Matcher.quoteReplacement(File.separator));
       Assertions.assertEquals(absolutePaths.get(0), s);
@@ -132,19 +137,19 @@ public class DirectoryFinderTest {
     searchPaths.add("src/**/java");
 
     Files.createDirectories(
-        Paths.get(tempLocation.getAbsolutePath(), SRC, "test", "integration", JAVA));
+        Paths.get(tempLocation.getAbsolutePath(), SRC, TEST, "integration", JAVA));
 
     try {
       List<String> absolutePaths = DirectoryFinder.getDirectories(tempLocation.getAbsolutePath(),
           searchPaths);
-      Assertions.assertEquals(3, absolutePaths.size());
+      Assertions.assertEquals(THREE, absolutePaths.size());
       String expected1 = (tempLocation.getAbsolutePath() + "/src/test/integration/java").replaceAll(
           REGEX_CONTAINS_SLASH,
           Matcher.quoteReplacement(File.separator));
-      String expected2 = (tempLocation.getAbsolutePath() + "/src/main/java").replaceAll(
+      String expected2 = (tempLocation.getAbsolutePath() + MAIN_SOURCE_PATH).replaceAll(
           REGEX_CONTAINS_SLASH,
           Matcher.quoteReplacement(File.separator));
-      String expected3 = (tempLocation.getAbsolutePath() + "/src/test/java").replaceAll(
+      String expected3 = (tempLocation.getAbsolutePath() + TEST_SOURCE_PATH).replaceAll(
           REGEX_CONTAINS_SLASH,
           Matcher.quoteReplacement(File.separator));
       Assertions.assertTrue(absolutePaths.contains(expected1));
