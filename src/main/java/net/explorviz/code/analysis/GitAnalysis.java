@@ -256,6 +256,8 @@ public class GitAnalysis { // NOPMD
     // final Date commitDate = commit.getAuthorIdent().getWhen();
     Git.wrap(repository).checkout().setName(commit.getName()).call();
 
+    // TODO: introduce a parser that is able to parse files written
+    // in any ubiquitous programming language
     javaParserService.reset(
         DirectoryFinder.getDirectories(GitRepositoryHandler.getCurrentRepositoryPath(),
             List.of(sourceDirectoryProperty.orElse("").split(","))));
@@ -391,6 +393,8 @@ public class GitAnalysis { // NOPMD
 
     final long startTime = System.currentTimeMillis();
 
+    // TODO: check if repoRemoteUrlProperty should be replaced with 
+    // the explorviz.gitanalysis.remote.storage-path property in this if clause
     if (repoPathProperty.isEmpty() && repoRemoteUrlProperty.isEmpty()) {
       return;
     }
