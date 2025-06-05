@@ -71,6 +71,11 @@ public class JavaParserService {
     reflectionTypeSolver = new ReflectionTypeSolver(false);
     combinedTypeSolver.add(reflectionTypeSolver);
     for (final String path : sourcePaths) {
+      final String fileNameExtension = path.split("\\.")[1]; // ugly "hack"
+      if("c".equals(fileNameExtension)) {
+        System.out.println("fileNameExtension = " + fileNameExtension);
+        continue;
+      }
       combinedTypeSolver.add(new JavaParserTypeSolver(Path.of(path)));  // NOPMD
     }
     javaSymbolSolver = new JavaSymbolSolver(combinedTypeSolver);
@@ -89,10 +94,13 @@ public class JavaParserService {
       final boolean calculateMetrics) {
     final FileDataHandler data = new FileDataHandler(fileName);
     final FileDataVisitor fileDataVisitor;
-    fileDataVisitor = new FileDataVisitor(Optional.of(combinedTypeSolver), wildcardImportProperty);
-    fileDataVisitor.visit(compilationUnit, data);
-    if (calculateMetrics) {
-      calculateMetrics(data, compilationUnit, fileName);
+    final String fileNameExtension = fileName.split("\\.")[1]; // ugly hack.
+    if("java".equals(fileNameExtension)) {
+      fileDataVisitor = new FileDataVisitor(Optional.of(combinedTypeSolver), wildcardImportProperty);
+      fileDataVisitor.visit(compilationUnit, data);
+      if (calculateMetrics) {
+        calculateMetrics(data, compilationUnit, fileName);
+      }
     }
     return data;
   }
@@ -128,20 +136,24 @@ public class JavaParserService {
     StaticJavaParser.getParserConfiguration().setLanguageLevel(LanguageLevel.JAVA_21);
     StaticJavaParser.getParserConfiguration().setSymbolResolver(this.javaSymbolSolver);
     final CompilationUnit compilationUnit;
-    try {
-      if (path == null) {
-        compilationUnit = StaticJavaParser.parse(fileContent);
-      } else {
-        compilationUnit = StaticJavaParser.parse(path);
+    final String fileNameExtension = fileName.split("\\.")[1]; // ugly hack. TODO: we should make this class a ParserService which can pare any ubiquitous file (use ANTLR or similar)
+    if("java".equals(fileNameExtension)) {
+      try {
+        if (path == null) {
+          compilationUnit = StaticJavaParser.parse(fileContent);
+        } else {
+          compilationUnit = StaticJavaParser.parse(path);
+        }
+      } catch (ParseProblemException e) {
+        if (LOGGER.isErrorEnabled()) {
+          LOGGER.error("Catched Javaparser exception, can't handle this, skipping file: " + fileName);
+          LOGGER.error(e.getMessage(), e);
+        }
+        return null;
       }
-    } catch (ParseProblemException e) {
-      if (LOGGER.isErrorEnabled()) {
-        LOGGER.error("Catched Javaparser exception, can't handle this, skipping file: " + fileName);
-        LOGGER.error(e.getMessage(), e);
-      }
-      return null;
+    } else {
+      compilationUnit = new CompilationUnit();  // won't be used, but we need a CompilationUnit to pass the syntax error check
     }
-
     try {
       final FileDataHandler dataHandler = parse(compilationUnit, fileName, calculateMetrics);
       dataHandler.setCommitSha(commitSha);
