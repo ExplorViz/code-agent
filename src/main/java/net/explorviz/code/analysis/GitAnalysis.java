@@ -5,14 +5,31 @@ import io.quarkus.runtime.StartupEvent;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.enterprise.event.Observes;
 import jakarta.inject.Inject;
+
+import java.io.BufferedReader;
+import java.io.File;
+import java.io.FileWriter;
 import java.io.IOException;
+import java.io.InputStream;
+import java.io.InputStreamReader;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashMap;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.NoSuchElementException;
 import java.util.Optional;
+
+import javax.xml.XMLConstants;
+import javax.xml.namespace.NamespaceContext;
+import javax.xml.parsers.DocumentBuilder;
+import javax.xml.parsers.DocumentBuilderFactory;
+import javax.xml.xpath.XPath;
+import javax.xml.xpath.XPathConstants;
+import javax.xml.xpath.XPathExpression;
+import javax.xml.xpath.XPathFactory;
+
 import net.explorviz.code.analysis.exceptions.DebugFileWriter;
 import net.explorviz.code.analysis.exceptions.NotFoundException;
 import net.explorviz.code.analysis.exceptions.PropertyNotDefinedException;
@@ -22,6 +39,7 @@ import net.explorviz.code.analysis.export.JsonExporter;
 import net.explorviz.code.analysis.git.DirectoryFinder;
 import net.explorviz.code.analysis.git.GitMetricCollector;
 import net.explorviz.code.analysis.git.GitRepositoryHandler;
+import net.explorviz.code.analysis.handler.ClassDataHandler;
 import net.explorviz.code.analysis.handler.CommitReportHandler;
 import net.explorviz.code.analysis.handler.FileDataHandler;
 import net.explorviz.code.analysis.handler.FileMetricHandler;
@@ -31,6 +49,8 @@ import net.explorviz.code.analysis.types.Triple;
 import net.explorviz.code.analysis.visitor.CyclomaticComplexityVisitor;
 import net.explorviz.code.analysis.visitor.FileDataVisitor;
 import net.explorviz.code.proto.StateData;
+
+import org.apache.commons.lang3.tuple.Pair;
 import org.eclipse.jgit.api.Git;
 import org.eclipse.jgit.api.errors.GitAPIException;
 import org.eclipse.jgit.lib.Ref;
@@ -41,6 +61,11 @@ import org.eclipse.jgit.revwalk.RevWalk;
 import org.eclipse.microprofile.config.inject.ConfigProperty;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.w3c.dom.Document;
+import org.w3c.dom.Element;
+import org.w3c.dom.Node;
+import org.w3c.dom.NodeList;
+
 
 /**
  * Entrypoint for this service. Expects a local path to a Git repository folder
@@ -268,11 +293,38 @@ public class GitAnalysis { // NOPMD
     for (final FileDescriptor fileDescriptor : descriptorList) {
       final FileDataHandler fileDataHandler = fileAnalysis(repository, fileDescriptor,
           javaParserService, commit.getName());
+
       if (fileDataHandler == null) {
         if (LOGGER.isErrorEnabled()) {
           LOGGER.error("Analysis of file " + fileDescriptor.relativePath + " failed.");
         }
       } else {
+        if("c".equals(fileDescriptor.fileName.split("\\.")[1])) {
+          // hacky, but we don't have a C parser yet
+          int lastSlashIndex = fileDescriptor.relativePath.lastIndexOf("/");
+          if (lastSlashIndex != -1) {
+            String trimmed = fileDescriptor.relativePath.substring(0, lastSlashIndex);
+            String fakePackageName = trimmed;
+            fakePackageName = fakePackageName.replace("/", ".");
+            fileDataHandler.setPackageName(fakePackageName);
+          
+            // Class information
+            
+            final String fqnClassName = fakePackageName + "." + fileDescriptor.fileName.split("\\.")[0];
+            fileDataHandler.enterClass(fqnClassName);
+            ClassDataHandler classDataHandler = fileDataHandler.getCurrentClassData();
+            
+            final String fileContent = GitRepositoryHandler.getContent(fileDescriptor.objectId, repository);
+            NodeList nodeList = retrieveNodeListFromSourceCode(fileContent);
+            List<Pair<String, String>> methodNamesAndReturnTypes = this.getMethodNamesAndReturnTypes(nodeList);
+            for (final Pair<String, String> methodNameAndReturnType : methodNamesAndReturnTypes) {
+              final String methodName = fqnClassName + "." + methodNameAndReturnType.getLeft() + "#" + "parameterHash";
+              final String returnType = methodNameAndReturnType.getRight();
+              classDataHandler.addMethod(methodName, returnType);
+            }
+         
+          }
+        }
         GitMetricCollector.addCommitGitMetrics(fileDataHandler, commit);
         fileDataHandler.setLandscapeToken(landscapeTokenProperty);
         fileDataHandler.setApplicationName(applicationNameProperty);
@@ -368,6 +420,10 @@ public class GitAnalysis { // NOPMD
       throws IOException {
     final String fileContent = GitRepositoryHandler.getContent(file.objectId, repository);
     try {
+      /*if(file.fileName.contains("main.c")) {
+        // just a test
+        System.out.println("Content: "  + fileContent);
+      }*/
       final FileDataHandler fileDataHandler = parser.parseFileContent(fileContent, file.fileName,
           calculateMetricsProperty, commitSha); // NOPMD
       if (fileDataHandler == null) {
@@ -430,5 +486,115 @@ public class GitAnalysis { // NOPMD
       return "";
     }
   }
+
+
+
+
+
+  private NodeList retrieveNodeListFromSourceCode(String sourceCode) {
+      try {
+          // Write source code to temp file
+          File tempCFile = File.createTempFile("srcml_source", ".c");
+          try (FileWriter fw = new FileWriter(tempCFile)) {
+              fw.write(sourceCode);
+          }
+
+          // Call srcml CLI
+          ProcessBuilder pb = new ProcessBuilder("srcml", tempCFile.getAbsolutePath());
+          Process process = pb.start();
+          InputStream xmlOutput = process.getInputStream();
+          tempCFile.deleteOnExit();
+          return parseXmlToNodeList(xmlOutput);
+
+      } catch (IOException e) {
+          LOGGER.error("Failed to run srcml on source string", e);
+          return null;
+      }
+  }
+
+  private NodeList parseXmlToNodeList(InputStream xmlInput) {
+      try {
+          DocumentBuilderFactory builderFactory = DocumentBuilderFactory.newInstance();
+          builderFactory.setNamespaceAware(true);
+          DocumentBuilder builder = builderFactory.newDocumentBuilder();
+          Document xmlDocument = builder.parse(xmlInput);
+          XPath xPath = XPathFactory.newInstance().newXPath();
+
+          xPath.setNamespaceContext(new NamespaceContext() {
+              public String getNamespaceURI(String prefix) {
+                  switch (prefix) {
+                      case "src": return "http://www.srcML.org/srcML/src";
+                      case "cpp": return "http://www.srcML.org/srcML/cpp";
+                      default: return XMLConstants.NULL_NS_URI;
+                  }
+              }
+
+              public String getPrefix(String uri) { return null; }
+              public Iterator<String> getPrefixes(String uri) { return null; }
+          });
+
+          String expression = "/src:unit/src:function";
+          XPathExpression xPathExpression = xPath.compile(expression);
+          NodeList nodeList = (NodeList) xPathExpression.evaluate(xmlDocument, XPathConstants.NODESET);
+          return nodeList;
+
+      } catch (Exception e) {
+          LOGGER.error("Error converting XML input to package structure", e);
+          return null;
+      }
+  }
+
+
+   private List<Pair<String, String>> getMethodNamesAndReturnTypes(NodeList nodeList) {
+        List<Pair<String, String>> methodNamesAndReturnTypes = new ArrayList<>();
+        if (nodeList != null) {
+            for (int i = 0; i < nodeList.getLength(); i++) {
+                Node node = nodeList.item(i);
+                if (node.getNodeType() == Node.ELEMENT_NODE) {
+                    Element functionElement = (Element) node;
+                    NodeList children = functionElement.getChildNodes();
+                    boolean nameFound = false;
+                    String methodName = "";
+                    boolean returnTypeFound = false;
+                    String returnType = "";
+                    for (int j = 0; j < children.getLength(); j++) {
+                        if(nameFound && returnTypeFound) {
+                            methodNamesAndReturnTypes.add(Pair.of(methodName, returnType));
+                            break; // both found, no need to continue
+                        }
+
+                        Node child = children.item(j);
+
+                        if (child.getNodeType() == Node.ELEMENT_NODE &&
+                                "name".equals(child.getLocalName())) {
+                            nameFound = true;
+                            methodName = child.getTextContent().trim();
+                        }
+
+                        if(child.getNodeType() == Node.ELEMENT_NODE &&
+                                "type".equals(child.getLocalName())) {
+
+                            Element typeElement = (Element) child;
+                            NodeList typeChildren = typeElement.getChildNodes();
+
+                            for (int k = 0; k < typeChildren.getLength(); k++) {
+                                Node typeChild = typeChildren.item(k);
+                                if (typeChild.getNodeType() == Node.ELEMENT_NODE &&
+                                        "name".equals(typeChild.getLocalName())) {
+                                    returnTypeFound = true;
+                                    returnType += typeChild.getTextContent().trim();
+                                    returnType += " "; // add space for readability
+                                }
+                            }
+                            returnType = returnType.trim(); // remove trailing space
+                        }
+
+                    }
+                }
+            }
+        }
+
+        return methodNamesAndReturnTypes;
+    }
 
 }

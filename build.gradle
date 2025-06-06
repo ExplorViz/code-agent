@@ -21,6 +21,9 @@ dependencies {
     implementation 'io.quarkus:quarkus-rest'
     implementation 'io.quarkus:quarkus-grpc'
 
+    implementation 'org.apache.commons:commons-lang3:3.14.0'
+
+
     implementation 'com.google.protobuf:protobuf-java-util'
 
     // Java Parsing

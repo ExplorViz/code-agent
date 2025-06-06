@@ -345,6 +345,7 @@ public class GitRepositoryHandler { // NOPMD
     if (pathRestrictions == null || pathRestrictions.isEmpty()) {
       return listDiff(repository, oldCommit, newCommit, new ArrayList<>());
     }
+    System.out.println("pathRestrictions = " + pathRestrictions);
     return listDiff(repository, oldCommit, newCommit, Arrays.asList(pathRestrictions.split(",")));
   }
 
