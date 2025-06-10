@@ -293,13 +293,13 @@ public class GitAnalysis { // NOPMD
     for (final FileDescriptor fileDescriptor : descriptorList) {
       final FileDataHandler fileDataHandler = fileAnalysis(repository, fileDescriptor,
           javaParserService, commit.getName());
-
       if (fileDataHandler == null) {
         if (LOGGER.isErrorEnabled()) {
           LOGGER.error("Analysis of file " + fileDescriptor.relativePath + " failed.");
         }
       } else {
-        if("c".equals(fileDescriptor.fileName.split("\\.")[1])) {
+        if("c".equals(fileDescriptor.fileName.split("\\.")[1]) ||
+           "h".equals(fileDescriptor.fileName.split("\\.")[1])) {
           // hacky, but we don't have a C parser yet
           int lastSlashIndex = fileDescriptor.relativePath.lastIndexOf("/");
           if (lastSlashIndex != -1) {
@@ -420,10 +420,6 @@ public class GitAnalysis { // NOPMD
       throws IOException {
     final String fileContent = GitRepositoryHandler.getContent(file.objectId, repository);
     try {
-      /*if(file.fileName.contains("main.c")) {
-        // just a test
-        System.out.println("Content: "  + fileContent);
-      }*/
       final FileDataHandler fileDataHandler = parser.parseFileContent(fileContent, file.fileName,
           calculateMetricsProperty, commitSha); // NOPMD
       if (fileDataHandler == null) {
@@ -486,11 +482,12 @@ public class GitAnalysis { // NOPMD
       return "";
     }
   }
-
-
-
-
-
+  /**
+   * Converts a source code string to a NodeList using srcML.
+   *
+   * @param sourceCode the source code as a string
+   * @return NodeList containing the parsed XML nodes
+   */
   private NodeList retrieveNodeListFromSourceCode(String sourceCode) {
       try {
           // Write source code to temp file
