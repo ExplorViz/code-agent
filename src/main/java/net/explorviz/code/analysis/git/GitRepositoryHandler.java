@@ -510,11 +510,11 @@ public class GitRepositoryHandler { // NOPMD
         
       final PathSuffixFilter suffixFilterJava = PathSuffixFilter.create(JAVA_PATH_SUFFIX);
       final PathSuffixFilter suffixFilterC = PathSuffixFilter.create(C_PATH_SUFFIX);
-      final PathSuffixFilter suffixFilterCheader = PathSuffixFilter.create(C_HEADER_PATH_SUFFIX);
+      //final PathSuffixFilter suffixFilterCheader = PathSuffixFilter.create(C_HEADER_PATH_SUFFIX);
 
-      return OrTreeFilter.create(
-          OrTreeFilter.create(suffixFilterJava, suffixFilterC),
-          suffixFilterCheader);
+      return /*OrTreeFilter.create(*/
+          OrTreeFilter.create(suffixFilterJava, suffixFilterC)/*,*/
+          /*suffixFilterCheader)*/;
     } else {
       final List<String> pathList = DirectoryFinder.getRelativeDirectory(pathRestrictions,
           getCurrentRepositoryPath());
@@ -525,9 +525,9 @@ public class GitRepositoryHandler { // NOPMD
       final TreeFilter pathFilter = PathFilterGroup.createFromStrings(newPathList);
       final PathSuffixFilter suffixFilterJava = PathSuffixFilter.create(JAVA_PATH_SUFFIX);
       final PathSuffixFilter suffixFilterC = PathSuffixFilter.create(C_PATH_SUFFIX);
-      final PathSuffixFilter suffixFilterCheader = PathSuffixFilter.create(C_HEADER_PATH_SUFFIX);
-      final TreeFilter suffixFilter = OrTreeFilter.create(
-          OrTreeFilter.create(suffixFilterJava, suffixFilterC), suffixFilterCheader);
+      //final PathSuffixFilter suffixFilterCheader = PathSuffixFilter.create(C_HEADER_PATH_SUFFIX);
+      final TreeFilter suffixFilter = /*OrTreeFilter.create(*/
+          OrTreeFilter.create(suffixFilterJava, suffixFilterC)/*, suffixFilterCheader)*/;
       return AndTreeFilter.create(pathFilter, suffixFilter);
     }
   }

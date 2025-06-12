@@ -118,6 +118,9 @@ public class GitAnalysis { // NOPMD
   @ConfigProperty(name = "explorviz.gitanalysis.application-name")
   /* default */ String applicationNameProperty;  // NOCS
 
+  @ConfigProperty(name = "explorviz.gitanalysis.skip-commits-inbetween")
+  /* default */ boolean skipCommitsInbetweenProperty;  // NOCS
+
   @Inject
   /* package */ GitRepositoryHandler gitRepositoryHandler; // NOCS
 
@@ -157,14 +160,21 @@ public class GitAnalysis { // NOPMD
         int commitCount = 0;
         RevCommit lastCheckedCommit = null;
         boolean inAnalysisRange = startCommit.isEmpty() || "".equals(startCommit.get());
+        int skippedCounter = 0;
 
         for (final RevCommit commit : revWalk) {
+          boolean hasReachedEndCommit = endCommit.isPresent() && commit.name().equals(endCommit.get());
+
+          if(inAnalysisRange && skipCommitsInbetweenProperty && !hasReachedEndCommit) {
+            System.out.println("Skipped commits:" + (++skippedCounter));
+            continue;
+          }
 
           if (!inAnalysisRange) {
             if (commit.name().equals(startCommit.get())) {
               inAnalysisRange = true;
-              if (fetchRemoteDataProperty) {
-                lastCheckedCommit = commit;
+              if (fetchRemoteDataProperty) { 
+                lastCheckedCommit = commit; 
                 continue;
               }
             } else {
@@ -213,7 +223,7 @@ public class GitAnalysis { // NOPMD
           descriptorList.addAll(descriptorModifiedList);
 
           commitAnalysis(repository, commit, lastCheckedCommit, descriptorList, exporter, branch,
-              descriptorTriple);
+              descriptorTriple, commitCount);
 
           commitCount++;
           lastCheckedCommit = commit;
@@ -278,7 +288,7 @@ public class GitAnalysis { // NOPMD
       final RevCommit lastCommit, final List<FileDescriptor> descriptorList,
       final DataExporter exporter, final String branchName,
       final Triple<List<FileDescriptor>, List<FileDescriptor>,
-          List<FileDescriptor>> descriptorTriple)
+          List<FileDescriptor>> descriptorTriple, final int commitCount) // NOPMD
       throws GitAPIException, NotFoundException, IOException {
     DirectoryFinder.resetDirectory(sourceDirectoryProperty.orElse(""));
 
@@ -322,8 +332,8 @@ public class GitAnalysis { // NOPMD
           LOGGER.error("Analysis of file " + fileDescriptor.relativePath + " failed.");
         }
       } else {
-        if("c".equals(fileDescriptor.fileName.split("\\.")[1]) ||
-           "h".equals(fileDescriptor.fileName.split("\\.")[1])) {
+        if("c".equals(fileDescriptor.fileName.split("\\.")[1]) /*||
+           "h".equals(fileDescriptor.fileName.split("\\.")[1])*/) {
           // hacky, but we don't have a C parser yet
           int lastSlashIndex = fileDescriptor.relativePath.lastIndexOf("/");
           if (lastSlashIndex != -1) {
@@ -353,9 +363,9 @@ public class GitAnalysis { // NOPMD
         fileDataHandler.setLandscapeToken(landscapeTokenProperty);
         fileDataHandler.setApplicationName(applicationNameProperty);
         counter++;
-        LOGGER.atTrace().log("File " + fileDescriptor.relativePath
-            + " analyzed (commitId: + " + commit.getName() + "), sending data to exporter.");
-        LOGGER.atTrace().log("Total non-skipped files analyzed for this commit: " + (counterExistent + counter + ", skipped: " + skippedCounter));
+        /*LOGGER.atTrace().log("File " + fileDescriptor.relativePath
+            + " analyzed (commitId: + " + commit.getName() + "), sending data to exporter.");*/
+        LOGGER.atTrace().log("Total non-skipped files analyzed for this commit ( #" + commitCount + " ): " + (counterExistent + counter + ", skipped: " + skippedCounter));
         try {
           exporter.sendFileData(fileDataHandler.getProtoBufObject());
           fileNameToFileDataHandlerMap.put(fileDescriptor.relativePath, fileDataHandler);
