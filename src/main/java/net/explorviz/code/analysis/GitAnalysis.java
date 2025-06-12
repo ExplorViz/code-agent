@@ -15,11 +15,13 @@ import java.io.InputStreamReader;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.NoSuchElementException;
 import java.util.Optional;
+import java.util.Set;
 
 import javax.xml.XMLConstants;
 import javax.xml.namespace.NamespaceContext;
@@ -49,6 +51,8 @@ import net.explorviz.code.analysis.types.Triple;
 import net.explorviz.code.analysis.visitor.CyclomaticComplexityVisitor;
 import net.explorviz.code.analysis.visitor.FileDataVisitor;
 import net.explorviz.code.proto.StateData;
+import net.explorviz.code.proto.FileRequest;
+import net.explorviz.code.proto.FileResponse;
 
 import org.apache.commons.lang3.tuple.Pair;
 import org.eclipse.jgit.api.Git;
@@ -290,7 +294,27 @@ public class GitAnalysis { // NOPMD
 
     final Map<String, FileDataHandler> fileNameToFileDataHandlerMap = new HashMap<>();
 
+
+    final FileRequest request = FileRequest.newBuilder()
+        .setCommitID(commit.getName())
+        .setLandscapeToken(landscapeTokenProperty)
+        .setApplicationName(applicationNameProperty)
+        .build();
+    final FileResponse response = exporter.getFileNames(request);
+    Set<String> fileNames = new HashSet<>(response.getFileNameList());
+
+
+    int counter = 0;
+    int counterExistent = 0;
+    int skippedCounter = 0;
     for (final FileDescriptor fileDescriptor : descriptorList) {
+      final String dottedPath = fileDescriptor.relativePath.replace("/", ".");
+      if (fileNames.contains(dottedPath)) {
+        counterExistent++;
+        continue;
+      }
+    
+      
       final FileDataHandler fileDataHandler = fileAnalysis(repository, fileDescriptor,
           javaParserService, commit.getName());
       if (fileDataHandler == null) {
@@ -328,8 +352,16 @@ public class GitAnalysis { // NOPMD
         GitMetricCollector.addCommitGitMetrics(fileDataHandler, commit);
         fileDataHandler.setLandscapeToken(landscapeTokenProperty);
         fileDataHandler.setApplicationName(applicationNameProperty);
-        exporter.sendFileData(fileDataHandler.getProtoBufObject());
-        fileNameToFileDataHandlerMap.put(fileDescriptor.relativePath, fileDataHandler);
+        counter++;
+        LOGGER.atTrace().log("File " + fileDescriptor.relativePath
+            + " analyzed (commitId: + " + commit.getName() + "), sending data to exporter.");
+        LOGGER.atTrace().log("Total non-skipped files analyzed for this commit: " + (counterExistent + counter + ", skipped: " + skippedCounter));
+        try {
+          exporter.sendFileData(fileDataHandler.getProtoBufObject());
+          fileNameToFileDataHandlerMap.put(fileDescriptor.relativePath, fileDataHandler);
+        } catch (Exception e) {
+          skippedCounter++;
+        }
       }
     }
     createCommitReport(repository, commit, lastCommit, exporter, branchName,

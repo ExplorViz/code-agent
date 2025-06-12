@@ -11,6 +11,8 @@ import net.explorviz.code.proto.StateDataRequest;
 import net.explorviz.code.proto.StateDataServiceGrpc;
 import net.explorviz.code.proto.StructureEventServiceGrpc;
 import org.eclipse.microprofile.config.inject.ConfigProperty;
+import net.explorviz.code.proto.FileRequest;
+import net.explorviz.code.proto.FileResponse;
 
 /**
  * Basic GRPC handler.
@@ -61,6 +63,11 @@ public final class GrpcExporter implements DataExporter {
   @Override
   public void sendFileData(final FileData fileData) {
     fileDataGrpcClient.sendFileData(fileData);
+  }
+
+  @Override
+  public FileResponse getFileNames(final FileRequest fileRequest) {
+    return fileDataGrpcClient.getFileNames(fileRequest);
   }
 
   @Override

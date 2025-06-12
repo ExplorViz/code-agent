@@ -9,6 +9,8 @@ import net.explorviz.code.proto.FileData;
 import net.explorviz.code.proto.StateData;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import net.explorviz.code.proto.FileRequest;
+import net.explorviz.code.proto.FileResponse;
 
 /**
  * Exports the data into files in json format.
@@ -66,6 +68,13 @@ public class JsonExporter implements DataExporter {
     } catch (IOException e) { // NOPMD
       throw new RuntimeException(e); // NOPMD
     }
+  }
+
+
+  @Override
+  public FileResponse getFileNames(final FileRequest fileRequest) {
+    // TODO
+    return FileResponse.newBuilder().build();
   }
 
   @Override

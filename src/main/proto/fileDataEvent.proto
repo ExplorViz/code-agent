@@ -7,7 +7,8 @@ option java_outer_classname = "FileDataEvent";
 import "google/protobuf/empty.proto";
 
 service FileDataService {
-  rpc sendFileData (FileData) returns (google.protobuf.Empty) {}
+  rpc sendFileData (FileData) returns (google.protobuf.Empty) {};
+  rpc getFileNames(FileRequest) returns (FileResponse);
 }
 
 message  MethodData {
@@ -69,4 +70,14 @@ message FileData {
   string deletedLines = 10;
   string landscapeToken = 11;
   string applicationName = 12;
+}
+
+message FileRequest {
+  string commitID=1;
+  string landscapeToken = 2;
+  string applicationName = 3;
+}
+
+message FileResponse {
+  repeated string fileName = 1;
 }

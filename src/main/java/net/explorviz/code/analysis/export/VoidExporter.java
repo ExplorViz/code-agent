@@ -3,6 +3,8 @@ package net.explorviz.code.analysis.export;
 import net.explorviz.code.proto.CommitReportData;
 import net.explorviz.code.proto.FileData;
 import net.explorviz.code.proto.StateData;
+import net.explorviz.code.proto.FileResponse;
+import net.explorviz.code.proto.FileRequest;
 
 /**
  * Dummy to dump the data into void.
@@ -17,6 +19,11 @@ public class VoidExporter implements DataExporter {
   @Override
   public void sendFileData(final FileData fileData) {
     // DO NOTHING
+  }
+
+  @Override
+  public FileResponse getFileNames(final FileRequest fileRequest) {
+    return FileResponse.newBuilder().build();
   }
 
   @Override
