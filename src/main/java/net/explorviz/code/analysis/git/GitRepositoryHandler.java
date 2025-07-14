@@ -552,6 +552,12 @@ public class GitRepositoryHandler { // NOPMD
     return false;
   }
 
+  /**
+   * Takes a relative path and converts it to an absolute path on host system.
+   *
+   * @param relativePath Relative path
+   * @return Absolute path derived from relative path
+   */
   public static String convertRelativeToAbsolutePath(String relativePath) {
     String systemPath = System.getProperty("user.dir");
     systemPath = systemPath.replace("\\build\\classes\\java\\main", "");

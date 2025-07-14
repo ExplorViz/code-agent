@@ -148,16 +148,21 @@ public class JavaParserService {
       return dataHandler;
     } catch (NoSuchElementException e) {
       if (LOGGER.isErrorEnabled()) {
-        LOGGER.error("NoSuchElementException: \n" + compilationUnit.toString());
+        LOGGER.error("NoSuchElementException in :" + fileName + System.lineSeparator() + e.getMessage());
       }
     } catch (NoSuchFieldError e) {
       if (LOGGER.isErrorEnabled()) {
-        LOGGER.error("NoSuchFieldError: \n" + compilationUnit.toString());
+        LOGGER.error("NoSuchFieldError in " + fileName + System.lineSeparator() + e.getMessage());
+      }
+    } catch (NoSuchMethodError e) {
+      if (LOGGER.isErrorEnabled()) {
+        e.printStackTrace();
+        LOGGER.error("NoSuchMethodError in " + fileName + System.lineSeparator() + e.getMessage());
       }
     } catch (Exception | Error e) { // NOPMD
       if (LOGGER.isErrorEnabled()) {
-        LOGGER.error("Catched unknown exception.");
-        LOGGER.error(e.getClass().toString());
+
+        LOGGER.error("Catched unknown exception in file " + fileName + System.lineSeparator() + e);
       }
     }
     return null;

@@ -20,12 +20,12 @@ import com.github.javaparser.ast.expr.ObjectCreationExpr;
 import com.github.javaparser.ast.type.ClassOrInterfaceType;
 import com.github.javaparser.ast.type.Type;
 import com.github.javaparser.ast.visitor.VoidVisitorAdapter;
+import com.github.javaparser.resolution.TypeSolver;
 import com.github.javaparser.resolution.UnsolvedSymbolException;
 import com.github.javaparser.resolution.declarations.ResolvedReferenceTypeDeclaration;
+import com.github.javaparser.resolution.model.SymbolReference;
 import com.github.javaparser.resolution.types.ResolvedReferenceType;
 import com.github.javaparser.resolution.types.ResolvedType;
-import com.github.javaparser.symbolsolver.model.resolution.SymbolReference;
-import com.github.javaparser.symbolsolver.model.resolution.TypeSolver;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
@@ -227,7 +227,7 @@ public class FileDataVisitor extends VoidVisitorAdapter<FileDataHandler> { // NO
   public void visit(final CompilationUnit n, final FileDataHandler data) {
     final String locValue = String.valueOf(getLoc(n));
     data.addMetric(LOC, locValue);
-    LOGGER.atTrace().addArgument(locValue).log("LOC: {}");
+    LOGGER.atTrace().addArgument(data.getFileName()).addArgument(locValue).log("{} - LOC: {}");
     super.visit(n, data);
   }
 

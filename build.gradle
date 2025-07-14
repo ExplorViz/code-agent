@@ -24,10 +24,10 @@ dependencies {
     implementation 'com.google.protobuf:protobuf-java-util'
 
     // Java Parsing
-    implementation 'com.github.javaparser:javaparser-symbol-solver-core:3.24.2'
+    implementation 'com.github.javaparser:javaparser-symbol-solver-core:3.27.0'
 
     // Git
-    implementation 'org.eclipse.jgit:org.eclipse.jgit:6.8.0.202311291450-r'
+    implementation 'org.eclipse.jgit:org.eclipse.jgit:7.3.0.202506031305-r'
 
     // otel
     implementation 'io.opentelemetry:opentelemetry-exporter-otlp-logs:1.22.0-alpha'
