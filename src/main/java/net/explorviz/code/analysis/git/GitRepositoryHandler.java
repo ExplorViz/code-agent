@@ -176,12 +176,8 @@ public class GitRepositoryHandler { // NOPMD
       LOGGER.atInfo().addArgument(repoPath)
           .log("Repository will be cloned to: {}");
     } else {
-      String systemPath = System.getProperty("user.dir");
-      systemPath = systemPath.replace("\\build\\classes\\java\\main", "");
-      systemPath = systemPath.replace("/build/classes/java/main", "");
-      repoPath = Paths.get(systemPath, repoPath).toString();
-      LOGGER.atInfo().addArgument(repoPath)
-          .log("Detected relative path, absolute is: {}");
+      LOGGER.atInfo().log("Found local path for remote repository.");
+      repoPath = GitRepositoryHandler.convertRelativeToAbsolutePath(repoPath);
     }
 
     try {
@@ -281,10 +277,12 @@ public class GitRepositoryHandler { // NOPMD
 
     if (localRepositoryPath.isBlank()) {
       LOGGER.atInfo().log("No local repository given, using remote");
-
       return this.downloadGitRepository(remoteRepositoryObject);
-    } else {
+    } else if (new File(localRepositoryPath).isAbsolute()) {
       return this.openGitRepository(localRepositoryPath, remoteRepositoryObject.getBranchName());
+    } else {
+      String absolutePath = GitRepositoryHandler.convertRelativeToAbsolutePath(localRepositoryPath);
+      return this.openGitRepository(absolutePath, remoteRepositoryObject.getBranchName());
     }
   }
 
@@ -552,6 +550,16 @@ public class GitRepositoryHandler { // NOPMD
       throw new RuntimeException(e);  // NOPMD
     }
     return false;
+  }
+
+  public static String convertRelativeToAbsolutePath(String relativePath) {
+    String systemPath = System.getProperty("user.dir");
+    systemPath = systemPath.replace("\\build\\classes\\java\\main", "");
+    systemPath = systemPath.replace("/build/classes/java/main", "");
+    String absolutePath = Paths.get(systemPath, relativePath).toString();
+    LOGGER.atInfo().addArgument(relativePath).addArgument(absolutePath)
+        .log("Converted relative path {} to absolute path {}");
+    return absolutePath;
   }
 
 }
