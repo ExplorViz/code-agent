@@ -25,8 +25,16 @@ public class FileMetricHandler implements ProtoBufConvertable<FileMetric> {
     this.builder.setFileName(fileName);
   }
 
+  public void setFileSize(final int fileSize) {
+    this.builder.setFileSize(fileSize);
+  }
+
   public void setLoc(final int loc) {
     this.builder.setLoc(loc);
+  }
+
+  public void setCloc(final int cloc) {
+    this.builder.setCloc(cloc);
   }
 
   public void setCyclomaticComplexity(final int cyclomaticComplexity) {

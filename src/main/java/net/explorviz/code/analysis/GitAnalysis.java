@@ -5,6 +5,7 @@ import io.quarkus.runtime.StartupEvent;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.enterprise.event.Observes;
 import jakarta.inject.Inject;
+import java.io.File;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Collection;
@@ -267,10 +268,16 @@ public class GitAnalysis { // NOPMD
       final FileDataHandler fileDataHandler = fileAnalysis(repository, fileDescriptor,
           javaParserService, commit.getName());
       if (fileDataHandler == null) {
-        if (LOGGER.isErrorEnabled()) {
-          LOGGER.error("Analysis of file " + fileDescriptor.relativePath + " failed.");
-        }
+        LOGGER.error("Analysis of file " + fileDescriptor.relativePath + " failed.");
       } else {
+        try {
+          File file = new File(GitRepositoryHandler.getCurrentRepositoryPath() + "/"
+              + fileDescriptor.relativePath);
+          fileDataHandler.addMetric(FileDataVisitor.FILE_SIZE, String.valueOf(file.length()));
+        } catch (NullPointerException e) {
+          LOGGER.error("File size of file " + fileDescriptor.relativePath
+              + " could not be analyzed." + e.getMessage());
+        }
         GitMetricCollector.addCommitGitMetrics(fileDataHandler, commit);
         fileDataHandler.setLandscapeToken(landscapeTokenProperty);
         fileDataHandler.setApplicationName(applicationNameProperty);
@@ -310,12 +317,23 @@ public class GitAnalysis { // NOPMD
 
         fileMetricHandler.setFileName(file.relativePath);
 
+        // Set file size metric
+        final String fileSize = fileDataHandler.getMetricValue(FileDataVisitor.FILE_SIZE);
+
+        if (fileSize != null) {
+          fileMetricHandler.setFileSize(Integer.parseInt(fileSize));
+        }
+
         // Set loc metric
-        final String loc = fileDataHandler
-            .getMetricValue(FileDataVisitor.LOC);
+        final String loc = fileDataHandler.getMetricValue(FileDataVisitor.LOC);
 
         if (loc != null) {
           fileMetricHandler.setLoc(Integer.parseInt(loc));
+        }
+
+        final String cloc = fileDataHandler.getMetricValue(FileDataVisitor.CLOC);
+        if (cloc != null) {
+          fileMetricHandler.setCloc(Integer.parseInt(cloc));
         }
 
         // Set number of methods

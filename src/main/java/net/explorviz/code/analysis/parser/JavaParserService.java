@@ -130,8 +130,10 @@ public class JavaParserService {
     final CompilationUnit compilationUnit;
     try {
       if (path == null) {
+        LOGGER.trace("Parse file content for {}", fileName);
         compilationUnit = StaticJavaParser.parse(fileContent);
       } else {
+        LOGGER.trace("Parse compilation unit for {}", fileName);
         compilationUnit = StaticJavaParser.parse(path);
       }
     } catch (ParseProblemException e) {
