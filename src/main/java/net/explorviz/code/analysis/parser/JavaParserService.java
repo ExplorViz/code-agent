@@ -156,7 +156,6 @@ public class JavaParserService {
       }
     } catch (NoSuchMethodError e) {
       if (LOGGER.isErrorEnabled()) {
-        e.printStackTrace();
         LOGGER.error("NoSuchMethodError in " + fileName + System.lineSeparator() + e.getMessage());
       }
     } catch (Exception | Error e) { // NOPMD

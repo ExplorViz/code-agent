@@ -11,12 +11,16 @@ import net.explorviz.code.proto.StateDataRequest;
 import net.explorviz.code.proto.StateDataServiceGrpc;
 import net.explorviz.code.proto.StructureEventServiceGrpc;
 import org.eclipse.microprofile.config.inject.ConfigProperty;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * Basic GRPC handler.
  */
 @ApplicationScoped
 public final class GrpcExporter implements DataExporter {
+
+  public static final Logger LOGGER = LoggerFactory.getLogger(GrpcExporter.class);
 
   private static final String GRPC_CLIENT_NAME = "codeAnalysisGrpcClient";
 
@@ -60,12 +64,28 @@ public final class GrpcExporter implements DataExporter {
 
   @Override
   public void sendFileData(final FileData fileData) {
-    fileDataGrpcClient.sendFileData(fileData);
+    try {
+      fileDataGrpcClient.sendFileData(fileData);
+    } catch (final Exception e) {
+      if (LOGGER.isErrorEnabled()) {
+        LOGGER.error("Failed to send file data {}", fileData);
+        LOGGER.info(e.getMessage());
+      }
+    }
   }
 
   @Override
   public void sendCommitReport(final CommitReportData commitReportData) {
-    commitDataGrpcClient.sendCommitReport(commitReportData);
+    LOGGER.info("Sending commit report on {}", commitReportData.getCommitID());
+    try {
+      commitDataGrpcClient.sendCommitReport(commitReportData);
+    } catch (final Exception e) {
+      if (LOGGER.isErrorEnabled()) {
+        LOGGER.error("Failed to send commit report {}", commitReportData);
+        LOGGER.error(e.getMessage());
+      }
+    }
+
   }
 
   @Override
