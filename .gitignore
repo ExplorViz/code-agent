@@ -1,6 +1,6 @@
 # ExplorViz
 analysis-data/
-repositories/
+cloned-repositories/
 
 # Gradle
 .gradle/
