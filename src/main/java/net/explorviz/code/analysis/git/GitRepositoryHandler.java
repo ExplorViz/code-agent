@@ -373,20 +373,15 @@ public class GitRepositoryHandler { // NOPMD
 
       for (final DiffEntry diff : diffs) {
         if (diff.getChangeType().equals(DiffEntry.ChangeType.DELETE)) {
-          //LOGGER.info("File Deleted");
           putInList2(repository, diff, deletedObjectIdList);
           continue;
         } else if (diff.getChangeType().equals(DiffEntry.ChangeType.RENAME)) {
-          //LOGGER.info("File Renamed");
           putInList(repository, diff, addedObjectIdList);
         } else if (diff.getChangeType().equals(DiffEntry.ChangeType.COPY)) {
-          //LOGGER.info("File Copied");
           putInList(repository, diff, addedObjectIdList);
         } else if (diff.getChangeType().equals(DiffEntry.ChangeType.MODIFY)) {
-          //LOGGER.info("File Modified");
           putInList(repository, diff, modifiedObjectIdList);
         } else if (diff.getChangeType().equals(DiffEntry.ChangeType.ADD)) {
-          //LOGGER.info("File Added");
           putInList(repository, diff, addedObjectIdList);
         }
       }
@@ -507,9 +502,14 @@ public class GitRepositoryHandler { // NOPMD
       for (final String path : pathList) {
         newPathList.add(path.replaceFirst("^\\\\|/", "").replaceAll("\\\\", "/"));
       }
-      final TreeFilter pathFilter = PathFilterGroup.createFromStrings(newPathList);
       final PathSuffixFilter suffixFilter = PathSuffixFilter.create(JAVA_PATH_SUFFIX);
-      return AndTreeFilter.create(pathFilter, suffixFilter);
+
+      if (newPathList.isEmpty()) {
+        return PathSuffixFilter.create(JAVA_PATH_SUFFIX);
+      } else {
+        final TreeFilter pathFilter = PathFilterGroup.createFromStrings(newPathList);
+        return AndTreeFilter.create(pathFilter, suffixFilter);
+      }
     }
   }
 

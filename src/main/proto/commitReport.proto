@@ -27,7 +27,9 @@ message  CommitReportData {
 
 message FileMetric {
   string fileName = 1;
-  int32 loc = 2;
-  int32 cyclomaticComplexity = 3;
-  int32 numberOfMethods = 4;
+  int32 fileSize = 2;
+  int32 loc = 3; // Lines of code incl. whitespace and comments
+  int32 cloc = 4; // Comment lines of code
+  int32 cyclomaticComplexity = 5;
+  int32 numberOfMethods = 6;
 }
