@@ -26,6 +26,7 @@ import net.explorviz.code.analysis.git.GitRepositoryHandler;
 import net.explorviz.code.analysis.handler.CommitReportHandler;
 import net.explorviz.code.analysis.handler.FileDataHandler;
 import net.explorviz.code.analysis.handler.FileMetricHandler;
+import net.explorviz.code.analysis.parser.SrcmlParserService;
 import net.explorviz.code.analysis.parser.JavaParserService;
 import net.explorviz.code.analysis.types.FileDescriptor;
 import net.explorviz.code.analysis.types.Triple;
@@ -383,6 +384,10 @@ public class GitAnalysis { // NOPMD
       final JavaParserService parser, final String commitSha)
       throws IOException {
     final String fileContent = GitRepositoryHandler.getContent(file.objectId, repository);
+
+    SrcmlParserService cppService = new SrcmlParserService();
+    FileDataHandler result = cppService.parseFileContent(fileContent, file.fileName, commitSha);
+
     try {
       final FileDataHandler fileDataHandler = parser.parseFileContent(fileContent, file.fileName,
           calculateMetricsProperty, commitSha); // NOPMD
