@@ -12,6 +12,11 @@ import java.io.FileWriter;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
+import java.io.StringReader;
+import java.net.URI;
+import java.net.http.HttpClient;
+import java.net.http.HttpRequest;
+import java.net.http.HttpResponse;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashMap;
@@ -69,6 +74,7 @@ import org.w3c.dom.Document;
 import org.w3c.dom.Element;
 import org.w3c.dom.Node;
 import org.w3c.dom.NodeList;
+import org.xml.sax.InputSource;
 
 
 /**
@@ -132,6 +138,10 @@ public class GitAnalysis { // NOPMD
 
   @Inject
   /* package */ GrpcExporter grpcExporter; // NOCS
+
+  private static final String SRCML_ENDPOINT = "http://localhost:8078/parse";
+
+  private final HttpClient httpClient = HttpClient.newHttpClient();
 
   // only done because checkstyle does not like the duplication of literals
   private static String toErrorText(final String position, final String commitId,
@@ -531,33 +541,52 @@ public class GitAnalysis { // NOPMD
    * @return NodeList containing the parsed XML nodes
    */
   private NodeList retrieveNodeListFromSourceCode(String sourceCode) {
-      try {
-          // Write source code to temp file
-          File tempCFile = File.createTempFile("srcml_source", ".c");
-          try (FileWriter fw = new FileWriter(tempCFile)) {
-              fw.write(sourceCode);
-          }
+    String language = "C";
+    String jsonRequest = String.format("""
+    {
+      "code": %s,
+      "language": "%s"
+    }
+    """, toJsonString(sourceCode), language);
 
-          // Call srcml CLI
-          ProcessBuilder pb = new ProcessBuilder("srcml", tempCFile.getAbsolutePath());
-          Process process = pb.start();
-          InputStream xmlOutput = process.getInputStream();
-          tempCFile.deleteOnExit();
-          return parseXmlToNodeList(xmlOutput);
 
-      } catch (IOException e) {
-          LOGGER.error("Failed to run srcml on source string", e);
-          return null;
+
+    HttpRequest request = HttpRequest.newBuilder()
+        .uri(URI.create(SRCML_ENDPOINT))
+        .header("Content-Type", "application/json")
+        .POST(HttpRequest.BodyPublishers.ofString(jsonRequest))
+        .build();
+
+    try {
+      HttpResponse<String> response = httpClient.send(request, HttpResponse.BodyHandlers.ofString());
+
+      if (response.statusCode() == 200) {
+        String xml = response.body();
+        return parseXmlToNodeList(xml);
+      } else {
+        LOGGER.error("srcml API returned error: {}", response.body());
       }
+
+    } catch (IOException | InterruptedException e) {
+      LOGGER.error("Failed to call srcml API", e);
+    }
+
+    return null;
+
   }
 
-  private NodeList parseXmlToNodeList(InputStream xmlInput) {
+  private NodeList parseXmlToNodeList(String xmlContent) {
       try {
-          DocumentBuilderFactory builderFactory = DocumentBuilderFactory.newInstance();
-          builderFactory.setNamespaceAware(true);
-          DocumentBuilder builder = builderFactory.newDocumentBuilder();
-          Document xmlDocument = builder.parse(xmlInput);
-          XPath xPath = XPathFactory.newInstance().newXPath();
+        DocumentBuilderFactory builderFactory = DocumentBuilderFactory.newInstance();
+        builderFactory.setNamespaceAware(true);
+        DocumentBuilder builder = builderFactory.newDocumentBuilder();
+
+        // Create an InputSource from the XML string
+        InputSource inputSource = new InputSource(new StringReader(xmlContent));
+
+        Document xmlDocument = builder.parse(inputSource);
+        XPath xPath = XPathFactory.newInstance().newXPath();
+
 
           xPath.setNamespaceContext(new NamespaceContext() {
               public String getNamespaceURI(String prefix) {
@@ -635,5 +664,27 @@ public class GitAnalysis { // NOPMD
 
         return methodNamesAndReturnTypes;
     }
+
+  private String detectLanguage(String fileName) {
+    if (fileName == null) return "C++";
+
+    String lowerName = fileName.toLowerCase();
+    if (lowerName.endsWith(".java")) {
+      return "Java";
+    } else if (lowerName.endsWith(".cpp") || lowerName.endsWith(".cc") || lowerName.endsWith(".cxx") || lowerName.endsWith(".c")) {
+      return "C++";
+    }
+
+    return "C++";
+  }
+
+  /**
+   * Escapes a string for safe inclusion in JSON.
+   */
+  private String toJsonString(String s) {
+    return "\"" + s.replace("\\", "\\\\").replace("\"", "\\\"").replace("\n", "\\n")
+        .replace("\r", "\\r") + "\"";
+  }
+
 
 }
