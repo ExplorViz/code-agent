@@ -14,7 +14,7 @@ import org.slf4j.LoggerFactory;
 public class SrcmlParserService {
 
   private static final Logger LOGGER = LoggerFactory.getLogger(SrcmlParserService.class);
-  private static final String SRCML_ENDPOINT = "http://localhost:8000/parse";
+  private static final String SRCML_ENDPOINT = "http://localhost:8078/parse";
 
   private final HttpClient httpClient = HttpClient.newHttpClient();
 

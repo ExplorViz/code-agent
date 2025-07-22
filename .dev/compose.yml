@@ -1,0 +1,5 @@
+services:
+  srcml-service:
+    image: explorviz/srcml-service:latest
+    ports:
+      - 8078:8000
