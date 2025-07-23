@@ -18,6 +18,11 @@ services:
       - EXPLORVIZ_LOG_LVL=DEBUG
       - ANALYSIS_END_COMMIT=f48227aea0e4056e1b9105494ea2f6360f3975f3
 
+  srcml-service:
+    image: explorviz/srcml-service:latest
+    ports:
+      - 8078:8000
+
 networks:
   explorviz:
     name: explorviz
