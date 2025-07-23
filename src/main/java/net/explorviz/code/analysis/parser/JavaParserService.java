@@ -35,6 +35,7 @@ public class JavaParserService {
 
   public static final Logger LOGGER = LoggerFactory.getLogger(JavaParserService.class);
   private static final String CRASHED_FILES_PATH = "/logs/crashedfiles/";
+  private static final String JAVA_FILE_EXTENSION = "java";
 
   @ConfigProperty(name = "explorviz.gitanalysis.save-crashed_files")
   /* default */ boolean saveCrashedFilesProperty; // NOCS
@@ -93,11 +94,15 @@ public class JavaParserService {
   private FileDataHandler parse(final CompilationUnit compilationUnit, final String fileName,
       final boolean calculateMetrics) {
     final FileDataHandler data = new FileDataHandler(fileName);
-    final FileDataVisitor fileDataVisitor;
-    final String fileNameExtension = fileName.split("\\.")[1]; // ugly hack.
-    if ("java".equals(fileNameExtension)) {
-      fileDataVisitor = new FileDataVisitor(Optional.of(combinedTypeSolver), wildcardImportProperty);
+
+    // Extract file extension safely
+    final String fileNameExtension = getFileExtension(fileName);
+
+    if (fileNameExtension.equals(JAVA_FILE_EXTENSION)) {
+      final FileDataVisitor fileDataVisitor = new FileDataVisitor(Optional.of(combinedTypeSolver),
+          wildcardImportProperty);
       fileDataVisitor.visit(compilationUnit, data);
+
       if (calculateMetrics) {
         calculateMetrics(data, compilationUnit, fileName);
       }
@@ -137,10 +142,9 @@ public class JavaParserService {
     StaticJavaParser.getParserConfiguration().setLanguageLevel(LanguageLevel.JAVA_21);
     StaticJavaParser.getParserConfiguration().setSymbolResolver(this.javaSymbolSolver);
     final CompilationUnit compilationUnit;
-    final String fileNameExtension = fileName.split("\\.")[1];// ugly hack. TODO: we should make this class a
-                                                              // ParserService which can pare any ubiquitous file (use
-                                                              // ANTLR or similar)
-    if ("java".equals(fileNameExtension)) {
+    final String fileNameExtension = fileName.split("\\.")[1]; // ugly hack. TODO: we should make this class a
+    // ParserService which can pare any ubiquitous file (use ANTLR or similar)
+    if (fileNameExtension.equals(fileNameExtension)) {
       try {
         if (path == null) {
           compilationUnit = StaticJavaParser.parse(fileContent);
@@ -155,8 +159,7 @@ public class JavaParserService {
         return null;
       }
     } else {
-      compilationUnit = new CompilationUnit(); // won't be used, but we need a CompilationUnit to pass the syntax error
-                                               // check
+      compilationUnit = new CompilationUnit(); // not used, but we need a valid CompilationUnit to avoid syntax errors
     }
     try {
       final FileDataHandler dataHandler = parse(compilationUnit, fileName, calculateMetrics);
@@ -254,6 +257,22 @@ public class JavaParserService {
         }
       }
     }
+  }
+
+  /**
+   * Extracts the file extension from a given file name.
+   * Returns an empty string if no extension is found or if the file name is
+   * null/empty.
+   */
+  private String getFileExtension(final String fileName) {
+    if (fileName == null || fileName.isEmpty()) {
+      return "";
+    }
+    final int dotIndex = fileName.lastIndexOf('.');
+    if (dotIndex > 0 && dotIndex < fileName.length() - 1) { // Ensure dot is not the first or last character
+      return fileName.substring(dotIndex + 1);
+    }
+    return "";
   }
 
 }

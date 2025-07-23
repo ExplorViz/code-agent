@@ -2,9 +2,9 @@ package net.explorviz.code.analysis.export;
 
 import net.explorviz.code.proto.CommitReportData;
 import net.explorviz.code.proto.FileData;
-import net.explorviz.code.proto.StateData;
-import net.explorviz.code.proto.FileResponse;
 import net.explorviz.code.proto.FileRequest;
+import net.explorviz.code.proto.FileResponse;
+import net.explorviz.code.proto.StateData;
 
 /**
  * Dummy to dump the data into void.

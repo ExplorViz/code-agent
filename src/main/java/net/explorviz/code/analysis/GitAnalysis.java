@@ -5,7 +5,6 @@ import io.quarkus.runtime.StartupEvent;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.enterprise.event.Observes;
 import jakarta.inject.Inject;
-
 import java.io.File;
 import java.io.IOException;
 import java.io.StringReader;
@@ -23,7 +22,6 @@ import java.util.Map;
 import java.util.NoSuchElementException;
 import java.util.Optional;
 import java.util.Set;
-
 import javax.xml.XMLConstants;
 import javax.xml.namespace.NamespaceContext;
 import javax.xml.parsers.DocumentBuilder;
@@ -32,7 +30,6 @@ import javax.xml.xpath.XPath;
 import javax.xml.xpath.XPathConstants;
 import javax.xml.xpath.XPathExpression;
 import javax.xml.xpath.XPathFactory;
-
 import net.explorviz.code.analysis.exceptions.DebugFileWriter;
 import net.explorviz.code.analysis.exceptions.NotFoundException;
 import net.explorviz.code.analysis.exceptions.PropertyNotDefinedException;
@@ -51,10 +48,9 @@ import net.explorviz.code.analysis.types.FileDescriptor;
 import net.explorviz.code.analysis.types.Triple;
 import net.explorviz.code.analysis.visitor.CyclomaticComplexityVisitor;
 import net.explorviz.code.analysis.visitor.FileDataVisitor;
-import net.explorviz.code.proto.StateData;
 import net.explorviz.code.proto.FileRequest;
 import net.explorviz.code.proto.FileResponse;
-
+import net.explorviz.code.proto.StateData;
 import org.apache.commons.lang3.tuple.Pair;
 import org.eclipse.jgit.api.Git;
 import org.eclipse.jgit.api.errors.GitAPIException;
@@ -79,6 +75,8 @@ import org.xml.sax.InputSource;
  */
 @ApplicationScoped
 public class GitAnalysis { // NOPMD
+
+  private static final String SRCML_ENDPOINT = "http://localhost:8078/parse";
 
   private static final Logger LOGGER = LoggerFactory.getLogger(GitAnalysis.class);
 
@@ -134,8 +132,6 @@ public class GitAnalysis { // NOPMD
 
   @Inject
   /* package */ GrpcExporter grpcExporter; // NOCS
-
-  private static final String SRCML_ENDPOINT = "http://localhost:8078/parse";
 
   private final HttpClient httpClient = HttpClient.newHttpClient();
 
@@ -579,7 +575,8 @@ public class GitAnalysis { // NOPMD
     try {
       HttpResponse<String> response = httpClient.send(request, HttpResponse.BodyHandlers.ofString());
 
-      if (response.statusCode() == 200) {
+      final int httpOk = 200;
+      if (response.statusCode() == httpOk) {
         String xml = response.body();
         return parseXmlToNodeList(xml);
       } else {
@@ -658,22 +655,22 @@ public class GitAnalysis { // NOPMD
 
             Node child = children.item(j);
 
-            if (child.getNodeType() == Node.ELEMENT_NODE &&
-                "name".equals(child.getLocalName())) {
+            if (child.getNodeType() == Node.ELEMENT_NODE
+                && "name".equals(child.getLocalName())) {
               nameFound = true;
               methodName = child.getTextContent().trim();
             }
 
-            if (child.getNodeType() == Node.ELEMENT_NODE &&
-                "type".equals(child.getLocalName())) {
+            if (child.getNodeType() == Node.ELEMENT_NODE
+                && "type".equals(child.getLocalName())) {
 
               Element typeElement = (Element) child;
               NodeList typeChildren = typeElement.getChildNodes();
 
               for (int k = 0; k < typeChildren.getLength(); k++) {
                 Node typeChild = typeChildren.item(k);
-                if (typeChild.getNodeType() == Node.ELEMENT_NODE &&
-                    "name".equals(typeChild.getLocalName())) {
+                if (typeChild.getNodeType() == Node.ELEMENT_NODE
+                    && "name".equals(typeChild.getLocalName())) {
                   returnTypeFound = true;
                   returnType += typeChild.getTextContent().trim();
                   returnType += " "; // add space for readability
@@ -691,8 +688,9 @@ public class GitAnalysis { // NOPMD
   }
 
   private String detectLanguage(String fileName) {
-    if (fileName == null)
+    if (fileName == null) {
       return "CPP";
+    }
 
     String lowerName = fileName.toLowerCase();
     if (lowerName.endsWith(".java")) {

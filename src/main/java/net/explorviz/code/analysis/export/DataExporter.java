@@ -2,12 +2,13 @@ package net.explorviz.code.analysis.export;
 
 import net.explorviz.code.proto.CommitReportData;
 import net.explorviz.code.proto.FileData;
-import net.explorviz.code.proto.StateData;
-import net.explorviz.code.proto.FileResponse;
 import net.explorviz.code.proto.FileRequest;
+import net.explorviz.code.proto.FileResponse;
+import net.explorviz.code.proto.StateData;
 
 /**
- * A DataExporter handles the export of {@link FileData}, {@link CommitReportData} and request of
+ * A DataExporter handles the export of {@link FileData},
+ * {@link CommitReportData} and request of
  * {@link StateData} as well as {@link FileRespone}.
  */
 public interface DataExporter {

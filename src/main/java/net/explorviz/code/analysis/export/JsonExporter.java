@@ -6,11 +6,11 @@ import java.nio.file.Files;
 import java.nio.file.Paths;
 import net.explorviz.code.proto.CommitReportData;
 import net.explorviz.code.proto.FileData;
+import net.explorviz.code.proto.FileRequest;
+import net.explorviz.code.proto.FileResponse;
 import net.explorviz.code.proto.StateData;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import net.explorviz.code.proto.FileRequest;
-import net.explorviz.code.proto.FileResponse;
 
 /**
  * Exports the data into files in json format.
@@ -25,7 +25,8 @@ public class JsonExporter implements DataExporter {
   private int commitCount;
 
   /**
-   * Creates a json exporter that exports the data into folder based on the current working folder.
+   * Creates a json exporter that exports the data into folder based on the
+   * current working folder.
    *
    * @throws IOException gets thrown if the needed directories were not created.
    */
@@ -61,15 +62,13 @@ public class JsonExporter implements DataExporter {
   public void sendFileData(final FileData fileData) {
     try {
       final String json = JsonFormat.printer().print(fileData);
-      final String fileName =
-          fileData.getFileName().replaceAll(JAVA_FILE_EXTENSION, "_") + fileData.getCommitID()
-              + JSON_FILE_EXTENSION;
+      final String fileName = fileData.getFileName().replaceAll(JAVA_FILE_EXTENSION, "_") + fileData.getCommitID()
+          + JSON_FILE_EXTENSION;
       Files.write(Paths.get(storageDirectory, fileName), json.getBytes());
     } catch (IOException e) { // NOPMD
       throw new RuntimeException(e); // NOPMD
     }
   }
-
 
   @Override
   public FileResponse getFileNames(final FileRequest fileRequest) {
@@ -81,9 +80,8 @@ public class JsonExporter implements DataExporter {
   public void sendCommitReport(final CommitReportData commitReportData) {
     try {
       final String json = JsonFormat.printer().print(commitReportData);
-      final String fileName =
-          "CommitReport_" + commitReportData.getCommitID() + "_" + commitCount
-              + JSON_FILE_EXTENSION;
+      final String fileName = "CommitReport_" + commitReportData.getCommitID() + "_" + commitCount
+          + JSON_FILE_EXTENSION;
       Files.write(Paths.get(storageDirectory, fileName), json.getBytes());
     } catch (IOException e) { // NOPMD
       throw new RuntimeException(e); // NOPMD
