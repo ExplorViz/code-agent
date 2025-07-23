@@ -36,12 +36,11 @@ public class JavaParserService {
   public static final Logger LOGGER = LoggerFactory.getLogger(JavaParserService.class);
   private static final String CRASHED_FILES_PATH = "/logs/crashedfiles/";
 
-
   @ConfigProperty(name = "explorviz.gitanalysis.save-crashed_files")
-  /* default */ boolean saveCrashedFilesProperty;  // NOCS
+  /* default */ boolean saveCrashedFilesProperty; // NOCS
 
   @ConfigProperty(name = "explorviz.gitanalysis.assume-unresolved-types-from-wildcard-imports")
-  /* default */ boolean wildcardImportProperty;  // NOCS
+  /* default */ boolean wildcardImportProperty; // NOCS
 
   private List<String> sourcePaths;
   private JavaSymbolSolver javaSymbolSolver;
@@ -50,7 +49,8 @@ public class JavaParserService {
 
   /**
    * Creates a new JavaParserService with only the reflectionTypeSolver, call
-   * {@link JavaParserService#reset(List)} to add JavaParserTypeSolvers and check in the given
+   * {@link JavaParserService#reset(List)} to add JavaParserTypeSolvers and check
+   * in the given
    * paths.
    */
   public JavaParserService() {
@@ -72,11 +72,11 @@ public class JavaParserService {
     combinedTypeSolver.add(reflectionTypeSolver);
     for (final String path : sourcePaths) {
       final String fileNameExtension = path.split("\\.")[1]; // ugly "hack"
-      if("c".equals(fileNameExtension)) {
+      if ("c".equals(fileNameExtension)) {
         System.out.println("fileNameExtension = " + fileNameExtension);
         continue;
       }
-      combinedTypeSolver.add(new JavaParserTypeSolver(Path.of(path)));  // NOPMD
+      combinedTypeSolver.add(new JavaParserTypeSolver(Path.of(path))); // NOPMD
     }
     javaSymbolSolver = new JavaSymbolSolver(combinedTypeSolver);
   }
@@ -95,7 +95,7 @@ public class JavaParserService {
     final FileDataHandler data = new FileDataHandler(fileName);
     final FileDataVisitor fileDataVisitor;
     final String fileNameExtension = fileName.split("\\.")[1]; // ugly hack.
-    if("java".equals(fileNameExtension)) {
+    if ("java".equals(fileNameExtension)) {
       fileDataVisitor = new FileDataVisitor(Optional.of(combinedTypeSolver), wildcardImportProperty);
       fileDataVisitor.visit(compilationUnit, data);
       if (calculateMetrics) {
@@ -106,7 +106,8 @@ public class JavaParserService {
   }
 
   /**
-   * Resets the state of the JavaParserService, all cached values are cleared and the parser can be
+   * Resets the state of the JavaParserService, all cached values are cleared and
+   * the parser can be
    * reused for another task.
    */
   public void reset() {
@@ -136,8 +137,10 @@ public class JavaParserService {
     StaticJavaParser.getParserConfiguration().setLanguageLevel(LanguageLevel.JAVA_21);
     StaticJavaParser.getParserConfiguration().setSymbolResolver(this.javaSymbolSolver);
     final CompilationUnit compilationUnit;
-    final String fileNameExtension = fileName.split("\\.")[1]; // ugly hack. TODO: we should make this class a ParserService which can pare any ubiquitous file (use ANTLR or similar)
-    if("java".equals(fileNameExtension)) {
+    final String fileNameExtension = fileName.split("\\.")[1];// ugly hack. TODO: we should make this class a
+                                                              // ParserService which can pare any ubiquitous file (use
+                                                              // ANTLR or similar)
+    if ("java".equals(fileNameExtension)) {
       try {
         if (path == null) {
           compilationUnit = StaticJavaParser.parse(fileContent);
@@ -152,7 +155,8 @@ public class JavaParserService {
         return null;
       }
     } else {
-      compilationUnit = new CompilationUnit();  // won't be used, but we need a CompilationUnit to pass the syntax error check
+      compilationUnit = new CompilationUnit(); // won't be used, but we need a CompilationUnit to pass the syntax error
+                                               // check
     }
     try {
       final FileDataHandler dataHandler = parse(compilationUnit, fileName, calculateMetrics);
@@ -160,16 +164,20 @@ public class JavaParserService {
       return dataHandler;
     } catch (NoSuchElementException e) {
       if (LOGGER.isErrorEnabled()) {
-        LOGGER.error("NoSuchElementException: \n" + compilationUnit.toString());
+        LOGGER.error("NoSuchElementException in :" + fileName + System.lineSeparator() + e.getMessage());
       }
     } catch (NoSuchFieldError e) {
       if (LOGGER.isErrorEnabled()) {
-        LOGGER.error("NoSuchFieldError: \n" + compilationUnit.toString());
+        LOGGER.error("NoSuchFieldError in " + fileName + System.lineSeparator() + e.getMessage());
+      }
+    } catch (NoSuchMethodError e) {
+      if (LOGGER.isErrorEnabled()) {
+        LOGGER.error("NoSuchMethodError in " + fileName + System.lineSeparator() + e.getMessage());
       }
     } catch (Exception | Error e) { // NOPMD
       if (LOGGER.isErrorEnabled()) {
-        LOGGER.error("Catched unknown exception.");
-        LOGGER.error(e.getClass().toString());
+
+        LOGGER.error("Catched unknown exception in file " + fileName + System.lineSeparator() + e);
       }
     }
     return null;
@@ -185,7 +193,8 @@ public class JavaParserService {
     try {
       return parseAny(fileContent, fileName, null, calculateMetrics, commitSha);
     } catch (IOException e) {
-      //   omit the IO Exception as the function can throw the exception only if path is not null
+      // omit the IO Exception as the function can throw the exception only if path is
+      // not null
       return null;
     }
   }
@@ -207,7 +216,8 @@ public class JavaParserService {
       final Pair<MetricAppender, Object> pair = new Pair<>(new MetricAppender(data), new Object());
       new CyclomaticComplexityVisitor().visit(compilationUnit, pair);
     } catch (Exception e) { // NOPMD
-      // Catch everything and proceed, as these are only the metrics, the analysis has to continue
+      // Catch everything and proceed, as these are only the metrics, the analysis has
+      // to continue
       if (LOGGER.isErrorEnabled()) {
         LOGGER.error("Unable to create cyclomatic complexity metric for File: " + fileName);
         LOGGER.error(e.getMessage(), e);
@@ -220,7 +230,8 @@ public class JavaParserService {
       new NestedBlockDepthVisitor().visit(compilationUnit,
           new Pair<>(new MetricAppender(data), null));
     } catch (Exception e) { // NOPMD
-      // Catch everything and proceed, as these are only the metrics, the analysis has to continue
+      // Catch everything and proceed, as these are only the metrics, the analysis has
+      // to continue
       if (LOGGER.isErrorEnabled()) {
         LOGGER.error("Unable to create nested block depth metric for File: " + fileName);
         LOGGER.error(e.getMessage(), e);
@@ -233,7 +244,8 @@ public class JavaParserService {
       new LackOfCohesionMethodsVisitor().visit(compilationUnit,
           new Pair<>(new MetricAppender(data), null));
     } catch (Exception e) { // NOPMD
-      // Catch everything and proceed, as these are only the metrics, the analysis has to continue
+      // Catch everything and proceed, as these are only the metrics, the analysis has
+      // to continue
       if (LOGGER.isErrorEnabled()) {
         LOGGER.error("Unable to create LCOM4 metric for File: " + fileName);
         LOGGER.error(e.getMessage(), e);

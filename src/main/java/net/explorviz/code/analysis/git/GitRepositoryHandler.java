@@ -1,6 +1,5 @@
 package net.explorviz.code.analysis.git; // NOPMD
 
-
 import jakarta.enterprise.context.ApplicationScoped;
 import java.io.File;
 import java.io.IOException;
@@ -77,13 +76,13 @@ public class GitRepositoryHandler { // NOPMD
   /* default */ Optional<String> repoLocalStoragePathProperty; // NOCS
 
   @ConfigProperty(name = "explorviz.gitanalysis.remote.username")
-  /* default */ Optional<String> usernameProperty;  // NOCS
+  /* default */ Optional<String> usernameProperty; // NOCS
 
   @ConfigProperty(name = "explorviz.gitanalysis.remote.password")
-  /* default */ Optional<String> passwordProperty;  // NOCS
+  /* default */ Optional<String> passwordProperty; // NOCS
 
   @ConfigProperty(name = "explorviz.gitanalysis.branch")
-  /* default */ Optional<String> repositoryBranchProperty;  // NOCS
+  /* default */ Optional<String> repositoryBranchProperty; // NOCS
 
   private Git git;
 
@@ -101,14 +100,19 @@ public class GitRepositoryHandler { // NOPMD
   }
 
   /**
-   * Converts a git ssh url to a https url and returns it as well as if the conversion is usable. If
-   * the given url is already in https format, it will be returned as-is and the flag is set to
-   * true. If the given url is in ssh format, it will be converted to https and returned and the
-   * flag is set to true. If it is neither, a warning will be printed the url will get returned but
+   * Converts a git ssh url to a https url and returns it as well as if the
+   * conversion is usable. If
+   * the given url is already in https format, it will be returned as-is and the
+   * flag is set to
+   * true. If the given url is in ssh format, it will be converted to https and
+   * returned and the
+   * flag is set to true. If it is neither, a warning will be printed the url will
+   * get returned but
    * the flag is set to false.
    *
    * @param url the original git url
-   * @return a Tuple containing a flag if the returned url should be used and the url itself
+   * @return a Tuple containing a flag if the returned url should be used and the
+   *         url itself
    */
   public static Map.Entry<Boolean, String> convertSshToHttps(final String url) {
     if (url.matches("^git@\\S+.\\S+:\\w+(/[\\S&&[^/]]+)+[.git]?$")) {
@@ -140,7 +144,8 @@ public class GitRepositoryHandler { // NOPMD
   }
 
   /**
-   * Returns the string content for a file path that was modified in a commit for a given repo.
+   * Returns the string content for a file path that was modified in a commit for
+   * a given repo.
    *
    * @param blobId The {@link ObjectId}.
    * @param repo   The {@link Repository}.
@@ -157,9 +162,11 @@ public class GitRepositoryHandler { // NOPMD
   }
 
   /**
-   * Tries to download the Git {@link Repository} based on a given Url to the given.
+   * Tries to download the Git {@link Repository} based on a given Url to the
+   * given.
    *
-   * @param remoteRepositoryObject the {@link RemoteRepositoryObject} object containing the path and
+   * @param remoteRepositoryObject the {@link RemoteRepositoryObject} object
+   *                               containing the path and
    *                               url
    * @return returns an opened git repository
    * @throws GitAPIException gets thrown if the git api encounters an error
@@ -179,12 +186,8 @@ public class GitRepositoryHandler { // NOPMD
       LOGGER.atInfo().addArgument(repoPath)
           .log("Repository will be cloned to: {}");
     } else {
-      String systemPath = System.getProperty("user.dir");
-      systemPath = systemPath.replace("\\build\\classes\\java\\main", "");
-      systemPath = systemPath.replace("/build/classes/java/main", "");
-      repoPath = Paths.get(systemPath, repoPath).toString();
-      LOGGER.atInfo().addArgument(repoPath)
-          .log("Detected relative path, absolute is: {}");
+      LOGGER.atInfo().log("Found local path for remote repository.");
+      repoPath = GitRepositoryHandler.convertRelativeToAbsolutePath(repoPath);
     }
 
     try {
@@ -267,15 +270,19 @@ public class GitRepositoryHandler { // NOPMD
 
   /**
    * Returns a Git {@link Repository} object by opening the repository found at
-   * {@code localRepositoryPath}. <br> If {@code localRepositoryPath} is empty, the repository gets
-   * cloned based on data defined in {@code remoteRepositoryObject} and the opened repository gets
+   * {@code localRepositoryPath}. <br>
+   * If {@code localRepositoryPath} is empty, the repository gets
+   * cloned based on data defined in {@code remoteRepositoryObject} and the opened
+   * repository gets
    * returned.
    *
    * @param localRepositoryPath    the system path of the local Repository
-   * @param remoteRepositoryObject the {@link RemoteRepositoryObject} object containing the path and
+   * @param remoteRepositoryObject the {@link RemoteRepositoryObject} object
+   *                               containing the path and
    *                               url
    * @return returns an opened Git {@link Repository}
-   * @throws IOException     gets thrown if the path is not accessible or does not point to a
+   * @throws IOException     gets thrown if the path is not accessible or does not
+   *                         point to a
    *                         folder
    * @throws GitAPIException gets thrown if the git api encounters an error
    */
@@ -284,28 +291,38 @@ public class GitRepositoryHandler { // NOPMD
 
     if (localRepositoryPath.isBlank()) {
       LOGGER.atInfo().log("No local repository given, using remote");
-
       return this.downloadGitRepository(remoteRepositoryObject);
-    } else {
+    } else if (new File(localRepositoryPath).isAbsolute()) {
       return this.openGitRepository(localRepositoryPath, remoteRepositoryObject.getBranchName());
+    } else {
+      String absolutePath = GitRepositoryHandler.convertRelativeToAbsolutePath(localRepositoryPath);
+      return this.openGitRepository(absolutePath, remoteRepositoryObject.getBranchName());
     }
   }
 
   /**
    * Returns a Git {@link Repository} object by using the parameters set in the
-   * application.properties.<br> The local repository defined in
+   * application.properties.<br>
+   * The local repository defined in
    * {@code  explorviz.gitanalysis.local.storage-path} will be used.
    * <br>
-   * If {@code  explorviz.gitanalysis.local.storage-path} is empty, the repository defined in
+   * If {@code  explorviz.gitanalysis.local.storage-path} is empty, the repository
+   * defined in
    * {@code  explorviz.gitanalysis.remote.url} will be cloned to the location
-   * {@code explorviz.gitanalysis.remote.storage-path}.<br> If no storage path is given, a temporary
-   * directory will be created. <br> The branch given in {@code explorviz.gitanalysis.branch} will
-   * be used if present, otherwise the default (remote) or current (local) will be used.
+   * {@code explorviz.gitanalysis.remote.storage-path}.<br>
+   * If no storage path is given, a temporary
+   * directory will be created. <br>
+   * The branch given in {@code explorviz.gitanalysis.branch} will
+   * be used if present, otherwise the default (remote) or current (local) will be
+   * used.
    *
    * @return an opened Git {@link Repository}
-   * @throws PropertyNotDefinedException gets thrown if a needed property is not present
-   * @throws GitAPIException             gets thrown if the git api encounters an error
-   * @throws IOException                 gets thrown if JGit cannot open the Git repository.
+   * @throws PropertyNotDefinedException gets thrown if a needed property is not
+   *                                     present
+   * @throws GitAPIException             gets thrown if the git api encounters an
+   *                                     error
+   * @throws IOException                 gets thrown if JGit cannot open the Git
+   *                                     repository.
    */
   public Repository getGitRepository()
       throws PropertyNotDefinedException, GitAPIException, IOException {
@@ -331,9 +348,11 @@ public class GitRepositoryHandler { // NOPMD
    * Returns the changed filenames between two given commits.
    *
    * @param repository       the current repository
-   * @param oldCommit        the old commit, as a baseline for the difference calculation
+   * @param oldCommit        the old commit, as a baseline for the difference
+   *                         calculation
    * @param newCommit        the new commit, gets checked against the old commit
-   * @param pathRestrictions comma sep. list of search strings specifying the folders to analyze
+   * @param pathRestrictions comma sep. list of search strings specifying the
+   *                         folders to analyze
    * @return triple of FileDescriptor specifying modified, delete and added files
    * @throws GitAPIException   thrown if git encounters an exception
    * @throws IOException       thrown if files are not available
@@ -353,7 +372,8 @@ public class GitRepositoryHandler { // NOPMD
    * Returns the changed filenames between two given commits.
    *
    * @param repository the current repository
-   * @param oldCommit  the old commit, as a baseline for the difference calculation
+   * @param oldCommit  the old commit, as a baseline for the difference
+   *                   calculation
    * @param newCommit  the new commit, gets checked against the old commit
    * @return triple of FileDescriptor specifying modified, delete and added files
    * @throws GitAPIException thrown if git encounters an exception
@@ -379,20 +399,15 @@ public class GitRepositoryHandler { // NOPMD
 
       for (final DiffEntry diff : diffs) {
         if (diff.getChangeType().equals(DiffEntry.ChangeType.DELETE)) {
-          //LOGGER.info("File Deleted");
           putInList2(repository, diff, deletedObjectIdList);
           continue;
         } else if (diff.getChangeType().equals(DiffEntry.ChangeType.RENAME)) {
-          //LOGGER.info("File Renamed");
           putInList(repository, diff, addedObjectIdList);
         } else if (diff.getChangeType().equals(DiffEntry.ChangeType.COPY)) {
-          //LOGGER.info("File Copied");
           putInList(repository, diff, addedObjectIdList);
         } else if (diff.getChangeType().equals(DiffEntry.ChangeType.MODIFY)) {
-          //LOGGER.info("File Modified");
           putInList(repository, diff, modifiedObjectIdList);
         } else if (diff.getChangeType().equals(DiffEntry.ChangeType.ADD)) {
-          //LOGGER.info("File Added");
           putInList(repository, diff, addedObjectIdList);
         }
       }
@@ -409,7 +424,7 @@ public class GitRepositoryHandler { // NOPMD
         DisabledOutputStream.INSTANCE)) {
       diffFormatter.setRepository(repository);
       final FileHeader fileHeader = diffFormatter.toFileHeader(diff);
-      mods = countModifications(fileHeader.toEditList()); //TODO: don't need to do that when deleted
+      mods = countModifications(fileHeader.toEditList()); // TODO: don't need to do that when deleted
     }
     final String[] parts = diff.getNewPath().split("/");
     objectIdList.add(
@@ -425,7 +440,7 @@ public class GitRepositoryHandler { // NOPMD
         DisabledOutputStream.INSTANCE)) {
       diffFormatter.setRepository(repository);
       final FileHeader fileHeader = diffFormatter.toFileHeader(diff);
-      mods = countModifications(fileHeader.toEditList()); //TODO: don't need to do that when deleted
+      mods = countModifications(fileHeader.toEditList()); // TODO: don't need to do that when deleted
     }
     final String[] parts = diff.getOldPath().split("/");
     objectIdList.add(
@@ -456,9 +471,11 @@ public class GitRepositoryHandler { // NOPMD
    *
    * @param repository       the current repository
    * @param commit           the commit to get the list of files for
-   * @param pathRestrictions a list of search strings specifying the folders to analyze, if omitted,
+   * @param pathRestrictions a list of search strings specifying the folders to
+   *                         analyze, if omitted,
    *                         the entire repository will be searched
-   * @return returns a list of FileDescriptors of all java files within the specified folders
+   * @return returns a list of FileDescriptors of all java files within the
+   *         specified folders
    * @throws IOException       thrown if files are not available
    * @throws NotFoundException thrown if the restrictionPath was not found
    */
@@ -474,9 +491,12 @@ public class GitRepositoryHandler { // NOPMD
    *
    * @param repository       the current repository
    * @param commit           the commit to get the list of files for
-   * @param pathRestrictions a comma separated list of search strings specifying the folders to
-   *                         analyze, if omitted, the entire repository will be searched
-   * @return returns a list of FileDescriptors of all java or C (-header) files within the 
+   * @param pathRestrictions a comma separated list of search strings specifying
+   *                         the folders to
+   *                         analyze, if omitted, the entire repository will be
+   *                         searched
+   * @return returns a list of FileDescriptors of all java or C (-header) files
+   *         within the
    *         specified folders
    * @throws IOException       thrown if files are not available
    * @throws NotFoundException thrown if the restrictionPath was not found
@@ -505,16 +525,12 @@ public class GitRepositoryHandler { // NOPMD
 
   private TreeFilter getJavaOrCfileTreeFilter(final List<String> pathRestrictions)
       throws NotFoundException {
+    final PathSuffixFilter suffixFilterJava = PathSuffixFilter.create(JAVA_PATH_SUFFIX);
+    final PathSuffixFilter suffixFilterC = PathSuffixFilter.create(C_PATH_SUFFIX);
+    final TreeFilter suffixFilter = OrTreeFilter.create(suffixFilterJava, suffixFilterC);
     if (pathRestrictions.isEmpty() || pathRestrictions.size() == 1 && pathRestrictions.get(0)
         .isBlank()) {
-        
-      final PathSuffixFilter suffixFilterJava = PathSuffixFilter.create(JAVA_PATH_SUFFIX);
-      final PathSuffixFilter suffixFilterC = PathSuffixFilter.create(C_PATH_SUFFIX);
-      //final PathSuffixFilter suffixFilterCheader = PathSuffixFilter.create(C_HEADER_PATH_SUFFIX);
-
-      return /*OrTreeFilter.create(*/
-          OrTreeFilter.create(suffixFilterJava, suffixFilterC)/*,*/
-          /*suffixFilterCheader)*/;
+      return suffixFilter;
     } else {
       final List<String> pathList = DirectoryFinder.getRelativeDirectory(pathRestrictions,
           getCurrentRepositoryPath());
@@ -522,13 +538,13 @@ public class GitRepositoryHandler { // NOPMD
       for (final String path : pathList) {
         newPathList.add(path.replaceFirst("^\\\\|/", "").replaceAll("\\\\", "/"));
       }
-      final TreeFilter pathFilter = PathFilterGroup.createFromStrings(newPathList);
-      final PathSuffixFilter suffixFilterJava = PathSuffixFilter.create(JAVA_PATH_SUFFIX);
-      final PathSuffixFilter suffixFilterC = PathSuffixFilter.create(C_PATH_SUFFIX);
-      //final PathSuffixFilter suffixFilterCheader = PathSuffixFilter.create(C_HEADER_PATH_SUFFIX);
-      final TreeFilter suffixFilter = /*OrTreeFilter.create(*/
-          OrTreeFilter.create(suffixFilterJava, suffixFilterC)/*, suffixFilterCheader)*/;
-      return AndTreeFilter.create(pathFilter, suffixFilter);
+
+      if (newPathList.isEmpty()) {
+        return suffixFilter;
+      } else {
+        final TreeFilter pathFilter = PathFilterGroup.createFromStrings(newPathList);
+        return AndTreeFilter.create(pathFilter, suffixFilter);
+      }
     }
   }
 
@@ -538,7 +554,8 @@ public class GitRepositoryHandler { // NOPMD
   }
 
   /**
-   * Checks if the given commit is unreachable by the given branch (is not part of the branch).
+   * Checks if the given commit is unreachable by the given branch (is not part of
+   * the branch).
    *
    * @param commitId the full SHA-1 id of the commit
    * @param branch   the branch name
@@ -549,7 +566,8 @@ public class GitRepositoryHandler { // NOPMD
   }
 
   /**
-   * Checks if the given commit is reachable by the given branch (is part of the branch).
+   * Checks if the given commit is reachable by the given branch (is part of the
+   * branch).
    *
    * @param commitId the full SHA-1 id of the commit
    * @param branch   the branch name
@@ -566,9 +584,25 @@ public class GitRepositoryHandler { // NOPMD
         return true;
       }
     } catch (GitAPIException | MissingObjectException e) {
-      throw new RuntimeException(e);  // NOPMD
+      throw new RuntimeException(e); // NOPMD
     }
     return false;
+  }
+
+  /**
+   * Takes a relative path and converts it to an absolute path on host system.
+   *
+   * @param relativePath Relative path
+   * @return Absolute path derived from relative path
+   */
+  public static String convertRelativeToAbsolutePath(String relativePath) {
+    String systemPath = System.getProperty("user.dir");
+    systemPath = systemPath.replace("\\build\\classes\\java\\main", "");
+    systemPath = systemPath.replace("/build/classes/java/main", "");
+    String absolutePath = Paths.get(systemPath, relativePath).toString();
+    LOGGER.atInfo().addArgument(relativePath).addArgument(absolutePath)
+        .log("Converted relative path {} to absolute path {}");
+    return absolutePath;
   }
 
 }

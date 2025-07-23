@@ -11,6 +11,7 @@ import net.explorviz.code.proto.FileData;
  */
 public class FileDataHandler implements ProtoBufConvertable<FileData> {
 
+  private static final int MIN_STACK_SIZE_FOR_PARENT = 2;
   private static final int STRING_BUILDER_CAPACITY = 300;
   // classStack is an internal object to keep track of the class hierarchy
   private final Stack<String> classStack;
@@ -23,8 +24,7 @@ public class FileDataHandler implements ProtoBufConvertable<FileData> {
    * Creates a blank FileData object.
    */
   public FileDataHandler(final String fileName) {
-    this.builder = FileData.newBuilder();
-    this.builder.setFileName(fileName);
+    this.builder = FileData.newBuilder().setFileName(fileName);
     this.classStack = new Stack<>();
     this.methodStack = new Stack<>();
     this.classDataMap = new HashMap<>();
@@ -39,13 +39,14 @@ public class FileDataHandler implements ProtoBufConvertable<FileData> {
     this.classStack.push(className);
     this.classDataMap.put(className, new ClassDataHandler());
 
-    // check if stack has at least 2 entries
-    if (this.classStack.size() > 1) { // NOPMD
-      // get the penultimate class object, that's the current's parent
-      final ClassDataHandler parent = this.getClassData(
-          this.classStack.get(this.classStack.size() - 2));
-      parent.addInnerClass(className);
+    if (this.classStack.size() >= MIN_STACK_SIZE_FOR_PARENT) {
+      final String parentClassName = this.classStack.get(this.classStack.size() - MIN_STACK_SIZE_FOR_PARENT);
+      final ClassDataHandler parent = this.getClassData(parentClassName);
+      if (parent != null) { // Add null check for robustness
+        parent.addInnerClass(className);
+      }
     }
+
   }
 
   /**
@@ -55,11 +56,12 @@ public class FileDataHandler implements ProtoBufConvertable<FileData> {
    * @param parentFqn          the fqn of the parent, may be the method it is created in.
    */
   public void enterAnonymousClass(final String anonymousClassName, final String parentFqn) {
-    String fqn = parentFqn + "." + anonymousClassName;
+    String baseFqn = parentFqn + "." + anonymousClassName;
+    String fqn = baseFqn;
     int idx = 0;
     while (classDataMap.containsKey(fqn)) {
       idx++;
-      fqn = parentFqn + "." + anonymousClassName + "#" + idx;
+      fqn = String.format("%s#%d", baseFqn, idx);
     }
 
     this.classStack.push(fqn);
@@ -67,6 +69,7 @@ public class FileDataHandler implements ProtoBufConvertable<FileData> {
     classDataHandler.setIsAnonymousClass();
     this.classDataMap.put(fqn, classDataHandler);
   }
+
 
   /**
    * Adds a new metric entry to the FileData, returns the old value of the metric if it existed,
@@ -113,7 +116,15 @@ public class FileDataHandler implements ProtoBufConvertable<FileData> {
     this.builder.setPackageName(packageName);
   }
 
+  /**
+   * Returns the full qualified name of the class that is on top of the class stack.
+   *
+   * @return fqn of class on top of stack
+   */
   public String getCurrentClassFqn() {
+    if (classStack.isEmpty()) {
+      throw new IllegalStateException("Class stack is empty. Cannot get current class FQN.");
+    }
     return this.classStack.peek();
   }
 
@@ -125,7 +136,13 @@ public class FileDataHandler implements ProtoBufConvertable<FileData> {
     return this.classDataMap.get(getCurrentClassFqn());
   }
 
+  /**
+   * Removes class from top of the class stack (pop action).
+   */
   public void leaveClass() {
+    if (classStack.isEmpty()) {
+      throw new IllegalStateException("Class stack is empty. Cannot pop current class FQN.");
+    }
     this.classStack.pop();
   }
 

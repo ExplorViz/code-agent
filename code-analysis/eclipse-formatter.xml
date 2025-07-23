@@ -258,7 +258,7 @@
       id="org.eclipse.jdt.core.formatter.insert_new_line_in_empty_type_declaration"
       value="insert" />
     <setting id="org.eclipse.jdt.core.formatter.lineSplit"
-      value="100" />
+      value="120" />
     <setting
       id="org.eclipse.jdt.core.formatter.insert_space_before_opening_paren_in_if"
       value="insert" />
@@ -708,7 +708,7 @@
       value="16|-1|16" />
     <setting
       id="org.eclipse.jdt.core.formatter.comment.line_length"
-      value="100" />
+      value="120" />
     <setting
       id="org.eclipse.jdt.core.formatter.insert_new_line_after_annotation_on_package"
       value="insert" />

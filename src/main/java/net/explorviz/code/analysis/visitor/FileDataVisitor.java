@@ -20,12 +20,12 @@ import com.github.javaparser.ast.expr.ObjectCreationExpr;
 import com.github.javaparser.ast.type.ClassOrInterfaceType;
 import com.github.javaparser.ast.type.Type;
 import com.github.javaparser.ast.visitor.VoidVisitorAdapter;
+import com.github.javaparser.resolution.TypeSolver;
 import com.github.javaparser.resolution.UnsolvedSymbolException;
 import com.github.javaparser.resolution.declarations.ResolvedReferenceTypeDeclaration;
+import com.github.javaparser.resolution.model.SymbolReference;
 import com.github.javaparser.resolution.types.ResolvedReferenceType;
 import com.github.javaparser.resolution.types.ResolvedType;
-import com.github.javaparser.symbolsolver.model.resolution.SymbolReference;
-import com.github.javaparser.symbolsolver.model.resolution.TypeSolver;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
@@ -38,12 +38,14 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 /**
- * Visitor filling a FileData object with typical information about java files. Includes the LOC
- * (lines of code) metric.
+ * Visitor filling a FileData object with typical information about java files.
+ * Includes the LOC (lines of code) metric.
  */
 public class FileDataVisitor extends VoidVisitorAdapter<FileDataHandler> { // NOPMD
 
-  public static final String LOC = "loc";
+  public static final String FILE_SIZE = "size";
+  public static final String LOC = "loc"; // Lines of Code
+  public static final String CLOC = "cloc"; // Comment Lines of Code
   private static final Logger LOGGER = LoggerFactory.getLogger(FileDataVisitor.class);
   private static final String UNKNOWN = "UNKNOWN";
 
@@ -226,8 +228,11 @@ public class FileDataVisitor extends VoidVisitorAdapter<FileDataHandler> { // NO
   @Override
   public void visit(final CompilationUnit n, final FileDataHandler data) {
     final String locValue = String.valueOf(getLoc(n));
+    final String clocValue = String.valueOf(getCloc(n));
     data.addMetric(LOC, locValue);
-    LOGGER.atTrace().addArgument(locValue).log("LOC: {}");
+    data.addMetric(CLOC, clocValue);
+    LOGGER.atTrace().addArgument(data.getFileName()).addArgument(locValue).log("{} - LOC: {}");
+    LOGGER.atTrace().addArgument(data.getFileName()).addArgument(clocValue).log("{} - CLOC: {}");
     super.visit(n, data);
   }
 
@@ -376,21 +381,30 @@ public class FileDataVisitor extends VoidVisitorAdapter<FileDataHandler> { // NO
     return generics.toString();
   }
 
-
   private int getLoc(final Node node) {
     if (node.getRange().isPresent()) {
-      int linesOfComments = 0;
-      for (final Comment commentNode : node.getAllContainedComments()) {
-        if (commentNode.getRange().isPresent()) {
-          linesOfComments += commentNode.getRange().get().getLineCount();
-        }
-      }
-      return node.getRange().get().getLineCount() - linesOfComments;
+      return node.getRange().get().getLineCount();
     }
     if (LOGGER.isErrorEnabled()) {
       LOGGER.error("Getting the lines of code failed!");
     }
     return 0;
+  }
+
+  private int getCloc(final Node node) {
+    int linesOfComments = 0;
+    if (node.getRange().isPresent()) {
+      for (final Comment commentNode : node.getAllContainedComments()) {
+        if (commentNode.getRange().isPresent()) {
+          linesOfComments += commentNode.getRange().get().getLineCount();
+        }
+      }
+    } else {
+      if (LOGGER.isErrorEnabled()) {
+        LOGGER.error("Getting the comment lines of code failed!");
+      }
+    }
+    return linesOfComments;
   }
 
   private String solveTypeInCurrentContext(final String name) {
