@@ -150,7 +150,8 @@ public class JavaParserService {
       return dataHandler;
     } catch (NoSuchElementException e) {
       if (LOGGER.isErrorEnabled()) {
-        LOGGER.error("NoSuchElementException in :" + fileName + System.lineSeparator() + e.getMessage());
+        LOGGER.error(
+            "NoSuchElementException in :" + fileName + System.lineSeparator() + e.getMessage());
       }
     } catch (NoSuchFieldError e) {
       if (LOGGER.isErrorEnabled()) {

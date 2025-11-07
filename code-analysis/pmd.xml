@@ -1,19 +1,22 @@
 <?xml version="1.0"?>
 
-<ruleset name="Custom Rules"
-    xmlns="http://pmd.sourceforge.net/ruleset/2.0.0"
-    xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
-    xsi:schemaLocation="http://pmd.sourceforge.net/ruleset/2.0.0 https://pmd.sourceforge.io/ruleset_2_0_0.xsd">
+<ruleset name="CAU-SE Configuration"
+  xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+  xmlns="http://pmd.sourceforge.net/ruleset/2.0.0"
+  xsi:schemaLocation="http://pmd.sourceforge.net/ruleset/2.0.0 https://pmd.sourceforge.net/ruleset_2_0_0.xsd">
 
   <description>CAU-SE PMD ruleset</description>
 
   <exclude-pattern>.*/io.opencensus/.*</exclude-pattern>
   <exclude-pattern>.*/build/.*</exclude-pattern>
   <exclude-pattern>.*/src/test/.*</exclude-pattern>
-  <exclude-pattern>.*/TestMain.java</exclude-pattern>
+  <exclude-pattern>.*/src/integrationTest/.*</exclude-pattern>
+  <exclude-pattern>.*/src/main/java/net/explorviz/span/hash/HighwayHash.java</exclude-pattern>
+
 
   <rule ref="category/java/bestpractices.xml">
     <exclude name="AccessorMethodGeneration" />
+    <exclude name="UseVarargs" />
   </rule>
 
   <rule ref="category/java/codestyle.xml">
@@ -56,7 +59,14 @@
     <exclude name="DoNotUseThreads" />
   </rule>
 
+  <rule ref="category/java/errorprone.xml/AvoidLiteralsInIfCondition">
+    <properties>
+      <property name="ignoreMagicNumbers" value="-1, 0, 1" />
+    </properties>
+  </rule>
+
   <rule ref="category/java/performance.xml">
+    <exclude name="AvoidInstantiatingObjectsInLoops" />
     <exclude name="SimplifyStartsWith" />
   </rule>
   <rule ref="category/java/security.xml">
@@ -67,7 +77,7 @@
   <rule ref="category/java/documentation.xml/CommentSize">
     <properties>
       <property name="maxLines" value="100" />
-      <property name="maxLineLength" value="120" />
+      <property name="maxLineLength" value="100" />
     </properties>
   </rule>
 
@@ -83,20 +93,5 @@
         value="[A-Z][a-zA-Z0-9]+" />
     </properties>
   </rule>
-  
-  <rule ref="category/java/design.xml/CyclomaticComplexity">
-    <properties>
-        <property name="classReportLevel" value="40" />
-        <property name="methodReportLevel" value="15" />
-    </properties>
-  </rule>
-  
-  <rule ref="category/java/design.xml/NPathComplexity">
-    <properties>
-        <property name="minimum" value="250.0" />
-    </properties>
-  </rule>
-  
-  
 
 </ruleset>

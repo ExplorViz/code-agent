@@ -40,7 +40,8 @@ public class FileDataHandler implements ProtoBufConvertable<FileData> {
     this.classDataMap.put(className, new ClassDataHandler());
 
     if (this.classStack.size() >= MIN_STACK_SIZE_FOR_PARENT) {
-      final String parentClassName = this.classStack.get(this.classStack.size() - MIN_STACK_SIZE_FOR_PARENT);
+      final String parentClassName =
+          this.classStack.get(this.classStack.size() - MIN_STACK_SIZE_FOR_PARENT);
       final ClassDataHandler parent = this.getClassData(parentClassName);
       if (parent != null) { // Add null check for robustness
         parent.addInnerClass(className);

@@ -25,25 +25,25 @@ public final class GrpcExporter implements DataExporter {
   private static final String GRPC_CLIENT_NAME = "codeAnalysisGrpcClient";
 
   @GrpcClient(GRPC_CLIENT_NAME)
-  /* package */ FileDataServiceGrpc.FileDataServiceBlockingStub fileDataGrpcClient; // NOCS
+  /* package */ FileDataServiceGrpc.FileDataServiceBlockingStub fileDataGrpcClient;
   //
   @GrpcClient(GRPC_CLIENT_NAME)
-  /* package */ CommitReportServiceGrpc.CommitReportServiceBlockingStub commitDataGrpcClient;// NOCS
+  /* package */ CommitReportServiceGrpc.CommitReportServiceBlockingStub commitDataGrpcClient;
   //
   @GrpcClient(GRPC_CLIENT_NAME)
-  /* package */ StateDataServiceGrpc.StateDataServiceBlockingStub stateDataGrpcClient; // NOCS
+  /* package */ StateDataServiceGrpc.StateDataServiceBlockingStub stateDataGrpcClient;
 
   @GrpcClient(GRPC_CLIENT_NAME)
-  /* package */ StructureEventServiceGrpc.StructureEventServiceBlockingStub grpcClient; // NOCS
+  /* package */ StructureEventServiceGrpc.StructureEventServiceBlockingStub grpcClient;
 
   @ConfigProperty(name = "explorviz.landscape.token")
-  /* default */ String landscapeTokenProperty;  // NOCS
+  /* default */ String landscapeTokenProperty;
 
   @ConfigProperty(name = "explorviz.landscape.secret")
-  /* default */ String landscapeSecretProperty;  // NOCS
+  /* default */ String landscapeSecretProperty;
 
   @ConfigProperty(name = "explorviz.gitanalysis.application-name")
-  /* default */ String applicationNameProperty;  // NOCS
+  /* default */ String applicationNameProperty;
 
   /**
    * Requests the state data from the remote endpoint.

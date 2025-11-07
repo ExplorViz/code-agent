@@ -154,6 +154,22 @@ public class GitRepositoryHandler { // NOPMD
   }
 
   /**
+   * Takes a relative path and converts it to an absolute path on host system.
+   *
+   * @param relativePath Relative path
+   * @return Absolute path derived from relative path
+   */
+  public static String convertRelativeToAbsolutePath(String relativePath) {
+    String systemPath = System.getProperty("user.dir");
+    systemPath = systemPath.replace("\\build\\classes\\java\\main", "");
+    systemPath = systemPath.replace("/build/classes/java/main", "");
+    String absolutePath = Paths.get(systemPath, relativePath).toString();
+    LOGGER.atInfo().addArgument(relativePath).addArgument(absolutePath)
+        .log("Converted relative path {} to absolute path {}");
+    return absolutePath;
+  }
+
+  /**
    * Tries to download the Git {@link Repository} based on a given Url to the given.
    *
    * @param remoteRepositoryObject the {@link RemoteRepositoryObject} object containing the path and
@@ -161,7 +177,7 @@ public class GitRepositoryHandler { // NOPMD
    * @return returns an opened git repository
    * @throws GitAPIException gets thrown if the git api encounters an error
    */
-  private Repository downloadGitRepository( // NOCS NOPMD
+  private Repository downloadGitRepository(// NOCS NOPMD
       final RemoteRepositoryObject remoteRepositoryObject) throws GitAPIException, IOException {
 
     final Map.Entry<Boolean, String> checkedRepositoryUrl = convertSshToHttps(
@@ -550,22 +566,6 @@ public class GitRepositoryHandler { // NOPMD
       throw new RuntimeException(e);  // NOPMD
     }
     return false;
-  }
-
-  /**
-   * Takes a relative path and converts it to an absolute path on host system.
-   *
-   * @param relativePath Relative path
-   * @return Absolute path derived from relative path
-   */
-  public static String convertRelativeToAbsolutePath(String relativePath) {
-    String systemPath = System.getProperty("user.dir");
-    systemPath = systemPath.replace("\\build\\classes\\java\\main", "");
-    systemPath = systemPath.replace("/build/classes/java/main", "");
-    String absolutePath = Paths.get(systemPath, relativePath).toString();
-    LOGGER.atInfo().addArgument(relativePath).addArgument(absolutePath)
-        .log("Converted relative path {} to absolute path {}");
-    return absolutePath;
   }
 
 }

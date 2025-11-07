@@ -1,0 +1,30 @@
+apply plugin: 'pmd'
+apply plugin: 'checkstyle'
+apply plugin: 'jacoco'
+
+jacocoTestReport {
+
+  executionData { tasks.withType(Test).findAll { it.jacoco.destinationFile.exists() }*.jacoco.destinationFile }
+
+  reports {
+    xml.required = true
+    html.required = true
+  }
+}
+
+pmd {
+  // Empty ruleset is necessary for exclude-pattern
+  // https://stackoverflow.com/questions/32247190/pmd-exclude-pattern-with-gradle
+  ruleSets = []
+  ruleSetFiles = files("code-analysis/pmd.xml")
+  ignoreFailures = false
+  toolVersion = "6.53.0"
+}
+
+checkstyle {
+  configDirectory = file("code-analysis")
+  configFile = file("code-analysis/checkstyle.xml")
+  maxWarnings = 0
+  ignoreFailures = false
+  toolVersion = "10.12.5"
+}
