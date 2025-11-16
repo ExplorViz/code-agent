@@ -18,6 +18,7 @@ import java.util.Optional;
 import net.explorviz.code.analysis.FileIO;
 import net.explorviz.code.analysis.exceptions.NotFoundException;
 import net.explorviz.code.analysis.exceptions.PropertyNotDefinedException;
+import net.explorviz.code.analysis.service.AnalysisConfig;
 import net.explorviz.code.analysis.types.FileDescriptor;
 import net.explorviz.code.analysis.types.RemoteRepositoryObject;
 import net.explorviz.code.analysis.types.Triple;
@@ -63,24 +64,6 @@ public class GitRepositoryHandler { // NOPMD
   private static final Logger LOGGER = LoggerFactory.getLogger(GitRepositoryHandler.class);
   private static final String JAVA_PATH_SUFFIX = ".java";
   private static String repositoryPath;
-
-  @ConfigProperty(name = "explorviz.gitanalysis.local.storage-path")
-  /* default */ Optional<String> repoPathProperty; // NOCS
-
-  @ConfigProperty(name = "explorviz.gitanalysis.remote.url")
-  /* default */ Optional<String> repoUrlProperty; // NOCS
-
-  @ConfigProperty(name = "explorviz.gitanalysis.remote.storage-path")
-  /* default */ Optional<String> repoLocalStoragePathProperty; // NOCS
-
-  @ConfigProperty(name = "explorviz.gitanalysis.remote.username")
-  /* default */ Optional<String> usernameProperty;  // NOCS
-
-  @ConfigProperty(name = "explorviz.gitanalysis.remote.password")
-  /* default */ Optional<String> passwordProperty;  // NOCS
-
-  @ConfigProperty(name = "explorviz.gitanalysis.branch")
-  /* default */ Optional<String> repositoryBranchProperty;  // NOCS
 
   private Git git;
 
@@ -313,29 +296,32 @@ public class GitRepositoryHandler { // NOPMD
    * directory will be created. <br> The branch given in {@code explorviz.gitanalysis.branch} will
    * be used if present, otherwise the default (remote) or current (local) will be used.
    *
+   * @param config the analysis config
    * @return an opened Git {@link Repository}
    * @throws PropertyNotDefinedException gets thrown if a needed property is not present
    * @throws GitAPIException             gets thrown if the git api encounters an error
    * @throws IOException                 gets thrown if JGit cannot open the Git repository.
    */
-  public Repository getGitRepository()
+  public Repository getGitRepository(AnalysisConfig config)
       throws PropertyNotDefinedException, GitAPIException, IOException {
-    if (repoUrlProperty.isEmpty() && repoPathProperty.isEmpty()) {
-      throw new PropertyNotDefinedException("explorviz.gitanalysis.local.folder.path");
+    if (config.getRepoPath().isEmpty() && config.getRepoRemoteUrl().isEmpty()) {
+      throw new PropertyNotDefinedException("explorviz.gitanalysis.remote.url");
     }
 
     final CredentialsProvider credentialsProvider;
-    if (usernameProperty.isEmpty() || passwordProperty.isEmpty()) {
+    if (config.getGitUsername().isEmpty() || config.getGitPassword().isEmpty()) {
       credentialsProvider = CredentialsProvider.getDefault();
     } else {
-      credentialsProvider = new UsernamePasswordCredentialsProvider(usernameProperty.get(),
-          passwordProperty.get());
+      credentialsProvider = new UsernamePasswordCredentialsProvider(
+          config.getGitUsername().get(),
+          config.getGitPassword().get()
+      );
     }
 
-    return getGitRepository(this.repoPathProperty.orElse(""),
-        new RemoteRepositoryObject(this.repoUrlProperty.orElse(""),
-            repoLocalStoragePathProperty.orElse(""), credentialsProvider,
-            repositoryBranchProperty.orElse("")));
+    return getGitRepository(config.getRepoPath().orElse(""),
+        new RemoteRepositoryObject(config.getRepoRemoteUrl().orElse(""),
+            config.getRemoteStoragePath().orElse(""), credentialsProvider,
+            config.getBranch().orElse("")));
   }
 
   /**
