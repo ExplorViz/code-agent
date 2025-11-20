@@ -54,9 +54,6 @@ public class GitAnalysis { // NOPMD
   @ConfigProperty(name = "explorviz.gitanalysis.restrict-analysis-to-folders")
   /* default */ Optional<String> restrictAnalysisToFoldersProperty;  // NOCS NOPMD
 
-  @ConfigProperty(name = "explorviz.gitanalysis.fetch-remote-data", defaultValue = "true")
-  /* default */ boolean fetchRemoteDataProperty;  // NOCS
-
   @ConfigProperty(name = "explorviz.gitanalysis.send-to-remote", defaultValue = "true")
   /* default */ boolean sendToRemoteProperty;  // NOCS
 
@@ -68,9 +65,6 @@ public class GitAnalysis { // NOPMD
 
   @ConfigProperty(name = "explorviz.gitanalysis.end-commit-sha1")
   /* default */ Optional<String> endCommitProperty;  // NOCS
-
-  @ConfigProperty(name = "explorviz.gitanalysis.save-crashed_files")
-  /* default */ boolean saveCrashedFilesProperty;  // NOCS
 
   @ConfigProperty(name = "explorviz.landscape.token")
   /* default */ String landscapeTokenProperty;  // NOCS
@@ -98,12 +92,9 @@ public class GitAnalysis { // NOPMD
         .branch(repositoryBranchProperty)
         .sourceDirectory(sourceDirectoryProperty)
         .restrictAnalysisToFolders(restrictAnalysisToFoldersProperty)
-        .fetchRemoteData(fetchRemoteDataProperty)
-        .sendToRemote(sendToRemoteProperty)
         .calculateMetrics(calculateMetricsProperty)
         .startCommit(startCommitProperty)
         .endCommit(endCommitProperty)
-        .saveCrashedFiles(saveCrashedFilesProperty)
         .landscapeToken(landscapeTokenProperty)
         .applicationName(applicationNameProperty)
         .build();

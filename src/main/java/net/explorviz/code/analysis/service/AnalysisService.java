@@ -34,6 +34,7 @@ import org.eclipse.jgit.lib.Repository;
 import org.eclipse.jgit.revwalk.RevCommit;
 import org.eclipse.jgit.revwalk.RevSort;
 import org.eclipse.jgit.revwalk.RevWalk;
+import org.eclipse.microprofile.config.inject.ConfigProperty;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -53,6 +54,12 @@ public class AnalysisService { // NOPMD
 
   @Inject
   /* package */ CommitReportHandler commitReportHandler; // NOCS
+
+  @ConfigProperty(name = "explorviz.gitanalysis.save-crashed_files")
+  /* default */ boolean saveCrashedFilesProperty;  // NOCS
+
+  @ConfigProperty(name = "explorviz.gitanalysis.fetch-remote-data", defaultValue = "true")
+  /* default */ boolean fetchRemoteDataProperty;  // NOCS
 
   // only done because checkstyle does not like the duplication of literals
   private static String toErrorText(final String position, final String commitId,
@@ -81,7 +88,7 @@ public class AnalysisService { // NOPMD
       // get fetch data from remote
       final Optional<String> startCommit = findStartCommit(config, exporter, branch);
       final Optional<String> endCommit =
-          config.isFetchRemoteData() ? Optional.empty() : config.getEndCommit();
+          fetchRemoteDataProperty ? Optional.empty() : config.getEndCommit();
 
       checkIfCommitsAreReachable(startCommit, endCommit, branch);
 
@@ -97,12 +104,12 @@ public class AnalysisService { // NOPMD
           if (!inAnalysisRange) {
             if (commit.name().equals(startCommit.get())) {
               inAnalysisRange = true;
-              if (config.isFetchRemoteData()) {
+              if (fetchRemoteDataProperty) {
                 lastCheckedCommit = commit;
                 continue;
               }
             } else {
-              if (config.isFetchRemoteData()) {
+              if (fetchRemoteDataProperty) {
                 lastCheckedCommit = commit;
               }
               continue;
@@ -165,7 +172,7 @@ public class AnalysisService { // NOPMD
 
   private Optional<String> findStartCommit(final AnalysisConfig config,
       final DataExporter exporter, final String branch) {
-    if (config.isFetchRemoteData()) {
+    if (fetchRemoteDataProperty) {
       final StateData remoteState = exporter.requestStateData(
           getUnambiguousUpstreamName(config.getRepoRemoteUrl()), branch);
       if (remoteState.getCommitID().isEmpty() || remoteState.getCommitID().isBlank()) {
@@ -338,7 +345,7 @@ public class AnalysisService { // NOPMD
       final FileDataHandler fileDataHandler = parser.parseFileContent(fileContent, file.fileName,
           config.isCalculateMetrics(), commitSha); // NOPMD
       if (fileDataHandler == null) {
-        if (config.isSaveCrashedFiles()) {
+        if (saveCrashedFilesProperty) {
           DebugFileWriter.saveDebugFile("/logs/crashedfiles/", fileContent,
               file.fileName);
         }

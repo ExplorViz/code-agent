@@ -42,7 +42,7 @@ public class CyclomaticComplexityVisitorTest { // NOCS
         .getMetricValue("cyclomatic_complexity")); // NOCS
     Assertions.assertEquals("2", fileDataHandler.getClassData("com.easy.life.Nested") // NOCS
         .getMethod("com.easy.life.Nested.heavyNested2#1980e")
-        .getMetricValue("cyclomatic_complexity"));// NOCS
+        .getMetricValue("cyclomatic_complexity")); // NOCS
     Assertions.assertEquals("4", fileDataHandler.getClassData("com.easy.life.Nested") // NOCS
         .getMetricValue("cyclomatic_complexity_weighted"));
 

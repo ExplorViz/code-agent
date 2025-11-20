@@ -21,7 +21,6 @@ public class AnalysisRequest {
   private boolean calculateMetrics = true;
   private String startCommit;
   private String endCommit;
-  private boolean saveCrashedFiles;
   private String landscapeToken = "";
   private String applicationName = "";
 
@@ -100,14 +99,6 @@ public class AnalysisRequest {
     this.endCommit = endCommit;
   }
 
-  public boolean isSaveCrashedFiles() {
-    return saveCrashedFiles;
-  }
-
-  public void setSaveCrashedFiles(final boolean saveCrashedFiles) {
-    this.saveCrashedFiles = saveCrashedFiles;
-  }
-
   public String getLandscapeToken() {
     return landscapeToken;
   }
@@ -133,18 +124,14 @@ public class AnalysisRequest {
     return new AnalysisConfig.Builder()
         .repoPath(Optional.ofNullable(repoPath))
         .repoRemoteUrl(Optional.ofNullable(repoRemoteUrl))
-        .remoteStoragePath(Optional.ofNullable(remoteStoragePath))
         .gitUsername(Optional.ofNullable(username))
         .gitPassword(Optional.ofNullable(password))
         .branch(Optional.ofNullable(branch))
         .sourceDirectory(Optional.ofNullable(sourceDirectory))
         .restrictAnalysisToFolders(Optional.ofNullable(restrictAnalysisToFolders))
-        .fetchRemoteData(fetchRemoteData)
-        .sendToRemote(sendToRemote)
         .calculateMetrics(calculateMetrics)
         .startCommit(Optional.ofNullable(startCommit))
         .endCommit(Optional.ofNullable(endCommit))
-        .saveCrashedFiles(saveCrashedFiles)
         .landscapeToken(landscapeToken != null ? landscapeToken : "")
         .applicationName(applicationName != null ? applicationName : "")
         .build();

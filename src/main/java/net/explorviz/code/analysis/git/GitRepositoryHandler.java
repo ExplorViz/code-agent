@@ -65,6 +65,9 @@ public class GitRepositoryHandler { // NOPMD
   private static final String JAVA_PATH_SUFFIX = ".java";
   private static String repositoryPath;
 
+  @ConfigProperty(name = "explorviz.gitanalysis.remote.storage-path")
+  /* default */ Optional<String> repoLocalStoragePathProperty; // NOCS
+
   private Git git;
 
   public static String getCurrentRepositoryPath() {
@@ -320,7 +323,7 @@ public class GitRepositoryHandler { // NOPMD
 
     return getGitRepository(config.getRepoPath().orElse(""),
         new RemoteRepositoryObject(config.getRepoRemoteUrl().orElse(""),
-            config.getRemoteStoragePath().orElse(""), credentialsProvider,
+            repoLocalStoragePathProperty.orElse(""), credentialsProvider,
             config.getBranch().orElse("")));
   }
 

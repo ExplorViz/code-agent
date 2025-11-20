@@ -73,7 +73,7 @@ tasks.named('checkstyleMain') {
 }
 
 tasks.named('pmdMain') {
-    dependsOn 'jandex'
+    dependsOn 'jandex', 'compileQuarkusGeneratedSourcesJava'
 }
 
 tasks.named('compileTestJava') {
