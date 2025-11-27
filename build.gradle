@@ -19,6 +19,7 @@ dependencies {
     implementation 'io.quarkus:quarkus-container-image-jib'
     implementation 'io.quarkus:quarkus-vertx'
     implementation 'io.quarkus:quarkus-rest'
+    implementation 'io.quarkus:quarkus-rest-jackson'
     implementation 'io.quarkus:quarkus-grpc'
 
     implementation 'com.google.protobuf:protobuf-java-util'
@@ -72,7 +73,7 @@ tasks.named('checkstyleMain') {
 }
 
 tasks.named('pmdMain') {
-    dependsOn 'jandex'
+    dependsOn 'jandex', 'compileQuarkusGeneratedSourcesJava'
 }
 
 tasks.named('compileTestJava') {
