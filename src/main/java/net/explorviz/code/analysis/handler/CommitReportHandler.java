@@ -111,6 +111,10 @@ public class CommitReportHandler { // NOPMD
     builder.setApplicationName(applicationName);
   }
 
+  public void addRepositoryName(final String repositoryName) {
+    builder.setRepositoryName(repositoryName);
+  }
+
   /**
    * Sets the lines of code (loc) metric. * @param fileDescriptor the file descriptor of the
    * corresponding file we want to set the lines of code for * @param loc the lines of code

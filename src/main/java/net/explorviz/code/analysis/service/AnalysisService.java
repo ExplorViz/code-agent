@@ -172,7 +172,7 @@ public class AnalysisService { // NOPMD
 
   private Optional<String> findStartCommit(final AnalysisConfig config,
       final DataExporter exporter, final String branch) {
-    if (fetchRemoteDataProperty) {
+    if (fetchRemoteDataProperty) { // TODO: FRAGE bzgl. Unterschied Local/Remote StateData
       final StateData remoteState = exporter.requestStateData(
           getUnambiguousUpstreamName(config.getRepoRemoteUrl()), branch);
       if (remoteState.getCommitID().isEmpty() || remoteState.getCommitID().isBlank()) {
@@ -183,8 +183,12 @@ public class AnalysisService { // NOPMD
     } else {
       if (config.getStartCommit().isPresent() && exporter.isInvalidCommitHash(
           config.getStartCommit().get())) {
+        LOGGER.info("Is invalid");
         return Optional.empty();
       }
+      StateData localState = exporter.requestStateData(
+          config.getRepoPath().orElse("Not cool"), branch);
+      LOGGER.info("Passt" + config.getRepoPath() + " " + config.getSourceDirectory());
       return config.getStartCommit();
     }
   }
@@ -333,6 +337,12 @@ public class AnalysisService { // NOPMD
     commitReportHandler.addTags(tags);
     commitReportHandler.addToken(config.getLandscapeToken());
     commitReportHandler.addApplicationName(config.getApplicationName());
+
+    if (fetchRemoteDataProperty) {
+      commitReportHandler.addRepositoryName(config.getRepoRemoteUrl().orElse(""));
+    } else {
+      commitReportHandler.addRepositoryName(config.getRepoPath().orElse(""));
+    }
 
     exporter.sendCommitReport(commitReportHandler.getCommitReport());
   }
