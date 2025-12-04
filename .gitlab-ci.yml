@@ -68,9 +68,6 @@ unit-test:
   after_script:
     - echo "Image was uploaded to Dockerhub; explorviz/${DOCKERHUB_IMAGE_NAME}:latest and explorviz/${DOCKERHUB_IMAGE_NAME}:$CI_COMMIT_SHORT_SHA"
 
-push-dockerhub-main:
-  extends: .push-dockerhub-base-job
-
 push-dockerhub-mr:
   stage: publish
   rules:
