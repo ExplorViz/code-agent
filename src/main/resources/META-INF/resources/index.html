@@ -1,0 +1,124 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>ExplorViz Code Agent</title>
+    <link rel="stylesheet" href="styles.css" />
+  </head>
+  <body>
+    <main>
+      <header>
+        <div>
+          <h1>ExplorViz Code Agent</h1>
+          <p class="subtitle">
+            Wep interface to trigger code analysis via the REST API under
+            <code>/api/analysis/trigger</code>.
+          </p>
+        </div>
+      </header>
+
+      <form id="analysis-form">
+        <section class="card">
+          <h2>Repository</h2>
+          <div class="field-grid">
+            <label>
+              Local Repository Path
+              <input name="repoPath" type="text" placeholder="/absolute/path/to/repo" />
+            </label>
+            <label>
+              Remote Repository URL
+              <input
+                name="repoRemoteUrl"
+                type="url"
+                placeholder="https://github.com/org/project.git"
+              />
+            </label>
+            <label>
+              Branch
+              <input name="branch" type="text" placeholder="main" />
+            </label>
+            <label>
+              Source Directories
+              <input
+                name="sourceDirectory"
+                type="text"
+                placeholder="**/src/main/java,**/src/test/java"
+              />
+            </label>
+            <label>
+              Restrict Analysis To Folders
+              <input name="restrictAnalysisToFolders" type="text" placeholder="**/src/main/java" />
+            </label>
+          </div>
+        </section>
+
+        <section class="card">
+          <h2>Commits & Metrics</h2>
+          <div class="field-grid">
+            <label>
+              Application Name
+              <input name="applicationName" type="text" placeholder="default-application-name" />
+            </label>
+            <label>
+              Start Commit (optional)
+              <input name="startCommit" type="text" placeholder="5e1ce23..." />
+            </label>
+            <label>
+              End Commit (optional)
+              <input name="endCommit" type="text" placeholder="3e1ce23..." />
+            </label>
+            <label>
+              Landscape Token
+              <input
+                name="landscapeToken"
+                type="password"
+                placeholder="token for ExplorViz landscape"
+              />
+            </label>
+          </div>
+          <div class="toggle-row">
+            <label class="toggle">
+              <input type="checkbox" name="calculateMetrics" checked />
+              Calculate Metrics
+            </label>
+            <label class="toggle">
+              <input type="checkbox" name="sendToRemote" checked />
+              Send Results via gRPC
+            </label>
+            <label class="toggle">
+              <input type="checkbox" name="fetchRemoteData" />
+              Fetch Remote State Data
+            </label>
+          </div>
+        </section>
+
+        <section class="card">
+          <h2>Authentication</h2>
+          <div class="field-grid">
+            <label>
+              Username
+              <input name="username" type="text" autocomplete="username" />
+            </label>
+            <label>
+              Password / Token
+              <input name="password" type="password" autocomplete="current-password" />
+            </label>
+          </div>
+        </section>
+
+        <section class="card">
+          <details>
+            <summary>Payload Preview (read-only)</summary>
+            <pre id="payload-preview" class="status" aria-live="polite">{}</pre>
+          </details>
+        </section>
+
+        <button class="primary" type="submit" id="run-analysis">Run Analysis</button>
+
+        <div id="status" class="status" role="status" aria-live="polite">Waiting for input…</div>
+      </form>
+    </main>
+    <script src="main.js" defer></script>
+  </body>
+</html>

@@ -1,11 +1,24 @@
 # code-agent
 
-This project is a tool that analyzes a git repository containing a java project.
+This project is a tool that analyzes a Git repository containing a java project.
 
 ## Usage and Run Modes
 
-<!-- TODO Describe the usage, building etc. here -->
-<!-- TODO run modes are - local, remote, CI -->
+The property `explorviz.gitanalysis.run-mode` determines if the code-agent runs continuously with REST APIs or in a non-interactive mode for CI environments.
+
+### Launching The Web Interface for Development
+
+1. Start the Quarkus dev server:
+    ```bash
+    ./gradlew quarkusDev
+    ```
+2. Visit [http://localhost:8078/](http://localhost:8078/). The new single-page UI is served directly from `src/main/resources/META-INF/resources/index.html`.
+3. Fill in either a local repository path or a remote URL (plus any optional parameters such as branch, source directories, credentials, metrics toggles, etc.).
+4. Hit **Run Analysis**. The page calls the existing REST endpoint at `/api/analysis/trigger` and streams the textual response back into the UI.
+
+The form mirrors the fields of `AnalysisRequest`, so anything you can configure via JSON can now be triggered from the browser.
+
+### CI / Non-Interactive Mode
 
 By changing some settings in the `application.properties` file, it is possible to run the code-agent as CI job.
 
