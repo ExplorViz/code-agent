@@ -90,23 +90,6 @@ jobs:
       - name: Run Unit Tests
         run: ./gradlew test
 
-  docker-image-native:
-    name: Docker image native
-    if: github.event_name == 'push' && github.ref_name == 'main'
-    needs: [test]
-    runs-on: ubuntu-latest
-    steps:
-      - name: Checkout Code
-        uses: actions/checkout@v3
-      - name: Build and Push Image
-        uses: explorviz/deployment/.github/actions/build-and-deploy-quarkus-native@main
-        with:
-          platforms: "linux/amd64,linux/arm64/v8"
-          docker-username: ${{ secrets.DOCKER_USERNAME }}
-          docker-password: ${{ secrets.DOCKER_PASSWORD }}
-          image-name: ${{ vars.DOCKER_NATIVE_IMAGE_NAME }}
-          image-tag: "latest"
-
   docker-image-jvm:
     name: Docker image JVM
     if: github.event_name == 'push' && github.ref_name == 'main'
