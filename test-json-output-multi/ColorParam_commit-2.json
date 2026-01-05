@@ -1,0 +1,52 @@
+{
+  "commitID": "commit-2",
+  "fileName": "ColorParam.java",
+  "packageName": "net.sourceforge.plantuml",
+  "classData": {
+    "net.sourceforge.plantuml.ColorParam": {
+      "type": "ENUM",
+      "modifier": ["public"],
+      "field": [{
+        "name": "isBackground",
+        "type": "boolean",
+        "modifier": ["private", "final"]
+      }],
+      "methodData": {
+        "net.sourceforge.plantuml.ColorParam.ColorParam#1": {
+          "modifier": ["private"],
+          "isConstructor": true,
+          "metric": {
+            "loc": "3"
+          }
+        },
+        "net.sourceforge.plantuml.ColorParam.ColorParam#3db6c47": {
+          "modifier": ["private"],
+          "parameter": [{
+            "name": "isBackground",
+            "type": "boolean"
+          }],
+          "isConstructor": true,
+          "metric": {
+            "loc": "3"
+          }
+        },
+        "net.sourceforge.plantuml.ColorParam.isBackground#1": {
+          "returnType": "boolean",
+          "modifier": ["protected"],
+          "metric": {
+            "loc": "3"
+          }
+        }
+      },
+      "enumConstant": ["background", "activityBackground", "activityBorder", "activityStart", "activityEnd", "activityBar", "activityArrow", "actorBackground", "actorBorder", "usecaseBorder", "usecaseBackground", "usecaseArrow", "objectBackground", "objectBorder", "objectArrow", "classBackground", "classBorder", "stereotypeCBackground", "stereotypeABackground", "stereotypeIBackground", "stereotypeEBackground", "classArrow", "packageBackground", "packageBorder", "componentBackground", "componentBorder", "interfaceBackground", "interfaceBorder", "componentArrow", "stateBackground", "stateBorder", "stateArrow", "noteBackground", "noteBorder", "sequenceActorBackground", "sequenceActorBorder", "sequenceGroupBackground", "sequenceDividerBackground", "sequenceLifeLineBackground", "sequenceLifeLineBorder", "sequenceParticipantBackground", "sequenceParticipantBorder", "sequenceArrow", "sequenceEngloberLine", "sequenceEngloberBackground", "iconPrivate", "iconPrivateBackground", "iconPackage", "iconPackageBackground", "iconProtected", "iconProtectedBackground", "iconPublic", "iconPublicBackground"],
+      "metric": {
+        "loc": "70"
+      }
+    }
+  },
+  "metric": {
+    "loc": "72",
+    "cloc": "0"
+  },
+  "language": "JAVA"
+}

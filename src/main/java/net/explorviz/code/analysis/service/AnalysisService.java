@@ -19,9 +19,13 @@ import net.explorviz.code.analysis.git.DirectoryFinder;
 import net.explorviz.code.analysis.git.GitMetricCollector;
 import net.explorviz.code.analysis.git.GitRepositoryHandler;
 import net.explorviz.code.analysis.handler.CommitReportHandler;
+import net.explorviz.code.analysis.handler.AbstractFileDataHandler;
+import net.explorviz.code.analysis.handler.JavaFileDataHandler;
 import net.explorviz.code.analysis.handler.FileDataHandler;
 import net.explorviz.code.analysis.handler.FileMetricHandler;
-import net.explorviz.code.analysis.parser.JavaParserService;
+import net.explorviz.code.analysis.parser.AntlrParserService;
+import net.explorviz.code.analysis.parser.AntlrPythonParserService;
+import net.explorviz.code.analysis.parser.AntlrTypeScriptParserService;
 import net.explorviz.code.analysis.types.FileDescriptor;
 import net.explorviz.code.analysis.types.Triple;
 import net.explorviz.code.analysis.visitor.CyclomaticComplexityVisitor;
@@ -50,7 +54,13 @@ public class AnalysisService { // NOPMD
   /* package */ GitRepositoryHandler gitRepositoryHandler; // NOCS
 
   @Inject
-  /* package */ JavaParserService javaParserService; // NOCS
+  /* package */ AntlrParserService antlrParserService; // NOCS (ANTLR-based Java parser)
+
+  @Inject
+  /* package */ AntlrTypeScriptParserService tsParserService; // NOCS
+
+  @Inject
+  /* package */ AntlrPythonParserService pythonParserService; // NOCS
 
   @Inject
   /* package */ CommitReportHandler commitReportHandler; // NOCS
@@ -125,6 +135,8 @@ public class AnalysisService { // NOPMD
 
           final List<FileDescriptor> descriptorAddedList = descriptorTriple.getRight(); // NOPMD
           final List<FileDescriptor> descriptorModifiedList = descriptorTriple.getLeft();
+
+          LOGGER.atDebug().addArgument(descriptorAddedList.size()).addArgument(descriptorModifiedList.size()).log("Files added: {}, files modified: {}");
 
           if (descriptorAddedList.isEmpty() && descriptorModifiedList.isEmpty()) {
             createCommitReport(config, repository, commit, lastCheckedCommit, exporter, branch,
@@ -216,19 +228,30 @@ public class AnalysisService { // NOPMD
 
     Git.wrap(repository).checkout().setName(commit.getName()).call();
 
-    javaParserService.reset(
-        DirectoryFinder.getDirectories(GitRepositoryHandler.getCurrentRepositoryPath(),
-            List.of(config.getSourceDirectory().orElse("").split(","))));
+    antlrParserService.reset();
     GitMetricCollector.resetAuthor();
 
-    final Map<String, FileDataHandler> fileNameToFileDataHandlerMap = new HashMap<>();
+    final Map<String, AbstractFileDataHandler> fileNameToFileDataHandlerMap = new HashMap<>();
+
+
+    LOGGER.atTrace().addArgument(descriptorList.toString()).log("Files: {}");
 
     for (final FileDescriptor fileDescriptor : descriptorList) {
-      final FileDataHandler fileDataHandler = fileAnalysis(config, repository, fileDescriptor,
-          javaParserService, commit.getName());
+      LOGGER.atInfo()
+          .addArgument(fileDescriptor.relativePath)
+          .log("📄 Analyzing file: {}");
+      
+      final AbstractFileDataHandler fileDataHandler = fileAnalysis(config, repository, fileDescriptor,
+          commit.getName());
+      
       if (fileDataHandler == null) {
-        LOGGER.error("Analysis of file " + fileDescriptor.relativePath + " failed.");
+        LOGGER.atError()
+            .addArgument(fileDescriptor.relativePath)
+            .log("❌ Analysis of file {} failed - handler is NULL");
       } else {
+        LOGGER.atInfo()
+            .addArgument(fileDescriptor.relativePath)
+            .log("✅ Analysis of file {} succeeded - sending to exporter");
         try {
           File file = new File(GitRepositoryHandler.getCurrentRepositoryPath() + "/"
               + fileDescriptor.relativePath);
@@ -237,7 +260,10 @@ public class AnalysisService { // NOPMD
           LOGGER.error("File size of file " + fileDescriptor.relativePath
               + " could not be analyzed." + e.getMessage());
         }
-        GitMetricCollector.addCommitGitMetrics(fileDataHandler, commit);
+        // Only add Git metrics for Java files (FileDataHandler type)
+        if (fileDataHandler instanceof FileDataHandler) {
+          GitMetricCollector.addCommitGitMetrics((FileDataHandler) fileDataHandler, commit);
+        }
         fileDataHandler.setLandscapeToken(config.getLandscapeToken());
         fileDataHandler.setApplicationName(config.getApplicationName());
         exporter.sendFileData(fileDataHandler.getProtoBufObject());
@@ -254,7 +280,7 @@ public class AnalysisService { // NOPMD
       final String branchName,
       final Triple<List<FileDescriptor>, List<FileDescriptor>,
           List<FileDescriptor>> descriptorTriple,
-      final Map<String, FileDataHandler> fileNameToFileDataHandlerMap)
+      final Map<String, AbstractFileDataHandler> fileNameToFileDataHandlerMap)
       throws NotFoundException, IOException, GitAPIException {
     if (lastCommit == null) {
       commitReportHandler.init(commit.getId().getName(), null, branchName);
@@ -267,7 +293,7 @@ public class AnalysisService { // NOPMD
 
     for (final FileDescriptor file : files) {
       commitReportHandler.addFileHash(file);
-      final FileDataHandler fileDataHandler = fileNameToFileDataHandlerMap.get(file.relativePath);
+      final AbstractFileDataHandler fileDataHandler = fileNameToFileDataHandlerMap.get(file.relativePath);
 
       if (fileDataHandler != null) { // add metrics
         final FileMetricHandler fileMetricHandler = commitReportHandler
@@ -294,8 +320,10 @@ public class AnalysisService { // NOPMD
           fileMetricHandler.setCloc(Integer.parseInt(cloc));
         }
 
-        // Set number of methods
-        fileMetricHandler.setNumberOfMethods(fileDataHandler.getMethodCount());
+        // Set number of methods (only for Java files with FileDataHandler)
+        if (fileDataHandler instanceof FileDataHandler) {
+          fileMetricHandler.setNumberOfMethods(((FileDataHandler) fileDataHandler).getMethodCount());
+        }
 
         // Set cyclomatic complexity
         final String cyclomaticComplexity = fileDataHandler
@@ -337,20 +365,100 @@ public class AnalysisService { // NOPMD
     exporter.sendCommitReport(commitReportHandler.getCommitReport());
   }
 
-  private FileDataHandler fileAnalysis(final AnalysisConfig config, final Repository repository,
-      final FileDescriptor file, final JavaParserService parser, final String commitSha)
+  /**
+   * Analyzes a file and returns the appropriate handler based on file extension.
+   * Routes .java files to JavaParserService and .ts/.js files to TypeScriptParserService.
+   *
+   * @param config     the analysis configuration
+   * @param repository the git repository
+   * @param file       the file descriptor
+   * @param commitSha  the commit SHA
+   * @return the file data handler (Java or TypeScript specific)
+   * @throws IOException if file content cannot be read
+   */
+  private AbstractFileDataHandler fileAnalysis(final AnalysisConfig config, final Repository repository,
+      final FileDescriptor file, final String commitSha)
       throws IOException {
     final String fileContent = GitRepositoryHandler.getContent(file.objectId, repository);
+    final String fileName = file.fileName.toLowerCase();
+    
     try {
-      final FileDataHandler fileDataHandler = parser.parseFileContent(fileContent, file.fileName,
-          config.isCalculateMetrics(), commitSha); // NOPMD
+      AbstractFileDataHandler fileDataHandler = null;
+      
+      // Route to appropriate parser based on file extension
+      if (fileName.endsWith(".ts") || fileName.endsWith(".tsx") || 
+          fileName.endsWith(".js") || fileName.endsWith(".jsx")) {
+        // TypeScript/JavaScript file
+        LOGGER.atInfo()
+            .addArgument(file.fileName)
+            .addArgument(fileContent.length())
+            .log("Parsing TypeScript/JavaScript file: {} (size: {} bytes)");
+        
+        fileDataHandler = tsParserService.parseFileContent(fileContent, file.fileName, commitSha);
+        
+        if (fileDataHandler != null) {
+          // Add git metrics to the TypeScript/JavaScript file handler
+          GitMetricCollector.addFileGitMetrics(fileDataHandler, file);
+          LOGGER.atInfo()
+              .addArgument(file.fileName)
+              .log("✅ Successfully parsed TypeScript/JavaScript file: {}");
+        } else {
+          LOGGER.atError()
+              .addArgument(file.fileName)
+              .log("❌ TypeScript parser returned NULL for file: {}");
+        }
+      } else if (fileName.endsWith(".java")) {
+        // Java file - using ANTLR parser
+        LOGGER.atInfo()
+            .addArgument(file.fileName)
+            .addArgument(fileContent.length())
+            .log("Parsing Java file with ANTLR: {} (size: {} bytes)");
+        
+        fileDataHandler = antlrParserService.parseFileContent(fileContent, file.fileName, commitSha);
+        
+        if (fileDataHandler != null) {
+          // Add git metrics to the Java file handler
+          GitMetricCollector.addFileGitMetrics(fileDataHandler, file);
+          LOGGER.atInfo()
+              .addArgument(file.fileName)
+              .log("✅ Successfully parsed Java file with ANTLR: {}");
+        } else {
+          LOGGER.atError()
+              .addArgument(file.fileName)
+              .log("❌ ANTLR Java parser returned NULL for file: {}");
+        }
+      } else if (fileName.endsWith(".py")) {
+        // Python file - using ANTLR parser
+        LOGGER.atInfo()
+            .addArgument(file.fileName)
+            .addArgument(fileContent.length())
+            .log("Parsing Python file with ANTLR: {} (size: {} bytes)");
+        
+        fileDataHandler = pythonParserService.parseFileContent(fileContent, file.fileName, commitSha);
+        
+        if (fileDataHandler != null) {
+          // Add git metrics to the Python file handler
+          GitMetricCollector.addFileGitMetrics(fileDataHandler, file);
+          LOGGER.atInfo()
+              .addArgument(file.fileName)
+              .log("✅ Successfully parsed Python file with ANTLR: {}");
+        } else {
+          LOGGER.atError()
+              .addArgument(file.fileName)
+              .log("❌ ANTLR Python parser returned NULL for file: {}");
+        }
+      } else {
+        LOGGER.atWarn()
+            .addArgument(file.fileName)
+            .log("Unsupported file type: {}");
+        return null;
+      }
+      
       if (fileDataHandler == null) {
         if (saveCrashedFilesProperty) {
           DebugFileWriter.saveDebugFile("/logs/crashedfiles/", fileContent,
               file.fileName);
         }
-      } else {
-        GitMetricCollector.addFileGitMetrics(fileDataHandler, file);
       }
       return fileDataHandler;
 

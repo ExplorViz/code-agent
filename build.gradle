@@ -4,6 +4,7 @@ plugins {
     id 'com.adarshr.test-logger' version '3.2.0'
     id 'eclipse'
     id "org.kordamp.gradle.jandex" version "1.1.0"
+    id 'antlr'
 }
 
 apply from: 'buildscripts/code-analysis.gradle'
@@ -26,6 +27,10 @@ dependencies {
 
     // Java Parsing
     implementation 'com.github.javaparser:javaparser-symbol-solver-core:3.27.0'
+
+    // ANTLR
+    antlr 'org.antlr:antlr4:4.13.2'
+    implementation 'org.antlr:antlr4-runtime:4.13.2'
 
     // Git
     implementation 'org.eclipse.jgit:org.eclipse.jgit:7.3.0.202506031305-r'
@@ -61,9 +66,20 @@ sourceSets {
     main {
         java {
             srcDirs 'build/classes/java/quarkus-generated-sources/grpc'
+            srcDirs 'build/generated-src/antlr/main'
         }
     }
 }
+
+// ANTLR configuration
+generateGrammarSource {
+    maxHeapSize = "64m"
+    arguments += ['-package', 'net.explorviz.code.analysis.antlr.generated', '-visitor']
+    outputDirectory = file("build/generated-src/antlr/main/net/explorviz/code/analysis/antlr/generated")
+}
+
+// Ensure ANTLR generates before compilation
+compileJava.dependsOn generateGrammarSource
 
 // Regarding jandex dependency for each task
 // https://github.com/kordamp/jandex-gradle-plugin/issues/9

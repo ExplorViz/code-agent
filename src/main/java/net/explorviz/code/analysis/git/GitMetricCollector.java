@@ -1,6 +1,6 @@
 package net.explorviz.code.analysis.git;
 
-import net.explorviz.code.analysis.handler.FileDataHandler;
+import net.explorviz.code.analysis.handler.AbstractFileDataHandler;
 import net.explorviz.code.analysis.types.FileDescriptor;
 import org.eclipse.jgit.revwalk.RevCommit;
 import org.slf4j.Logger;
@@ -21,7 +21,7 @@ public final class GitMetricCollector {
 
   /**
    * Resets the author, call once per commit before calling
-   * {@link GitMetricCollector#addCommitGitMetrics(FileDataHandler, RevCommit)}.
+   * {@link GitMetricCollector#addCommitGitMetrics(AbstractFileDataHandler, RevCommit)}.
    */
   public static void resetAuthor() {
     author = "";
@@ -35,7 +35,7 @@ public final class GitMetricCollector {
    * @param fileDataHandler the fileDataHandler to add the metric to
    * @param commit          the current commit
    */
-  public static void addCommitGitMetrics(final FileDataHandler fileDataHandler,
+  public static void addCommitGitMetrics(final AbstractFileDataHandler fileDataHandler,
       final RevCommit commit) {
     if (author.isBlank()) {
       author = commit.getAuthorIdent().getEmailAddress();
@@ -49,7 +49,7 @@ public final class GitMetricCollector {
    * @param fileDataHandler the fileDataHandler to add the metric to
    * @param fileDescriptor  the fileDescriptor holding the file data
    */
-  public static void addFileGitMetrics(final FileDataHandler fileDataHandler,
+  public static void addFileGitMetrics(final AbstractFileDataHandler fileDataHandler,
       final FileDescriptor fileDescriptor) {
     try {
       fileDataHandler.setModifications(fileDescriptor.modifiedLines, fileDescriptor.addedLines,

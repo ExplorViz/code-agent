@@ -56,6 +56,38 @@ message ClassData {
   map<string, string> metric = 12;
 }
 
+// Language identifier for multi-language support
+enum Language {
+  UNKNOWN = 0;
+  JAVA = 1;
+  JAVASCRIPT = 2;
+  TYPESCRIPT = 3;
+  PYTHON = 4;
+}
+
+// Global function data (for TypeScript, JavaScript, Python)
+message FunctionData {
+  string name = 1;
+  string fqn = 2;
+  string returnType = 3;
+  repeated ParameterData parameter = 4;
+  repeated string modifier = 5;
+  repeated string annotation = 6;
+  bool isArrowFunction = 7;
+  bool isAsync = 8;
+  bool isExported = 9;
+  int32 startLine = 10;
+  int32 endLine = 11;
+  map<string, string> metric = 12;
+}
+
+// Export tracking (for TypeScript, JavaScript)
+message ExportData {
+  string name = 1;
+  string type = 2;  // "function", "class", "interface", "variable"
+  bool isDefault = 3;
+}
+
 message FileData {
   string commitID = 1;
   string fileName = 2;
@@ -69,4 +101,9 @@ message FileData {
   string deletedLines = 10;
   string landscapeToken = 11;
   string applicationName = 12;
+  
+  // NEW: Multi-language support
+  Language language = 13;
+  repeated FunctionData functions = 14;
+  repeated ExportData exports = 15;
 }

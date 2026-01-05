@@ -1,0 +1,39 @@
+{
+  "commitID": "commit-1",
+  "fileName": "Nested.java",
+  "packageName": "com.easy.life",
+  "classData": {
+    "com.easy.life.Nested": {
+      "type": "CLASS",
+      "modifier": ["public"],
+      "methodData": {
+        "com.easy.life.Nested.heavyNested2#1980e": {
+          "returnType": "void",
+          "modifier": ["public"],
+          "parameter": [{
+            "name": "a",
+            "type": "int"
+          }],
+          "metric": {
+            "loc": "12"
+          }
+        },
+        "com.easy.life.Nested.heavyNested#1": {
+          "returnType": "void",
+          "modifier": ["public"],
+          "metric": {
+            "loc": "15"
+          }
+        }
+      },
+      "metric": {
+        "loc": "31"
+      }
+    }
+  },
+  "metric": {
+    "loc": "33",
+    "cloc": "0"
+  },
+  "language": "JAVA"
+}

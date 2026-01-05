@@ -18,6 +18,7 @@ public class JsonExporter implements DataExporter {
   private static final Logger LOGGER = LoggerFactory.getLogger(JsonExporter.class);
   private static final String JSON_FILE_EXTENSION = ".json";
   private static final String JAVA_FILE_EXTENSION = ".java";
+  private static final String[] SOURCE_FILE_EXTENSIONS = {".java", ".ts", ".tsx", ".js", ".jsx", ".py"};
 
   private final String storageDirectory;
   private int commitCount;
@@ -58,12 +59,33 @@ public class JsonExporter implements DataExporter {
   @Override
   public void sendFileData(final FileData fileData) {
     try {
+      LOGGER.atInfo()
+          .addArgument(fileData.getFileName())
+          .addArgument(fileData.getLanguage())
+          .log("📤 Exporting file data: {} (language: {})");
+      
       final String json = JsonFormat.printer().print(fileData);
-      final String fileName =
-          fileData.getFileName().replaceAll(JAVA_FILE_EXTENSION, "_") + fileData.getCommitID()
-              + JSON_FILE_EXTENSION;
+      
+      // Remove file extension from filename
+      String baseFileName = fileData.getFileName();
+      for (final String extension : SOURCE_FILE_EXTENSIONS) {
+        if (baseFileName.endsWith(extension)) {
+          baseFileName = baseFileName.substring(0, baseFileName.length() - extension.length());
+          break;
+        }
+      }
+      
+      final String fileName = baseFileName + "_" + fileData.getCommitID() + JSON_FILE_EXTENSION;
       Files.write(Paths.get(storageDirectory, fileName), json.getBytes());
+      
+      LOGGER.atInfo()
+          .addArgument(fileName)
+          .log("✅ Successfully exported file data to: {}");
     } catch (IOException e) { // NOPMD
+      LOGGER.atError()
+          .addArgument(fileData.getFileName())
+          .addArgument(e.getMessage())
+          .log("❌ Failed to export file data for {}: {}");
       throw new RuntimeException(e); // NOPMD
     }
   }

@@ -47,6 +47,7 @@ import org.eclipse.jgit.treewalk.AbstractTreeIterator;
 import org.eclipse.jgit.treewalk.CanonicalTreeParser;
 import org.eclipse.jgit.treewalk.TreeWalk;
 import org.eclipse.jgit.treewalk.filter.AndTreeFilter;
+import org.eclipse.jgit.treewalk.filter.OrTreeFilter;
 import org.eclipse.jgit.treewalk.filter.PathFilterGroup;
 import org.eclipse.jgit.treewalk.filter.PathSuffixFilter;
 import org.eclipse.jgit.treewalk.filter.TreeFilter;
@@ -63,6 +64,7 @@ public class GitRepositoryHandler { // NOPMD
 
   private static final Logger LOGGER = LoggerFactory.getLogger(GitRepositoryHandler.class);
   private static final String JAVA_PATH_SUFFIX = ".java";
+  private static final String[] SUPPORTED_FILE_EXTENSIONS = {".java", ".ts", ".js", ".tsx", ".jsx", ".py"};
   private static String repositoryPath;
 
   @ConfigProperty(name = "explorviz.gitanalysis.remote.storage-path")
@@ -366,7 +368,7 @@ public class GitRepositoryHandler { // NOPMD
     final List<FileDescriptor> deletedObjectIdList = new ArrayList<>();
     List<FileDescriptor> addedObjectIdList = new ArrayList<>();
 
-    final TreeFilter filter = getJavaFileTreeFilter(pathRestrictions);
+    final TreeFilter filter = getSourceFileTreeFilter(pathRestrictions);
 
     if (oldCommit.isEmpty()) {
       addedObjectIdList = listFilesInCommit(repository, newCommit, filter);
@@ -459,24 +461,24 @@ public class GitRepositoryHandler { // NOPMD
   public List<FileDescriptor> listFilesInCommit(final Repository repository, // NOPMD
       final RevCommit commit, final List<String> pathRestrictions)
       throws IOException, NotFoundException {
-    return listFilesInCommit(repository, commit, getJavaFileTreeFilter(pathRestrictions));
+    return listFilesInCommit(repository, commit, getSourceFileTreeFilter(pathRestrictions));
   }
 
   /**
-   * Returns a list of all Java Files in the repository.
+   * Returns a list of all supported source files in the repository (Java, TypeScript, JavaScript).
    *
    * @param repository       the current repository
    * @param commit           the commit to get the list of files for
    * @param pathRestrictions a comma separated list of search strings specifying the folders to
    *                         analyze, if omitted, the entire repository will be searched
-   * @return returns a list of FileDescriptors of all java files within the specified folders
+   * @return returns a list of FileDescriptors of all supported source files within the specified folders
    * @throws IOException       thrown if files are not available
    * @throws NotFoundException thrown if the restrictionPath was not found
    */
   public List<FileDescriptor> listFilesInCommit(final Repository repository, // NOPMD
       final RevCommit commit, final String pathRestrictions) throws IOException, NotFoundException {
     return listFilesInCommit(repository, commit,
-        getJavaFileTreeFilter(Arrays.asList(pathRestrictions.split(","))));
+        getSourceFileTreeFilter(Arrays.asList(pathRestrictions.split(","))));
   }
 
   private List<FileDescriptor> listFilesInCommit(final Repository repository, // NOPMD
@@ -495,6 +497,36 @@ public class GitRepositoryHandler { // NOPMD
 
   }
 
+  private TreeFilter getSourceFileTreeFilter(final List<String> pathRestrictions)
+      throws NotFoundException {
+
+    final List<TreeFilter> extensionFilters = new ArrayList<>();
+    for (final String extension : SUPPORTED_FILE_EXTENSIONS) {
+      extensionFilters.add(PathSuffixFilter.create(extension));
+    }
+    final TreeFilter suffixFilter = OrTreeFilter.create(extensionFilters);
+
+    if (pathRestrictions.isEmpty() || pathRestrictions.size() == 1 && pathRestrictions.get(0)
+        .isBlank()) {
+      return suffixFilter;
+    } else {
+      final List<String> pathList = DirectoryFinder.getRelativeDirectory(pathRestrictions,
+          getCurrentRepositoryPath());
+      final List<String> newPathList = new ArrayList<>();
+      for (final String path : pathList) {
+        newPathList.add(path.replaceFirst("^\\\\|/", "").replaceAll("\\\\", "/"));
+      }
+
+      if (newPathList.isEmpty()) {
+        return suffixFilter;
+      } else {
+        final TreeFilter pathFilter = PathFilterGroup.createFromStrings(newPathList);
+        return AndTreeFilter.create(pathFilter, suffixFilter);
+      }
+    }
+  }
+
+  @Deprecated
   private TreeFilter getJavaFileTreeFilter(final List<String> pathRestrictions)
       throws NotFoundException {
     if (pathRestrictions.isEmpty() || pathRestrictions.size() == 1 && pathRestrictions.get(0)

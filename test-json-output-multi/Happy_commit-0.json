@@ -1,0 +1,44 @@
+{
+  "commitID": "commit-0",
+  "fileName": "Happy.java",
+  "packageName": "com.easy.life",
+  "importName": ["java.util.ArrayList", "java.util.List", "com.unknown.data.type.UnknownType", "com.unknown.data.type.UnknownTypeWithGenerics"],
+  "classData": {
+    "com.easy.life.Happy": {
+      "type": "CLASS",
+      "modifier": ["public"],
+      "field": [{
+        "name": "t",
+        "type": "com.unknown.data.type.UnknownType",
+        "modifier": ["private"]
+      }, {
+        "name": "t2",
+        "type": "com.unknown.data.type.UnknownTypeWithGenerics\u003cString,List\u003cInteger\u003e\u003e"
+      }, {
+        "name": "lst",
+        "type": "java.util.List\u003cList\u003cInteger\u003e\u003e"
+      }],
+      "methodData": {
+        "com.easy.life.Happy.fromArrayToList#146d5": {
+          "returnType": "java.util.List\u003cT\u003e",
+          "modifier": ["public"],
+          "parameter": [{
+            "name": "a",
+            "type": "com.easy.life.T[]"
+          }],
+          "metric": {
+            "loc": "6"
+          }
+        }
+      },
+      "metric": {
+        "loc": "13"
+      }
+    }
+  },
+  "metric": {
+    "loc": "21",
+    "cloc": "0"
+  },
+  "language": "JAVA"
+}
