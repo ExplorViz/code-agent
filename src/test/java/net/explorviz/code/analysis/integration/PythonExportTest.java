@@ -67,22 +67,31 @@ public class PythonExportTest {
     Assertions.assertEquals(Language.PYTHON, fileData.getLanguage());
     Assertions.assertTrue(fileData.getMetricMap().containsKey("loc"));
 
-    // Verify class was detected
-    Assertions.assertTrue(fileData.getClassDataMap().containsKey("Calculator"),
-        "Calculator class should be detected");
+    // Verify class was detected with correct FQN format (filePath:ClassName)
+    final String expectedCalculatorFqn = "calculator.py:Calculator";
+    Assertions.assertTrue(fileData.getClassDataMap().containsKey(expectedCalculatorFqn),
+        "Calculator class should be detected with FQN: " + expectedCalculatorFqn);
 
     // Verify methods in the class
-    final var calculatorClass = fileData.getClassDataMap().get("Calculator");
+    final var calculatorClass = fileData.getClassDataMap().get(expectedCalculatorFqn);
     Assertions.assertFalse(calculatorClass.getMethodDataMap().isEmpty(),
         "Calculator should have methods");
 
-    // Verify global function
+    // Verify global function with correct FQN format (filePath:functionName)
     Assertions.assertFalse(fileData.getFunctionsList().isEmpty(),
         "Should have global functions");
+    
+    final String expectedMainFqn = "calculator.py:main";
     Assertions.assertTrue(
         fileData.getFunctionsList().stream()
-            .anyMatch(f -> f.getName().equals("main")),
-        "Should have main function"
+            .anyMatch(f -> f.getName().equals("main") && f.getFqn().equals(expectedMainFqn)),
+        "Should have main function with FQN: " + expectedMainFqn
+    );
+    
+    // Log FQN information for verification
+    System.out.println("✅ Verified FQN format for Python classes and functions");
+    fileData.getFunctionsList().forEach(f -> 
+        System.out.println("  Function FQN: " + f.getFqn())
     );
 
     // Test complete - Python parsing works correctly!

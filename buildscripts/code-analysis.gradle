@@ -28,3 +28,12 @@ checkstyle {
   ignoreFailures = false
   toolVersion = "10.12.5"
 }
+
+// Exclude ANTLR generated base classes from checkstyle (external files from ANTLR repository)
+tasks.withType(Checkstyle) {
+  exclude '**/TypeScriptLexerBase.java'
+  exclude '**/TypeScriptParserBase.java'
+  exclude '**/PythonLexerBase.java'
+  exclude '**/PythonParserBase.java'
+  exclude '**/PythonVersion.java'
+}

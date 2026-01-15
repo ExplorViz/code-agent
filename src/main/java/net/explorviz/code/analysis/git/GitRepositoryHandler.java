@@ -64,7 +64,9 @@ public class GitRepositoryHandler { // NOPMD
 
   private static final Logger LOGGER = LoggerFactory.getLogger(GitRepositoryHandler.class);
   private static final String JAVA_PATH_SUFFIX = ".java";
-  private static final String[] SUPPORTED_FILE_EXTENSIONS = {".java", ".ts", ".js", ".tsx", ".jsx", ".py"};
+  private static final String[] SUPPORTED_FILE_EXTENSIONS = {
+      ".java", ".ts", ".js", ".tsx", ".jsx", ".py"
+  };
   private static String repositoryPath;
 
   @ConfigProperty(name = "explorviz.gitanalysis.remote.storage-path")
@@ -469,9 +471,10 @@ public class GitRepositoryHandler { // NOPMD
    *
    * @param repository       the current repository
    * @param commit           the commit to get the list of files for
-   * @param pathRestrictions a comma separated list of search strings specifying the folders to
-   *                         analyze, if omitted, the entire repository will be searched
-   * @return returns a list of FileDescriptors of all supported source files within the specified folders
+   * @param pathRestrictions a comma separated list of search strings specifying the folders
+   *                         to analyze, if omitted, the entire repository will be searched
+   * @return returns a list of FileDescriptors of all supported source files within the
+   *         specified folders
    * @throws IOException       thrown if files are not available
    * @throws NotFoundException thrown if the restrictionPath was not found
    */

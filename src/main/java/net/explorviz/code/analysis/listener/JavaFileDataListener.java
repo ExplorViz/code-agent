@@ -1,4 +1,4 @@
-package net.explorviz.code.analysis.visitor;
+package net.explorviz.code.analysis.listener;
 
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -18,13 +18,13 @@ import org.slf4j.LoggerFactory;
 /**
  * ANTLR Listener-based implementation for extracting file data from Java source code.
  */
-public class AntlrFileDataListener extends Java20ParserBaseListener {
+public class JavaFileDataListener extends Java20ParserBaseListener {
 
   public static final String FILE_SIZE = "size";
   public static final String LOC = "loc";
   public static final String CLOC = "cloc";
   
-  private static final Logger LOGGER = LoggerFactory.getLogger(AntlrFileDataListener.class);
+  private static final Logger LOGGER = LoggerFactory.getLogger(JavaFileDataListener.class);
 
   private final JavaFileDataHandler fileDataHandler;
   private final boolean wildcardImportProperty;
@@ -32,7 +32,7 @@ public class AntlrFileDataListener extends Java20ParserBaseListener {
   private String wildcardImport;
   private String currentPackage = "";
 
-  public AntlrFileDataListener(final JavaFileDataHandler fileDataHandler,
+  public JavaFileDataListener(final JavaFileDataHandler fileDataHandler,
       final boolean wildcardImportProperty) {
     this.fileDataHandler = fileDataHandler;
     this.wildcardImportProperty = wildcardImportProperty;

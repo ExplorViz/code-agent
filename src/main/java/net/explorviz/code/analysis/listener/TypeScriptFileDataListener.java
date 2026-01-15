@@ -1,4 +1,4 @@
-package net.explorviz.code.analysis.visitor;
+package net.explorviz.code.analysis.listener;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -170,9 +170,10 @@ public class TypeScriptFileDataListener extends TypeScriptParserBaseListener {
   }
 
   @Override
-  public void enterArrowFunctionDeclaration(final TypeScriptParser.ArrowFunctionDeclarationContext ctx) {
+  public void enterArrowFunctionDeclaration(
+      final TypeScriptParser.ArrowFunctionDeclarationContext ctx) {
     // Handle arrow functions: const foo = () => {}
-    // Arrow functions are typically assigned to variables, so we need to extract the name from context
+    // Arrow functions are typically assigned to variables, so we need to extract name
     
     // For now, we'll try to get the identifier from the parent context (variable declaration)
     String functionName = extractArrowFunctionName(ctx);
@@ -222,10 +223,11 @@ public class TypeScriptFileDataListener extends TypeScriptParserBaseListener {
   /**
    * Extract the name of an arrow function from its parent context.
    * Arrow functions are often assigned to variables: const foo = () => {}
-   * 
-   * For now, we use a simple heuristic: try to extract text from nearby identifiers
+   *
+   * <p>For now, we use a simple heuristic: try to extract text from nearby identifiers
    */
-  private String extractArrowFunctionName(final TypeScriptParser.ArrowFunctionDeclarationContext ctx) {
+  private String extractArrowFunctionName(
+      final TypeScriptParser.ArrowFunctionDeclarationContext ctx) {
     // Simple approach: look for identifiers in parent contexts
     ParserRuleContext parent = ctx.getParent();
     

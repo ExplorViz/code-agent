@@ -70,7 +70,19 @@ public class TypeScriptExportTest {
     LOGGER.info("   - Exports: {}", fileData.getExportsCount());
     
     assertTrue(fileData.getClassDataCount() > 0, "Should have detected Calculator class");
-    LOGGER.info("✅ Step 4: Verified FileData content");
+    
+    // Verify FQN format for classes (filePath:ClassName)
+    final String expectedCalculatorFqn = "test.ts:Calculator";
+    assertTrue(fileData.getClassDataMap().containsKey(expectedCalculatorFqn),
+        "Calculator class should have FQN: " + expectedCalculatorFqn);
+    
+    // Verify FQN format for global functions (filePath:functionName)
+    final String expectedMultiplyFqn = "test.ts:multiply";
+    assertTrue(
+        fileData.getFunctionsList().stream()
+            .anyMatch(f -> f.getName().equals("multiply") && f.getFqn().equals(expectedMultiplyFqn)),
+        "multiply function should have FQN: " + expectedMultiplyFqn
+    );
     
     // Step 5: Export to JSON
     final String tempDir = System.getProperty("java.io.tmpdir");
@@ -137,6 +149,21 @@ public class TypeScriptExportTest {
     LOGGER.info("   - Language: {}", fileData.getLanguage());
     LOGGER.info("   - Classes: {}", fileData.getClassDataCount());
     LOGGER.info("   - Functions: {}", fileData.getFunctionsCount());
+    
+    // Verify FQN format for JavaScript classes and functions
+    final String expectedCounterFqn = "counter.js:Counter";
+    assertTrue(fileData.getClassDataMap().containsKey(expectedCounterFqn),
+        "Counter class should have FQN: " + expectedCounterFqn);
+    
+    final String expectedResetFqn = "counter.js:reset";
+    assertTrue(
+        fileData.getFunctionsList().stream()
+            .anyMatch(f -> f.getName().equals("reset") && f.getFqn().equals(expectedResetFqn)),
+        "reset function should have FQN: " + expectedResetFqn
+    );
+    
+    LOGGER.info("   - Class FQN: {}", expectedCounterFqn);
+    LOGGER.info("   - Function FQN: {}", expectedResetFqn);
     
     // Export
     final String tempDir = System.getProperty("java.io.tmpdir");

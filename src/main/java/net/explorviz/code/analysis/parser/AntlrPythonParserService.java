@@ -7,7 +7,7 @@ import java.nio.file.Path;
 import net.explorviz.code.analysis.antlr.generated.PythonLexer;
 import net.explorviz.code.analysis.antlr.generated.PythonParser;
 import net.explorviz.code.analysis.handler.PythonFileDataHandler;
-import net.explorviz.code.analysis.visitor.PythonFileDataListener;
+import net.explorviz.code.analysis.listener.PythonFileDataListener;
 import org.antlr.v4.runtime.CharStream;
 import org.antlr.v4.runtime.CharStreams;
 import org.antlr.v4.runtime.CommonTokenStream;

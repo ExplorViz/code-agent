@@ -6,7 +6,7 @@ import java.nio.file.Path;
 import net.explorviz.code.analysis.antlr.generated.TypeScriptLexer;
 import net.explorviz.code.analysis.antlr.generated.TypeScriptParser;
 import net.explorviz.code.analysis.handler.TypeScriptFileDataHandler;
-import net.explorviz.code.analysis.visitor.TypeScriptFileDataListener;
+import net.explorviz.code.analysis.listener.TypeScriptFileDataListener;
 import org.antlr.v4.runtime.CharStream;
 import org.antlr.v4.runtime.CharStreams;
 import org.antlr.v4.runtime.CommonTokenStream;

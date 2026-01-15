@@ -36,8 +36,9 @@ public class TypeScriptFileDataHandler extends AbstractFileDataHandler
   }
 
   public void enterClass(final String className) {
-    this.classStack.push(className);
-    this.classDataMap.put(className, new ClassDataHandler());
+    final String classFqn = fileName + ":" + className;
+    this.classStack.push(classFqn);
+    this.classDataMap.put(classFqn, new ClassDataHandler());
     this.inClassContext = true;
   }
 
@@ -62,9 +63,10 @@ public class TypeScriptFileDataHandler extends AbstractFileDataHandler
   }
 
   public FunctionData.Builder addGlobalFunction(final String name, final String returnType) {
+    final String functionFqn = fileName + ":" + name;
     final FunctionData.Builder funcBuilder = FunctionData.newBuilder()
         .setName(name)
-        .setFqn(name)  // Simple FQN for now
+        .setFqn(functionFqn)
         .setReturnType(returnType);
 
     globalFunctions.add(funcBuilder);

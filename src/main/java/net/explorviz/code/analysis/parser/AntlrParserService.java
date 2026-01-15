@@ -7,7 +7,7 @@ import java.nio.file.Path;
 import net.explorviz.code.analysis.antlr.generated.Java20Lexer;
 import net.explorviz.code.analysis.antlr.generated.Java20Parser;
 import net.explorviz.code.analysis.handler.JavaFileDataHandler;
-import net.explorviz.code.analysis.visitor.AntlrFileDataListener;
+import net.explorviz.code.analysis.listener.JavaFileDataListener;
 import org.antlr.v4.runtime.CharStream;
 import org.antlr.v4.runtime.CharStreams;
 import org.antlr.v4.runtime.CommonTokenStream;
@@ -70,7 +70,7 @@ public class AntlrParserService {
     fileDataHandler.setCommitSha(commitSha);
 
     // Create and execute the listener
-    final AntlrFileDataListener listener = new AntlrFileDataListener(fileDataHandler,
+    final JavaFileDataListener listener = new JavaFileDataListener(fileDataHandler,
         wildcardImportProperty);
     final ParseTreeWalker walker = new ParseTreeWalker();
     walker.walk(listener, compilationUnit);

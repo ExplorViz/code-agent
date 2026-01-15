@@ -23,7 +23,7 @@ import org.junit.jupiter.api.Test;
  * as the JavaParser-based FileDataVisitor.
  */
 @QuarkusTest
-public class AntlrFileDataListenerTest {
+public class JavaFileDataListenerTest {
 
   @Inject
   AntlrParserService antlrParserService;

@@ -18,7 +18,9 @@ public class JsonExporter implements DataExporter {
   private static final Logger LOGGER = LoggerFactory.getLogger(JsonExporter.class);
   private static final String JSON_FILE_EXTENSION = ".json";
   private static final String JAVA_FILE_EXTENSION = ".java";
-  private static final String[] SOURCE_FILE_EXTENSIONS = {".java", ".ts", ".tsx", ".js", ".jsx", ".py"};
+  private static final String[] SOURCE_FILE_EXTENSIONS = {
+      ".java", ".ts", ".tsx", ".js", ".jsx", ".py"
+  };
 
   private final String storageDirectory;
   private int commitCount;
