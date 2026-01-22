@@ -9,7 +9,6 @@ import net.explorviz.code.proto.FileDataServiceGrpc;
 import net.explorviz.code.proto.StateData;
 import net.explorviz.code.proto.StateDataRequest;
 import net.explorviz.code.proto.StateDataServiceGrpc;
-import net.explorviz.code.proto.StructureEventServiceGrpc;
 import org.eclipse.microprofile.config.inject.ConfigProperty;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -32,9 +31,6 @@ public final class GrpcExporter implements DataExporter {
   //
   @GrpcClient(GRPC_CLIENT_NAME)
   /* package */ StateDataServiceGrpc.StateDataServiceBlockingStub stateDataGrpcClient;
-
-  @GrpcClient(GRPC_CLIENT_NAME)
-  /* package */ StructureEventServiceGrpc.StructureEventServiceBlockingStub grpcClient;
 
   @ConfigProperty(name = "explorviz.landscape.token")
   /* default */ String landscapeTokenProperty;
