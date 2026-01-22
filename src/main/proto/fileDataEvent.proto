@@ -42,18 +42,12 @@ message FieldData {
 message FunctionData {
   string name = 1;
   string return_type = 2;
-
   bool is_constructor = 3;
-
   repeated string annotations = 4;
   repeated string modifiers = 5;
-
   repeated ParameterData parameters = 6;
-
   repeated string outgoing_method_calls = 7;
-
   map<string, double> metrics = 8;
-
   int32 start_line = 9;
   int32 end_line = 10;
 }
@@ -61,20 +55,14 @@ message FunctionData {
 message ClassData {
   string name = 1;
   ClassType type = 2;
-
   repeated string modifiers = 3;
   repeated string implemented_interfaces = 4;
   repeated string superclasses = 5;
   repeated string annotations = 6;
-
   repeated FieldData fields = 7;
-
   repeated ClassData inner_classes = 8;
-
   repeated FunctionData functions = 9;
-
   repeated string enum_values = 10;
-
   map<string, string> metrics = 11;
 }
 
@@ -88,12 +76,12 @@ message FileData {
   optional string package_name = 4;
   repeated string import_names = 5;
   repeated ClassData classes = 6;
-
   map<string, double> metrics = 7;
 
   // Author of the last commit touching this file
   string last_editor = 8;
 
+  // Git file metrics
   int32 added_lines = 9;
   int32 modified_lines = 10;
   int32 deleted_lines = 11;
