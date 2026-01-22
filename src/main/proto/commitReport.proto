@@ -10,26 +10,26 @@ service CommitReportService {
   rpc sendCommitReport (CommitReportData) returns (google.protobuf.Empty) {}
 }
 
-message  CommitReportData {
-  string commitID = 1;
-  string parentCommitID = 2;
-  string branchName = 3;
-  repeated string files = 4;
-  repeated string modified = 5;
-  repeated string deleted = 6;
-  repeated string added = 7;
-  repeated FileMetric fileMetric = 8;
+message CommitReportData {
+  string landscape_token = 1;
+  string commit_id = 2;
+  string parent_commit_id = 3;
+  string branch_name = 4;
+
+  // Git file metrics
+  repeated FileInfo unchanged_files = 5;
+  repeated FileInfo added_files = 6;
+  repeated FileInfo modified_files = 7;
+  repeated FileInfo deleted_files = 8;
+
   repeated string tags = 9;
-  string landscapeToken = 10;
-  string applicationName = 11;
-  repeated string fileHash = 12;
+  string application_name = 10;
+  string repository_name = 11;
 }
 
-message FileMetric {
-  string fileName = 1;
-  int32 fileSize = 2;
-  int32 loc = 3; // Lines of code incl. whitespace and comments
-  int32 cloc = 4; // Comment lines of code
-  int32 cyclomaticComplexity = 5;
-  int32 numberOfMethods = 6;
+message FileInfo {
+  string file_hash = 1;
+  
+  // Path relative to repo root
+  string file_path = 2;
 }
