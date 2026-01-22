@@ -134,7 +134,7 @@ public class AnalysisRequest {
         .endCommit(Optional.ofNullable(endCommit))
         .landscapeToken(landscapeToken != null ? landscapeToken : "")
         .applicationName(applicationName != null ? applicationName : "")
+        .fetchRemoteData(fetchRemoteData)
         .build();
   }
 }
-
