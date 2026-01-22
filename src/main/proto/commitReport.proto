@@ -30,6 +30,6 @@ message CommitReportData {
 message FileInfo {
   string file_hash = 1;
   
-  // Path relative to repo root
+  // Path relative to root path of application
   string file_path = 2;
 }

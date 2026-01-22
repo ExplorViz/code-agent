@@ -15,8 +15,8 @@ message StateDataRequest {
   string branch_name = 2;
   string landscape_token = 3;
 
-  // Application name -> path relative to repo root
-  // Default: { "foo_application": "" }
+  // Application name -> root application path relative to repo root
+  // Default example: { "foo_application": "" }
   map<string, string> application_paths = 4;
 }
 
