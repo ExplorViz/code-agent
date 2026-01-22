@@ -23,8 +23,7 @@ message CommitReportData {
   repeated FileInfo deleted_files = 8;
 
   repeated string tags = 9;
-  string application_name = 10;
-  string repository_name = 11;
+  string repository_name = 10;
 }
 
 message FileInfo {
