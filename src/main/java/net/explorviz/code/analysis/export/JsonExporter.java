@@ -54,7 +54,9 @@ public class JsonExporter implements DataExporter {
   }
 
   @Override
-  public StateData requestStateData(final String upstreamName, final String branchName) {
+  public StateData requestStateData(final String upstreamName, final String branchName,
+      final String token,
+      final String applicationName) {
     return StateData.newBuilder().build();
   }
 
@@ -96,9 +98,8 @@ public class JsonExporter implements DataExporter {
   public void sendCommitReport(final CommitReportData commitReportData) {
     try {
       final String json = JsonFormat.printer().print(commitReportData);
-      final String fileName =
-          "CommitReport_" + commitReportData.getCommitID() + "_" + commitCount
-              + JSON_FILE_EXTENSION;
+      final String fileName = "CommitReport_" + commitReportData.getCommitID() + "_" + commitCount
+          + JSON_FILE_EXTENSION;
       Files.write(Paths.get(storageDirectory, fileName), json.getBytes());
     } catch (IOException e) { // NOPMD
       throw new RuntimeException(e); // NOPMD

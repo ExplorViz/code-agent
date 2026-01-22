@@ -5,12 +5,14 @@ import net.explorviz.code.proto.FileData;
 import net.explorviz.code.proto.StateData;
 
 /**
- * A DataExporter handles the export of {@link FileData}, {@link CommitReportData} and request of
+ * A DataExporter handles the export of {@link FileData},
+ * {@link CommitReportData} and request of
  * {@link StateData}.
  */
 public interface DataExporter {
 
-  StateData requestStateData(final String upstreamName, final String branchName);
+  StateData requestStateData(final String upstreamName, final String branchName, final String token,
+      final String applicationName);
 
   void sendFileData(final FileData fileData);
 

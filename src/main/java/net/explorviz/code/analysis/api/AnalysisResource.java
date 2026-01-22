@@ -29,7 +29,7 @@ public class AnalysisResource {
   private static final Logger LOGGER = LoggerFactory.getLogger(AnalysisResource.class);
 
   @ConfigProperty(name = "explorviz.gitanalysis.send-to-remote", defaultValue = "true")
-  /* default */ boolean sendToRemoteProperty;  // NOCS
+  /* default */ boolean sendToRemoteProperty; // NOCS
 
   @Inject
   /* default */ AnalysisService analysisService; // NOCS
@@ -63,7 +63,7 @@ public class AnalysisResource {
       final AnalysisConfig config = request.toConfig();
 
       final DataExporter exporter;
-      if (sendToRemoteProperty) {
+      if (request.isSendToRemote()) {
         exporter = grpcExporter;
       } else {
         exporter = new JsonExporter();

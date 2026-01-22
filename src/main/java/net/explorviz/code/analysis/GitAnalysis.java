@@ -21,7 +21,8 @@ import org.slf4j.LoggerFactory;
 
 /**
  * Entrypoint for this service. Expects a local path to a Git repository folder
- * ("explorviz.repo.folder.path"). Sends the analysis's results to ExplorViz code service.
+ * ("explorviz.repo.folder.path"). Sends the analysis's results to ExplorViz
+ * code service.
  */
 @ApplicationScoped
 public class GitAnalysis { // NOPMD
@@ -31,46 +32,49 @@ public class GitAnalysis { // NOPMD
   private static final int ONE_SECOND_IN_MILLISECONDS = 1000;
 
   @ConfigProperty(name = "explorviz.gitanalysis.run-mode")
-  /* default */ Optional<String> runMode;   // NOCS
+  /* default */ Optional<String> runMode; // NOCS
 
   @ConfigProperty(name = "explorviz.gitanalysis.local.storage-path")
-  /* default */ Optional<String> repoPathProperty;  // NOCS
+  /* default */ Optional<String> repoPathProperty; // NOCS
 
   @ConfigProperty(name = "explorviz.gitanalysis.remote.url")
-  /* default */ Optional<String> repoRemoteUrlProperty;  // NOCS
+  /* default */ Optional<String> repoRemoteUrlProperty; // NOCS
 
   @ConfigProperty(name = "explorviz.gitanalysis.remote.username")
-  /* default */ Optional<String> usernameProperty;  // NOCS
+  /* default */ Optional<String> usernameProperty; // NOCS
 
   @ConfigProperty(name = "explorviz.gitanalysis.remote.password")
-  /* default */ Optional<String> passwordProperty;  // NOCS
+  /* default */ Optional<String> passwordProperty; // NOCS
 
   @ConfigProperty(name = "explorviz.gitanalysis.branch")
-  /* default */ Optional<String> repositoryBranchProperty;  // NOCS
+  /* default */ Optional<String> repositoryBranchProperty; // NOCS
 
   @ConfigProperty(name = "explorviz.gitanalysis.source-directory")
-  /* default */ Optional<String> sourceDirectoryProperty;  // NOCS
+  /* default */ Optional<String> sourceDirectoryProperty; // NOCS
 
   @ConfigProperty(name = "explorviz.gitanalysis.restrict-analysis-to-folders")
-  /* default */ Optional<String> restrictAnalysisToFoldersProperty;  // NOCS NOPMD
+  /* default */ Optional<String> restrictAnalysisToFoldersProperty; // NOCS NOPMD
 
   @ConfigProperty(name = "explorviz.gitanalysis.send-to-remote", defaultValue = "true")
-  /* default */ boolean sendToRemoteProperty;  // NOCS
+  /* default */ boolean sendToRemoteProperty; // NOCS
 
   @ConfigProperty(name = "explorviz.gitanalysis.calculate-metrics", defaultValue = "true")
-  /* default */ boolean calculateMetricsProperty;  // NOCS
+  /* default */ boolean calculateMetricsProperty; // NOCS
+
+  @ConfigProperty(name = "explorviz.gitanalysis.fetch-remote-data", defaultValue = "true")
+  /* default */ boolean fetchRemoteDataProperty; // NOCS
 
   @ConfigProperty(name = "explorviz.gitanalysis.start-commit-sha1")
-  /* default */ Optional<String> startCommitProperty;  // NOCS
+  /* default */ Optional<String> startCommitProperty; // NOCS
 
   @ConfigProperty(name = "explorviz.gitanalysis.end-commit-sha1")
-  /* default */ Optional<String> endCommitProperty;  // NOCS
+  /* default */ Optional<String> endCommitProperty; // NOCS
 
   @ConfigProperty(name = "explorviz.landscape.token")
-  /* default */ String landscapeTokenProperty;  // NOCS
+  /* default */ String landscapeTokenProperty; // NOCS
 
   @ConfigProperty(name = "explorviz.gitanalysis.application-name")
-  /* default */ String applicationNameProperty;  // NOCS
+  /* default */ String applicationNameProperty; // NOCS
 
   @Inject
   /* package */ GrpcExporter grpcExporter; // NOCS
@@ -97,6 +101,7 @@ public class GitAnalysis { // NOPMD
         .endCommit(endCommitProperty)
         .landscapeToken(landscapeTokenProperty)
         .applicationName(applicationNameProperty)
+        .fetchRemoteData(fetchRemoteDataProperty)
         .build();
   }
 

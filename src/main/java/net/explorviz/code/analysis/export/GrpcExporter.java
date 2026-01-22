@@ -52,13 +52,16 @@ public final class GrpcExporter implements DataExporter {
    * @return the state of the remote database
    */
   @Override
-  public StateData requestStateData(final String upstreamName, final String branchName) {
+  public StateData requestStateData(final String upstreamName, final String branchName,
+      final String token,
+      final String applicationName) {
     final StateDataRequest.Builder requestBuilder = StateDataRequest.newBuilder();
     requestBuilder.setBranchName(branchName);
     requestBuilder.setUpstreamName(upstreamName);
-    requestBuilder.setLandscapeToken(landscapeTokenProperty);
+    requestBuilder.setLandscapeToken("".equals(token) ? landscapeTokenProperty : token);
     requestBuilder.setLandscapeSecret(landscapeSecretProperty);
-    requestBuilder.setApplicationName(applicationNameProperty);
+    requestBuilder.setApplicationName(
+        "".equals(applicationName) ? applicationNameProperty : applicationName);
     return stateDataGrpcClient.requestStateData(requestBuilder.build());
   }
 
