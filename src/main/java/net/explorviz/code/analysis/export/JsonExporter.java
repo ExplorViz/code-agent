@@ -4,7 +4,7 @@ import com.google.protobuf.util.JsonFormat;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Paths;
-import net.explorviz.code.proto.CommitReportData;
+import net.explorviz.code.proto.CommitData;
 import net.explorviz.code.proto.FileData;
 import net.explorviz.code.proto.StateData;
 import org.slf4j.Logger;
@@ -17,7 +17,6 @@ public class JsonExporter implements DataExporter {
 
   private static final Logger LOGGER = LoggerFactory.getLogger(JsonExporter.class);
   private static final String JSON_FILE_EXTENSION = ".json";
-  private static final String JAVA_FILE_EXTENSION = ".java";
   private static final String[] SOURCE_FILE_EXTENSIONS = {
       ".java", ".ts", ".tsx", ".js", ".jsx", ".py"
   };
@@ -26,7 +25,8 @@ public class JsonExporter implements DataExporter {
   private int commitCount;
 
   /**
-   * Creates a json exporter that exports the data into folder based on the current working folder.
+   * Creates a json exporter that exports the data into folder based on the
+   * current working folder.
    *
    * @throws IOException gets thrown if the needed directories were not created.
    */
@@ -64,30 +64,30 @@ public class JsonExporter implements DataExporter {
   public void sendFileData(final FileData fileData) {
     try {
       LOGGER.atInfo()
-          .addArgument(fileData.getFileName())
+          .addArgument(fileData.getFilePath())
           .addArgument(fileData.getLanguage())
           .log("📤 Exporting file data: {} (language: {})");
-      
+
       final String json = JsonFormat.printer().print(fileData);
-      
+
       // Remove file extension from filename
-      String baseFileName = fileData.getFileName();
+      String baseFileName = fileData.getFilePath();
       for (final String extension : SOURCE_FILE_EXTENSIONS) {
         if (baseFileName.endsWith(extension)) {
           baseFileName = baseFileName.substring(0, baseFileName.length() - extension.length());
           break;
         }
       }
-      
-      final String fileName = baseFileName + "_" + fileData.getCommitID() + JSON_FILE_EXTENSION;
+
+      final String fileName = baseFileName + "_" + fileData.getFileHash() + JSON_FILE_EXTENSION;
       Files.write(Paths.get(storageDirectory, fileName), json.getBytes());
-      
+
       LOGGER.atInfo()
           .addArgument(fileName)
           .log("✅ Successfully exported file data to: {}");
     } catch (IOException e) { // NOPMD
       LOGGER.atError()
-          .addArgument(fileData.getFileName())
+          .addArgument(fileData.getFilePath())
           .addArgument(e.getMessage())
           .log("❌ Failed to export file data for {}: {}");
       throw new RuntimeException(e); // NOPMD
@@ -95,10 +95,10 @@ public class JsonExporter implements DataExporter {
   }
 
   @Override
-  public void sendCommitReport(final CommitReportData commitReportData) {
+  public void sendCommitReport(final CommitData commitData) {
     try {
-      final String json = JsonFormat.printer().print(commitReportData);
-      final String fileName = "CommitReport_" + commitReportData.getCommitID() + "_" + commitCount
+      final String json = JsonFormat.printer().print(commitData);
+      final String fileName = "CommitReport_" + commitData.getCommitId() + "_" + commitCount
           + JSON_FILE_EXTENSION;
       Files.write(Paths.get(storageDirectory, fileName), json.getBytes());
     } catch (IOException e) { // NOPMD

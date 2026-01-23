@@ -12,7 +12,8 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 /**
- * ANTLR Listener for extracting file data from TypeScript/JavaScript source code.
+ * ANTLR Listener for extracting file data from TypeScript/JavaScript source
+ * code.
  */
 public class TypeScriptFileDataListener extends TypeScriptParserBaseListener {
 
@@ -65,13 +66,13 @@ public class TypeScriptFileDataListener extends TypeScriptParserBaseListener {
     if (ctx.identifier() != null) {
       final String className = ctx.identifier().getText();
       final String fqn = className; // TODO: Build proper FQN with module/namespace
-      
+
       fileDataHandler.enterClass(fqn);
-      
+
       LOGGER.atTrace()
           .addArgument(className)
           .log("Class: {}");
-      
+
       // Calculate class LOC
       final int classLoc = calculateLoc(ctx);
       final var classData = fileDataHandler.getCurrentClassData();
@@ -93,17 +94,17 @@ public class TypeScriptFileDataListener extends TypeScriptParserBaseListener {
     if (ctx.identifier() != null) {
       final String interfaceName = ctx.identifier().getText();
       final String fqn = interfaceName; // TODO: Build proper FQN
-      
+
       fileDataHandler.enterClass(fqn);
       final var classData = fileDataHandler.getCurrentClassData();
       if (classData != null) {
         classData.setIsInterface();
-        
+
         // Calculate interface LOC
         final int interfaceLoc = calculateLoc(ctx);
         classData.addMetric(LOC, String.valueOf(interfaceLoc));
       }
-      
+
       LOGGER.atTrace()
           .addArgument(interfaceName)
           .log("Interface: {}");
@@ -121,42 +122,41 @@ public class TypeScriptFileDataListener extends TypeScriptParserBaseListener {
     // Extract function name
     if (ctx.identifier() != null) {
       final String functionName = ctx.identifier().getText();
-      
+
       // Check if we're inside a class or this is a global function
       if (fileDataHandler.isInClassContext()) {
         // Function inside a class - treat as a method
         final String functionFqn = functionName + "#1"; // TODO: Add proper parameter hashing
-        
+
         final var methodData = fileDataHandler.getCurrentClassData()
             .addMethod(functionFqn, "void"); // TODO: Extract actual return type
-        
+
         LOGGER.atTrace()
             .addArgument(functionName)
             .log("Function inside class: {}");
-        
+
         // Calculate function LOC
         final int functionLoc = calculateLoc(ctx);
         methodData.addMetric(LOC, String.valueOf(functionLoc));
       } else {
         // Global function - track it separately!
-        final FunctionData.Builder funcBuilder = fileDataHandler.addGlobalFunction(
+        final var methodHandler = fileDataHandler.addGlobalFunction(
             functionName,
-            "void"  // TODO: Extract actual return type
+            "void" // TODO: Extract actual return type
         );
-        
+
         // Set function location
         if (ctx.start != null && ctx.stop != null) {
-          funcBuilder.setStartLine(ctx.start.getLine());
-          funcBuilder.setEndLine(ctx.stop.getLine());
+          methodHandler.setLines(ctx.start.getLine(), ctx.stop.getLine());
         }
-        
+
         // Calculate LOC
         final int functionLoc = calculateLoc(ctx);
-        funcBuilder.putMetric(LOC, String.valueOf(functionLoc));
-        
+        methodHandler.addMetric(LOC, String.valueOf(functionLoc));
+
         // Check for async
         // TODO: Detect async functions
-        
+
         LOGGER.atTrace()
             .addArgument(functionName)
             .log("Global function: {}");
@@ -173,43 +173,43 @@ public class TypeScriptFileDataListener extends TypeScriptParserBaseListener {
   public void enterArrowFunctionDeclaration(
       final TypeScriptParser.ArrowFunctionDeclarationContext ctx) {
     // Handle arrow functions: const foo = () => {}
-    // Arrow functions are typically assigned to variables, so we need to extract name
-    
-    // For now, we'll try to get the identifier from the parent context (variable declaration)
+    // Arrow functions are typically assigned to variables, so we need to extract
+    // name
+
+    // For now, we'll try to get the identifier from the parent context (variable
+    // declaration)
     String functionName = extractArrowFunctionName(ctx);
-    
+
     if (functionName != null) {
       if (fileDataHandler.isInClassContext()) {
         // Arrow function inside a class (e.g., class field)
         final String functionFqn = functionName + "#1";
-        
+
         final var methodData = fileDataHandler.getCurrentClassData()
             .addMethod(functionFqn, "void");
-        
+
         // Calculate method LOC
         final int methodLoc = calculateLoc(ctx);
         methodData.addMetric(LOC, String.valueOf(methodLoc));
-        
+
         LOGGER.atTrace()
             .addArgument(functionName)
             .log("Arrow function inside class: {}");
       } else {
         // Global arrow function
-        final FunctionData.Builder funcBuilder = fileDataHandler.addGlobalFunction(
+        final var methodHandler = fileDataHandler.addGlobalFunction(
             functionName,
-            "void"
-        );
-        
+            "void");
+
         // Set function location
         if (ctx.start != null && ctx.stop != null) {
-          funcBuilder.setStartLine(ctx.start.getLine());
-          funcBuilder.setEndLine(ctx.stop.getLine());
+          methodHandler.setLines(ctx.start.getLine(), ctx.stop.getLine());
         }
-        
+
         // Calculate LOC
         final int functionLoc = calculateLoc(ctx);
-        funcBuilder.putMetric(LOC, String.valueOf(functionLoc));
-        
+        methodHandler.addMetric(LOC, String.valueOf(functionLoc));
+
         LOGGER.atTrace()
             .addArgument(functionName)
             .log("Global arrow function: {}");
@@ -219,18 +219,20 @@ public class TypeScriptFileDataListener extends TypeScriptParserBaseListener {
       LOGGER.atTrace().log("Anonymous arrow function detected");
     }
   }
-  
+
   /**
    * Extract the name of an arrow function from its parent context.
    * Arrow functions are often assigned to variables: const foo = () => {}
    *
-   * <p>For now, we use a simple heuristic: try to extract text from nearby identifiers
+   * <p>
+   * For now, we use a simple heuristic: try to extract text from nearby
+   * identifiers
    */
   private String extractArrowFunctionName(
       final TypeScriptParser.ArrowFunctionDeclarationContext ctx) {
     // Simple approach: look for identifiers in parent contexts
     ParserRuleContext parent = ctx.getParent();
-    
+
     int depth = 0;
     while (parent != null && depth < 5) {
       // Try to find any identifier in the parent context
@@ -250,7 +252,7 @@ public class TypeScriptFileDataListener extends TypeScriptParserBaseListener {
       parent = parent.getParent();
       depth++;
     }
-    
+
     return null; // Anonymous arrow function
   }
 
@@ -283,4 +285,3 @@ public class TypeScriptFileDataListener extends TypeScriptParserBaseListener {
     return 0;
   }
 }
-

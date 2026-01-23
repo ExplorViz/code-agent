@@ -20,8 +20,6 @@ import net.explorviz.code.analysis.git.GitMetricCollector;
 import net.explorviz.code.analysis.git.GitRepositoryHandler;
 import net.explorviz.code.analysis.handler.AbstractFileDataHandler;
 import net.explorviz.code.analysis.handler.CommitReportHandler;
-import net.explorviz.code.analysis.handler.FileDataHandler;
-import net.explorviz.code.analysis.handler.FileMetricHandler;
 import net.explorviz.code.analysis.handler.JavaFileDataHandler;
 import net.explorviz.code.analysis.parser.AntlrParserService;
 import net.explorviz.code.analysis.parser.AntlrPythonParserService;
@@ -97,8 +95,7 @@ public class AnalysisService { // NOPMD
 
       // get fetch data from remote
       final Optional<String> startCommit = findStartCommit(config, exporter, branch);
-      final Optional<String> endCommit =
-          config.isFetchRemoteData() ? Optional.empty() : config.getEndCommit();
+      final Optional<String> endCommit = config.isFetchRemoteData() ? Optional.empty() : config.getEndCommit();
 
       checkIfCommitsAreReachable(startCommit, endCommit, branch);
 
@@ -128,8 +125,7 @@ public class AnalysisService { // NOPMD
 
           LOGGER.atDebug().addArgument(commit.getName()).log("Analyzing commit: {}");
 
-          final Triple<List<FileDescriptor>, List<FileDescriptor>, List<FileDescriptor>>
-              descriptorTriple = gitRepositoryHandler
+          final Triple<List<FileDescriptor>, List<FileDescriptor>, List<FileDescriptor>> descriptorTriple = gitRepositoryHandler
               .listDiff(repository,
                   Optional.ofNullable(lastCheckedCommit), commit,
                   config.getRestrictAnalysisToFolders().orElse(""));
@@ -191,10 +187,10 @@ public class AnalysisService { // NOPMD
       final StateData remoteState = exporter.requestStateData(
           getUnambiguousUpstreamName(config.getRepoRemoteUrl()), branch,
           config.getLandscapeToken(), config.getApplicationName());
-      if (remoteState.getCommitID().isEmpty() || remoteState.getCommitID().isBlank()) {
+      if (remoteState.getCommitId().isEmpty() || remoteState.getCommitId().isBlank()) {
         return Optional.empty();
       } else {
-        return Optional.of(remoteState.getCommitID());
+        return Optional.of(remoteState.getCommitId());
       }
     } else {
       if (config.getStartCommit().isPresent() && exporter.isInvalidCommitHash(
@@ -225,8 +221,7 @@ public class AnalysisService { // NOPMD
   private void commitAnalysis(final AnalysisConfig config, final Repository repository,
       final RevCommit commit, final RevCommit lastCommit, final List<FileDescriptor> descriptorList,
       final DataExporter exporter, final String branchName,
-      final Triple<List<FileDescriptor>, List<FileDescriptor>,
-          List<FileDescriptor>> descriptorTriple)
+      final Triple<List<FileDescriptor>, List<FileDescriptor>, List<FileDescriptor>> descriptorTriple)
       throws GitAPIException, NotFoundException, IOException {
     DirectoryFinder.resetDirectory(config.getSourceDirectory().orElse(""));
 
@@ -237,17 +232,16 @@ public class AnalysisService { // NOPMD
 
     final Map<String, AbstractFileDataHandler> fileNameToFileDataHandlerMap = new HashMap<>();
 
-
     LOGGER.atTrace().addArgument(descriptorList.toString()).log("Files: {}");
 
     for (final FileDescriptor fileDescriptor : descriptorList) {
       LOGGER.atInfo()
           .addArgument(fileDescriptor.relativePath)
           .log("📄 Analyzing file: {}");
-      
-      final AbstractFileDataHandler fileDataHandler =
-          fileAnalysis(config, repository, fileDescriptor, commit.getName());
-      
+
+      final AbstractFileDataHandler fileDataHandler = fileAnalysis(config, repository, fileDescriptor,
+          commit.getName());
+
       if (fileDataHandler == null) {
         LOGGER.atError()
             .addArgument(fileDescriptor.relativePath)
@@ -264,12 +258,11 @@ public class AnalysisService { // NOPMD
           LOGGER.error("File size of file " + fileDescriptor.relativePath
               + " could not be analyzed." + e.getMessage());
         }
-        // Only add Git metrics for Java files (FileDataHandler type)
-        if (fileDataHandler instanceof FileDataHandler) {
-          GitMetricCollector.addCommitGitMetrics((FileDataHandler) fileDataHandler, commit);
+        // Only add Git metrics for Java files (JavaFileDataHandler type)
+        if (fileDataHandler instanceof JavaFileDataHandler) {
+          GitMetricCollector.addCommitGitMetrics(fileDataHandler, commit);
         }
         fileDataHandler.setLandscapeToken(config.getLandscapeToken());
-        fileDataHandler.setApplicationName(config.getApplicationName());
         exporter.sendFileData(fileDataHandler.getProtoBufObject());
         fileNameToFileDataHandlerMap.put(fileDescriptor.relativePath, fileDataHandler);
       }
@@ -282,8 +275,7 @@ public class AnalysisService { // NOPMD
   private void createCommitReport(final AnalysisConfig config, final Repository repository,
       final RevCommit commit, final RevCommit lastCommit, final DataExporter exporter,
       final String branchName,
-      final Triple<List<FileDescriptor>, List<FileDescriptor>,
-          List<FileDescriptor>> descriptorTriple,
+      final Triple<List<FileDescriptor>, List<FileDescriptor>, List<FileDescriptor>> descriptorTriple,
       final Map<String, AbstractFileDataHandler> fileNameToFileDataHandlerMap)
       throws NotFoundException, IOException, GitAPIException {
     if (lastCommit == null) {
@@ -295,51 +287,6 @@ public class AnalysisService { // NOPMD
         config.getRestrictAnalysisToFolders().orElse(""));
     commitReportHandler.add(files);
 
-    for (final FileDescriptor file : files) {
-      commitReportHandler.addFileHash(file);
-      final AbstractFileDataHandler fileDataHandler =
-          fileNameToFileDataHandlerMap.get(file.relativePath);
-
-      if (fileDataHandler != null) { // add metrics
-        final FileMetricHandler fileMetricHandler = commitReportHandler
-            .getFileMetricHandler(file.relativePath);
-
-        fileMetricHandler.setFileName(file.relativePath);
-
-        // Set file size metric
-        final String fileSize = fileDataHandler.getMetricValue(FileDataVisitor.FILE_SIZE);
-
-        if (fileSize != null) {
-          fileMetricHandler.setFileSize(Integer.parseInt(fileSize));
-        }
-
-        // Set loc metric
-        final String loc = fileDataHandler.getMetricValue(FileDataVisitor.LOC);
-
-        if (loc != null) {
-          fileMetricHandler.setLoc(Integer.parseInt(loc));
-        }
-
-        final String cloc = fileDataHandler.getMetricValue(FileDataVisitor.CLOC);
-        if (cloc != null) {
-          fileMetricHandler.setCloc(Integer.parseInt(cloc));
-        }
-
-        // Set number of methods (only for Java files with FileDataHandler)
-        if (fileDataHandler instanceof FileDataHandler) {
-          fileMetricHandler.setNumberOfMethods(
-              ((FileDataHandler) fileDataHandler).getMethodCount());
-        }
-
-        // Set cyclomatic complexity
-        final String cyclomaticComplexity = fileDataHandler
-            .getMetricValue(CyclomaticComplexityVisitor.CYCLOMATIC_COMPLEXITY);
-
-        if (cyclomaticComplexity != null) {
-          fileMetricHandler.setCyclomaticComplexity(Integer.parseInt(cyclomaticComplexity));
-        }
-      }
-    }
 
     final List<FileDescriptor> modifiedFiles = descriptorTriple.getLeft();
     final List<FileDescriptor> deletedFiles = descriptorTriple.getMiddle();
@@ -366,14 +313,15 @@ public class AnalysisService { // NOPMD
     }
     commitReportHandler.addTags(tags);
     commitReportHandler.addToken(config.getLandscapeToken());
-    commitReportHandler.addApplicationName(config.getApplicationName());
+    commitReportHandler.setRepositoryName(config.getApplicationName());
 
-    exporter.sendCommitReport(commitReportHandler.getCommitReport());
+    exporter.sendCommitReport(commitReportHandler.getCommitData());
   }
 
   /**
    * Analyzes a file and returns the appropriate handler based on file extension.
-   * Routes .java files to JavaParserService and .ts/.js files to TypeScriptParserService.
+   * Routes .java files to JavaParserService and .ts/.js files to
+   * TypeScriptParserService.
    *
    * @param config     the analysis configuration
    * @param repository the git repository
@@ -387,10 +335,10 @@ public class AnalysisService { // NOPMD
       throws IOException {
     final String fileContent = GitRepositoryHandler.getContent(file.objectId, repository);
     final String fileName = file.fileName.toLowerCase();
-    
+
     try {
       AbstractFileDataHandler fileDataHandler = null;
-      
+
       // Route to appropriate parser based on file extension
       if (fileName.endsWith(".ts") || fileName.endsWith(".tsx")
           || fileName.endsWith(".js") || fileName.endsWith(".jsx")) {
@@ -399,9 +347,9 @@ public class AnalysisService { // NOPMD
             .addArgument(file.fileName)
             .addArgument(fileContent.length())
             .log("Parsing TypeScript/JavaScript file: {} (size: {} bytes)");
-        
+
         fileDataHandler = tsParserService.parseFileContent(fileContent, file.fileName, commitSha);
-        
+
         if (fileDataHandler != null) {
           // Add git metrics to the TypeScript/JavaScript file handler
           GitMetricCollector.addFileGitMetrics(fileDataHandler, file);
@@ -419,10 +367,9 @@ public class AnalysisService { // NOPMD
             .addArgument(file.fileName)
             .addArgument(fileContent.length())
             .log("Parsing Java file with ANTLR: {} (size: {} bytes)");
-        
-        fileDataHandler =
-            antlrParserService.parseFileContent(fileContent, file.fileName, commitSha);
-        
+
+        fileDataHandler = antlrParserService.parseFileContent(fileContent, file.fileName, commitSha);
+
         if (fileDataHandler != null) {
           // Add git metrics to the Java file handler
           GitMetricCollector.addFileGitMetrics(fileDataHandler, file);
@@ -440,10 +387,9 @@ public class AnalysisService { // NOPMD
             .addArgument(file.fileName)
             .addArgument(fileContent.length())
             .log("Parsing Python file with ANTLR: {} (size: {} bytes)");
-        
-        fileDataHandler =
-            pythonParserService.parseFileContent(fileContent, file.fileName, commitSha);
-        
+
+        fileDataHandler = pythonParserService.parseFileContent(fileContent, file.fileName, commitSha);
+
         if (fileDataHandler != null) {
           // Add git metrics to the Python file handler
           GitMetricCollector.addFileGitMetrics(fileDataHandler, file);
@@ -461,7 +407,7 @@ public class AnalysisService { // NOPMD
             .log("Unsupported file type: {}");
         return null;
       }
-      
+
       if (fileDataHandler == null) {
         if (saveCrashedFilesProperty) {
           DebugFileWriter.saveDebugFile("/logs/crashedfiles/", fileContent,

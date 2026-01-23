@@ -1,5 +1,6 @@
 package net.explorviz.code.analysis.handler;
 
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -13,32 +14,36 @@ import net.explorviz.code.proto.Language;
 public class JavaFileDataHandler extends AbstractFileDataHandler
     implements ProtoBufConvertable<FileData> {
 
-  private static final int MIN_STACK_SIZE_FOR_PARENT = 2;
   private static final int STRING_BUILDER_CAPACITY = 300;
-  
+
   private final Stack<String> classStack;
   private final Stack<String> methodStack;
   private final Map<String, ClassDataHandler> classDataMap;
+  private final List<String> rootClasses;
 
   public JavaFileDataHandler(final String fileName) {
     super(fileName);
     this.classStack = new Stack<>();
     this.methodStack = new Stack<>();
     this.classDataMap = new HashMap<>();
+    this.rootClasses = new ArrayList<>();
   }
 
   public void enterClass(final String className) {
-    this.classStack.push(className);
-    this.classDataMap.put(className, new ClassDataHandler());
+    final ClassDataHandler handler = new ClassDataHandler();
+    handler.setName(className);
+    this.classDataMap.put(className, handler);
 
-    if (this.classStack.size() >= MIN_STACK_SIZE_FOR_PARENT) {
-      final String parentClassName =
-          this.classStack.get(this.classStack.size() - MIN_STACK_SIZE_FOR_PARENT);
+    if (this.classStack.isEmpty()) {
+      this.rootClasses.add(className);
+    } else {
+      final String parentClassName = this.classStack.peek();
       final ClassDataHandler parent = this.getClassData(parentClassName);
       if (parent != null) {
-        parent.addInnerClass(className);
+        parent.addInnerClass(className, handler);
       }
     }
+    this.classStack.push(className);
   }
 
   public void enterAnonymousClass(final String anonymousClassName, final String parentFqn) {
@@ -50,10 +55,21 @@ public class JavaFileDataHandler extends AbstractFileDataHandler
       fqn = String.format("%s#%d", baseFqn, idx);
     }
 
-    this.classStack.push(fqn);
     final ClassDataHandler classDataHandler = new ClassDataHandler();
+    classDataHandler.setName(fqn);
     classDataHandler.setIsAnonymousClass();
     this.classDataMap.put(fqn, classDataHandler);
+
+    if (this.classStack.isEmpty()) {
+      this.rootClasses.add(fqn);
+    } else {
+      final String parentClassName = this.classStack.peek();
+      final ClassDataHandler parent = this.getClassData(parentClassName);
+      if (parent != null) {
+        parent.addInnerClass(fqn, classDataHandler);
+      }
+    }
+    this.classStack.push(fqn);
   }
 
   public String getCurrentClassFqn() {
@@ -102,24 +118,27 @@ public class JavaFileDataHandler extends AbstractFileDataHandler
     methodStack.pop();
   }
 
-  public Map<String, String> getMetrics() {
-    return builder.getMetricMap();
+  public Map<String, Double> getMetrics() {
+    return builder.getMetricsMap();
   }
 
   public List<String> getImportNames() {
-    return this.builder.getImportNameList();
+    return this.builder.getImportNamesList();
   }
 
   @Override
   public FileData getProtoBufObject() {
-    // Add all class data to builder
-    for (final Map.Entry<String, ClassDataHandler> entry : this.classDataMap.entrySet()) {
-      this.builder.putClassData(entry.getKey(), entry.getValue().getProtoBufObject());
+    this.builder.clearClasses();
+    for (final String rootClassName : this.rootClasses) {
+      final ClassDataHandler handler = this.classDataMap.get(rootClassName);
+      if (handler != null) {
+        this.builder.addClasses(handler.getProtoBufObject());
+      }
     }
-    
+
     // Set language
     builder.setLanguage(Language.JAVA);
-    
+
     return builder.build();
   }
 
@@ -131,13 +150,12 @@ public class JavaFileDataHandler extends AbstractFileDataHandler
       mapData.append(entry.getValue().toString());
       mapData.append('\n');
     }
-    for (final Map.Entry<String, String> entry : this.builder.getMetricMap().entrySet()) {
+    for (final Map.Entry<String, Double> entry : this.builder.getMetricsMap().entrySet()) {
       mapData.append(entry.getKey()).append(": ");
       mapData.append(entry.getValue()).append('\n');
     }
     return "stats: methodCount=" + this.getMethodCount() + "\n" + "package: "
-        + this.builder.getPackageName() + "\n" + "imports: " + this.builder.getImportNameList()
+        + this.builder.getPackageName() + "\n" + "imports: " + this.builder.getImportNamesList()
         + "\n" + mapData;
   }
 }
-

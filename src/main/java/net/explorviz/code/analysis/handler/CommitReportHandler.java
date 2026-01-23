@@ -1,12 +1,13 @@
 package net.explorviz.code.analysis.handler;
 
 import jakarta.enterprise.context.ApplicationScoped;
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import net.explorviz.code.analysis.types.FileDescriptor;
-import net.explorviz.code.proto.CommitReportData;
-//import org.slf4j.LoggerFactory;
+import net.explorviz.code.proto.CommitData;
+import net.explorviz.code.proto.FileIdentifier;
 
 /**
  * The CommitReportHandler is used to create commit reports.
@@ -14,16 +15,19 @@ import net.explorviz.code.proto.CommitReportData;
 @ApplicationScoped
 public class CommitReportHandler { // NOPMD
 
-  private final Map<String, FileMetricHandler> fileNameToFileMetricHandlerMap;
-  private CommitReportData.Builder builder;
+  private CommitData.Builder builder;
+  private final Map<String, FileDescriptor> allFiles = new HashMap<>();
+  private final List<String> modifiedFiles = new ArrayList<>();
+  private final List<String> deletedFiles = new ArrayList<>();
+  private final List<String> addedFiles = new ArrayList<>();
 
   /**
-   * Creates a blank handler, use {@link CommitReportHandler#init(String, String, String)} to
+   * Creates a blank handler, use
+   * {@link CommitReportHandler#init(String, String, String)} to
    * initialize it.
    */
   public CommitReportHandler() {
-    this.builder = CommitReportData.newBuilder();
-    this.fileNameToFileMetricHandlerMap = new HashMap<>();
+    this.builder = CommitData.newBuilder();
   }
 
   /**
@@ -31,30 +35,31 @@ public class CommitReportHandler { // NOPMD
    * {@link CommitReportHandler#init(String, String, String)} automatically.
    */
   public void clear() {
-    this.builder = CommitReportData.newBuilder();
-    this.fileNameToFileMetricHandlerMap.clear(); /* TODO: unmodified files
-     * should be kept for a better performance*/
+    this.builder = CommitData.newBuilder();
+    this.allFiles.clear();
+    this.modifiedFiles.clear();
+    this.deletedFiles.clear();
+    this.addedFiles.clear();
   }
 
   /**
    * Initialize the current report handler.
    *
    * @param commitId       the id of the commit
-   * @param parentCommitId the id of the parent commit, can be null if no parent exists
+   * @param parentCommitId the id of the parent commit, can be null if no parent
+   *                       exists
    * @param branchName     the name of the branch
    */
   public void init(final String commitId, final String parentCommitId, final String branchName) {
     clear();
-    builder.setCommitID(commitId);
-    builder.setParentCommitID(parentCommitId == null ? "NONE" : parentCommitId);
+    builder.setCommitId(commitId);
+    builder.setParentCommitId(parentCommitId == null ? "NONE" : parentCommitId);
     builder.setBranchName(branchName);
   }
 
   public void add(final FileDescriptor fileDescriptor) {
-    builder.addFiles(fileDescriptor.relativePath);
-    this.fileNameToFileMetricHandlerMap.put(fileDescriptor.relativePath, new FileMetricHandler());
+    this.allFiles.put(fileDescriptor.relativePath, fileDescriptor);
   }
-
 
   /**
    * Add multiple {@link FileDescriptor} to the report.
@@ -67,94 +72,60 @@ public class CommitReportHandler { // NOPMD
     }
   }
 
-  /**
-   * ... * @param fileDescriptor ...
-   */
-  public void addFileHash(final FileDescriptor fileDescriptor) {
+  private String getFileHash(final FileDescriptor fileDescriptor) {
     String s = fileDescriptor.objectId.toString();
-    final String[] sa = s.split("\\[");
-    s = sa[1].substring(0, sa[1].length() - 1);
-    builder.addFileHash(s);
+    if (s.contains("[") && s.contains("]")) {
+      final String[] sa = s.split("\\[");
+      return sa[1].substring(0, sa[1].length() - 1);
+    }
+    return s;
   }
 
   public void addModified(final FileDescriptor fileDescriptor) {
-    builder.addModified(fileDescriptor.relativePath);
+    modifiedFiles.add(fileDescriptor.relativePath);
   }
 
   public void addDeleted(final FileDescriptor fileDescriptor) {
-    builder.addDeleted(fileDescriptor.relativePath);
+    deletedFiles.add(fileDescriptor.relativePath);
   }
 
   public void addAdded(final FileDescriptor fileDescriptor) {
-    builder.addAdded(fileDescriptor.relativePath);
-  }
-
-
-  public FileMetricHandler getFileMetricHandler(final String fileName) {
-    return this.fileNameToFileMetricHandlerMap.get(fileName);
+    addedFiles.add(fileDescriptor.relativePath);
   }
 
   /**
    * ...
    */
   public void addTags(final List<String> tags) {
-    for (final String tag : tags) {
-      builder.addTags(tag);
-    }
+    builder.addAllTags(tags);
   }
 
   public void addToken(final String token) {
     builder.setLandscapeToken(token);
   }
 
-  public void addApplicationName(final String applicationName) {
-    builder.setApplicationName(applicationName);
+  public void setRepositoryName(final String repositoryName) {
+    builder.setRepositoryName(repositoryName);
   }
 
   /**
-   * Sets the lines of code (loc) metric. * @param fileDescriptor the file descriptor of the
-   * corresponding file we want to set the lines of code for * @param loc the lines of code
+   * Returns the commit data. * * @return commit data object
    */
-  public void setLoc(final FileDescriptor fileDescriptor, final int loc) {
-    final FileMetricHandler fileMetricHandler = this.fileNameToFileMetricHandlerMap.get(
-        fileDescriptor.relativePath);
-    fileMetricHandler.setLoc(loc);
-  }
+  public CommitData getCommitData() {
+    for (Map.Entry<String, FileDescriptor> entry : allFiles.entrySet()) {
+      FileIdentifier fileId = FileIdentifier.newBuilder()
+          .setFilePath(entry.getValue().relativePath)
+          .setFileHash(getFileHash(entry.getValue()))
+          .build();
 
-  /**
-   * Sets the cyclomatic complexity metric. * @param fileDescriptor the file descriptor of the
-   * corresponding file we want to set the cyclomatic complexity for * @param cyclomaticComplexity
-   * the cyclomatic complexity
-   */
-  public void setCyclomaticComplexity(final FileDescriptor fileDescriptor,
-      final int cyclomaticComplexity) {
-    final FileMetricHandler fileMetricHandler = this.fileNameToFileMetricHandlerMap.get(
-        fileDescriptor.relativePath);
-    fileMetricHandler.setCyclomaticComplexity(cyclomaticComplexity);
-  }
-
-  /**
-   * Sets the number of methods metric.
-   *
-   * @param fileDescriptor  the file descriptor of the corresponding file we want to set the number
-   *                        of methods for
-   * @param numberOfMethods the number of methods
-   */
-  public void setNumberOfMethods(final FileDescriptor fileDescriptor, final int numberOfMethods) {
-    final FileMetricHandler fileMetricHandler = this.fileNameToFileMetricHandlerMap.get(
-        fileDescriptor.relativePath);
-    fileMetricHandler.setNumberOfMethods(numberOfMethods);
-  }
-
-  /**
-   * Returns the commit report data. * * @return commit report data object
-   */
-  public CommitReportData getCommitReport() {
-    for (final Map.Entry<String, FileMetricHandler> entry :
-        this.fileNameToFileMetricHandlerMap.entrySet()) {
-      if (entry.getValue().getFileName() != "") { // NOPMD
-        this.builder.addFileMetric(
-            entry.getValue().getProtoBufObject()); // only add FileMetrics that do have metric data
+      if (addedFiles.contains(entry.getKey())) {
+        builder.addAddedFiles(fileId);
+      } else if (modifiedFiles.contains(entry.getKey())) {
+        builder.addModifiedFiles(fileId);
+      } else if (deletedFiles.contains(entry.getKey())) {
+        builder.addDeletedFiles(fileId);
+      } else {
+        builder.addUnchangedFiles(fileId);
       }
     }
     return builder.build();

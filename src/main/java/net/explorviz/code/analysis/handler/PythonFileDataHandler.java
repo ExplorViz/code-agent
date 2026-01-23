@@ -5,6 +5,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Stack;
+import java.util.stream.Collectors;
 import net.explorviz.code.proto.FileData;
 import net.explorviz.code.proto.FunctionData;
 import net.explorviz.code.proto.Language;
@@ -17,7 +18,8 @@ public class PythonFileDataHandler extends AbstractFileDataHandler {
   private final Stack<String> classStack = new Stack<>();
   private final Map<String, ClassDataHandler> classDataMap = new HashMap<>();
   private final Stack<String> methodStack = new Stack<>();
-  private final List<FunctionData.Builder> globalFunctions = new ArrayList<>();
+  private final List<MethodDataHandler> globalFunctionHandlers = new ArrayList<>();
+  private final List<String> rootClasses = new ArrayList<>();
 
   public PythonFileDataHandler(final String fileName) {
     super(fileName);
@@ -26,8 +28,20 @@ public class PythonFileDataHandler extends AbstractFileDataHandler {
 
   public void enterClass(final String className) {
     final String classFqn = fileName + ":" + className;
+    final ClassDataHandler handler = new ClassDataHandler();
+    handler.setName(className);
+    this.classDataMap.put(classFqn, handler);
+
+    if (this.classStack.isEmpty()) {
+      this.rootClasses.add(classFqn);
+    } else {
+      final String parentClassFqn = this.classStack.peek();
+      final ClassDataHandler parent = this.classDataMap.get(parentClassFqn);
+      if (parent != null) {
+        parent.addInnerClass(className, handler);
+      }
+    }
     this.classStack.push(classFqn);
-    this.classDataMap.put(classFqn, new ClassDataHandler());
   }
 
   public void leaveClass() {
@@ -71,27 +85,27 @@ public class PythonFileDataHandler extends AbstractFileDataHandler {
     return methodStack.peek();
   }
 
-  public FunctionData.Builder addGlobalFunction(final String name, final String returnType) {
-    final String functionFqn = fileName + ":" + name;
-    final FunctionData.Builder funcBuilder = FunctionData.newBuilder()
-        .setName(name)
-        .setFqn(functionFqn)
-        .setReturnType(returnType);
-
-    globalFunctions.add(funcBuilder);
-    return funcBuilder;
+  public MethodDataHandler addGlobalFunction(final String name, final String returnType) {
+    final MethodDataHandler handler = new MethodDataHandler(name, returnType);
+    globalFunctionHandlers.add(handler);
+    return handler;
   }
 
   @Override
   public FileData getProtoBufObject() {
-    // Add all classes
-    for (final Map.Entry<String, ClassDataHandler> entry : classDataMap.entrySet()) {
-      builder.putClassData(entry.getKey(), entry.getValue().getProtoBufObject());
+    // Add all root classes
+    builder.clearClasses();
+    for (final String rootClassFqn : rootClasses) {
+      final ClassDataHandler handler = classDataMap.get(rootClassFqn);
+      if (handler != null) {
+        builder.addClasses(handler.getProtoBufObject());
+      }
     }
-    
+
     // Add all global functions
-    for (final FunctionData.Builder funcBuilder : globalFunctions) {
-      builder.addFunctions(funcBuilder.build());
+    builder.clearFunctions();
+    for (final MethodDataHandler handler : globalFunctionHandlers) {
+      builder.addFunctions(handler.getProtoBufObject());
     }
 
     return builder.build();

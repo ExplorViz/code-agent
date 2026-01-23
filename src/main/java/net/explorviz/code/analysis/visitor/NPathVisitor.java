@@ -21,22 +21,22 @@ import com.github.javaparser.ast.stmt.SwitchStmt;
 import com.github.javaparser.ast.stmt.TryStmt;
 import com.github.javaparser.ast.stmt.WhileStmt;
 import com.github.javaparser.ast.visitor.GenericVisitorAdapter;
-import net.explorviz.code.analysis.handler.FileDataHandler;
+import net.explorviz.code.analysis.handler.JavaFileDataHandler;
 
 /**
  * Visitor filling a FileData object with NPath data. Only handles constructor and methods bodies.
  * This implementation is a reimplementation of the {@code NPathBaseVisitor} from PMD.
  */
-public class NPathVisitor extends GenericVisitorAdapter<Integer, FileDataHandler> { // NOCS NOPMD
+public class NPathVisitor extends GenericVisitorAdapter<Integer, JavaFileDataHandler> { // NOCS NOPMD
 
 
   @Override
-  public Integer visit(final ConstructorDeclaration n, final FileDataHandler data) {
+  public Integer visit(final ConstructorDeclaration n, final JavaFileDataHandler data) {
     return super.visit(n, data);
   }
 
   @Override
-  public Integer visit(final MethodDeclaration n, final FileDataHandler data) {
+  public Integer visit(final MethodDeclaration n, final JavaFileDataHandler data) {
     int ret;
     if (n.getBody().isPresent()) {
       ret = visit(n.getBody().get(), data);
@@ -47,7 +47,7 @@ public class NPathVisitor extends GenericVisitorAdapter<Integer, FileDataHandler
   }
 
   @Override
-  public Integer visit(final BlockStmt n, final FileDataHandler data) {
+  public Integer visit(final BlockStmt n, final JavaFileDataHandler data) {
     int product = 1;
     for (final Node node : n.getChildNodes()) {
       // Skip comment
@@ -65,27 +65,27 @@ public class NPathVisitor extends GenericVisitorAdapter<Integer, FileDataHandler
   }
 
   @Override
-  public Integer visit(final AssignExpr n, final FileDataHandler arg) {
+  public Integer visit(final AssignExpr n, final JavaFileDataHandler arg) {
     return 1;
   }
 
   @Override
-  public Integer visit(final UnaryExpr n, final FileDataHandler arg) {
+  public Integer visit(final UnaryExpr n, final JavaFileDataHandler arg) {
     return 1;
   }
 
   @Override
-  public Integer visit(final MethodCallExpr n, final FileDataHandler arg) {
+  public Integer visit(final MethodCallExpr n, final JavaFileDataHandler arg) {
     return super.visit(n, arg);
   }
 
   @Override
-  public Integer visit(final ExpressionStmt n, final FileDataHandler arg) {
+  public Integer visit(final ExpressionStmt n, final JavaFileDataHandler arg) {
     return super.visit(n, arg);
   }
 
   @Override
-  public Integer visit(final IfStmt n, final FileDataHandler data) {
+  public Integer visit(final IfStmt n, final JavaFileDataHandler data) {
     // (npath of if + npath of else (or 1) + bool_comp of if) * npath of next
     int complexity = n.hasElseBlock() ? 0 : 1;
     // filter for statements
@@ -99,7 +99,7 @@ public class NPathVisitor extends GenericVisitorAdapter<Integer, FileDataHandler
   }
 
   @Override
-  public Integer visit(final WhileStmt n, final FileDataHandler data) {
+  public Integer visit(final WhileStmt n, final JavaFileDataHandler data) {
     // (npath of while + bool_comp of while + 1) * npath of next
     final int boolCompWhile = booleanExpressionComplexity(n.getCondition());
 
@@ -109,7 +109,7 @@ public class NPathVisitor extends GenericVisitorAdapter<Integer, FileDataHandler
   }
 
   @Override
-  public Integer visit(final DoStmt n, final FileDataHandler data) {
+  public Integer visit(final DoStmt n, final JavaFileDataHandler data) {
     // (npath of do + bool_comp of do + 1) * npath of next
     final int boolCompDo = booleanExpressionComplexity(n.getCondition());
 
@@ -119,7 +119,7 @@ public class NPathVisitor extends GenericVisitorAdapter<Integer, FileDataHandler
   }
 
   @Override
-  public Integer visit(final ForStmt n, final FileDataHandler data) {
+  public Integer visit(final ForStmt n, final JavaFileDataHandler data) {
     // (npath of for + bool_comp of for + 1) * npath of next
     int boolCompForInit = 0;
     for (final Expression e : n.getInitialization()) {
@@ -139,7 +139,7 @@ public class NPathVisitor extends GenericVisitorAdapter<Integer, FileDataHandler
   }
 
   @Override
-  public Integer visit(final ReturnStmt n, final FileDataHandler data) {
+  public Integer visit(final ReturnStmt n, final JavaFileDataHandler data) {
     // return statements are valued at 1, or the value of the boolean expression
     if (n.getExpression().isEmpty()) {
       return 1;
@@ -155,18 +155,18 @@ public class NPathVisitor extends GenericVisitorAdapter<Integer, FileDataHandler
   }
 
   // @Override
-  // public Integer visit(final BreakStmt n, final FileDataHandler arg) {
+  // public Integer visit(final BreakStmt n, final JavaFileDataHandler arg) {
   //   return 1;
   // }
 
   // @Override
-  // public Integer visit(final SwitchExpr n, final FileDataHandler data) {
+  // public Integer visit(final SwitchExpr n, final JavaFileDataHandler data) {
   //   // bool_comp of switch + sum(npath(case_range))
   //   return super.visit(n, data);
   // }
 
   @Override
-  public Integer visit(final SwitchStmt n, final FileDataHandler data) {
+  public Integer visit(final SwitchStmt n, final JavaFileDataHandler data) {
     // bool_comp of switch + sum(npath(case_range))
 
     final int boolCompSwitch = booleanExpressionComplexity(n.getSelector());
@@ -196,7 +196,7 @@ public class NPathVisitor extends GenericVisitorAdapter<Integer, FileDataHandler
   }
 
   @Override
-  public Integer visit(final SwitchEntry n, final FileDataHandler data) {
+  public Integer visit(final SwitchEntry n, final JavaFileDataHandler data) {
     // this is the <default> case
     if (n.getLabels().isEmpty()) {
       return 1;
@@ -205,7 +205,7 @@ public class NPathVisitor extends GenericVisitorAdapter<Integer, FileDataHandler
   }
 
   // @Override
-  // public Integer visit(final BinaryExpr n, final FileDataHandler data) {
+  // public Integer visit(final BinaryExpr n, final JavaFileDataHandler data) {
   //   if (n.getOperator().equals(BinaryExpr.Operator.AND) || n.getOperator()
   //       .equals(BinaryExpr.Operator.OR)) {
   //     Integer i = super.visit(n, data);
@@ -216,7 +216,7 @@ public class NPathVisitor extends GenericVisitorAdapter<Integer, FileDataHandler
   // }
 
   @Override
-  public Integer visit(final ConditionalExpr n, final FileDataHandler data) {
+  public Integer visit(final ConditionalExpr n, final JavaFileDataHandler data) {
     // bool comp of guard clause + complexity of last two children (= total - 1)
     final int boolCompTernary = booleanExpressionComplexity(n.getCondition());
     final int thenValue = n.getThenExpr().accept(this, data);
@@ -225,7 +225,7 @@ public class NPathVisitor extends GenericVisitorAdapter<Integer, FileDataHandler
   }
 
   @Override
-  public Integer visit(final TryStmt n, final FileDataHandler data) {
+  public Integer visit(final TryStmt n, final JavaFileDataHandler data) {
     /*
      * This scenario was not addressed by the original paper. Based on the
      * principles outlined in the paper, as well as the Checkstyle NPath

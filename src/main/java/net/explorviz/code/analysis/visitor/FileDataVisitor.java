@@ -31,7 +31,7 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.Optional;
 import java.util.stream.Collectors;
-import net.explorviz.code.analysis.handler.FileDataHandler;
+import net.explorviz.code.analysis.handler.JavaFileDataHandler;
 import net.explorviz.code.analysis.handler.MethodDataHandler;
 import net.explorviz.code.analysis.types.Verification;
 import org.slf4j.Logger;
@@ -41,7 +41,7 @@ import org.slf4j.LoggerFactory;
  * Visitor filling a FileData object with typical information about java files.
  * Includes the LOC (lines of code) metric.
  */
-public class FileDataVisitor extends VoidVisitorAdapter<FileDataHandler> { // NOPMD
+public class FileDataVisitor extends VoidVisitorAdapter<JavaFileDataHandler> { // NOPMD
 
   public static final String FILE_SIZE = "size";
   public static final String LOC = "loc"; // Lines of Code
@@ -68,13 +68,13 @@ public class FileDataVisitor extends VoidVisitorAdapter<FileDataHandler> { // NO
   }
 
   @Override
-  public void visit(final PackageDeclaration n, final FileDataHandler data) {
+  public void visit(final PackageDeclaration n, final JavaFileDataHandler data) {
     data.setPackageName(n.getNameAsString());
     super.visit(n, data);
   }
 
   @Override
-  public void visit(final ImportDeclaration n, final FileDataHandler data) {
+  public void visit(final ImportDeclaration n, final JavaFileDataHandler data) {
     if (n.isAsterisk()) {
       if (wildcardImportCount == 0 && wildcardImport == null) {
         wildcardImport = n.getNameAsString();
@@ -86,7 +86,7 @@ public class FileDataVisitor extends VoidVisitorAdapter<FileDataHandler> { // NO
   }
 
   @Override
-  public void visit(final EnumDeclaration n, final FileDataHandler data) {
+  public void visit(final EnumDeclaration n, final JavaFileDataHandler data) {
     data.enterClass(n.getFullyQualifiedName().orElse(UNKNOWN));
     data.getCurrentClassData().addMetric(LOC, String.valueOf(getLoc(n)));
     data.getCurrentClassData().setIsEnum();
@@ -98,7 +98,7 @@ public class FileDataVisitor extends VoidVisitorAdapter<FileDataHandler> { // NO
   }
 
   @Override
-  public void visit(final FieldDeclaration n, final FileDataHandler data) {
+  public void visit(final FieldDeclaration n, final JavaFileDataHandler data) {
     data.enterMethod(data.getCurrentClassFqn() + "." + n.getVariable(0).getNameAsString());
     final List<String> modifierList = new ArrayList<>();
     for (final Modifier modifier : n.getModifiers()) {
@@ -114,7 +114,7 @@ public class FileDataVisitor extends VoidVisitorAdapter<FileDataHandler> { // NO
   }
 
   @Override // NOCS
-  public void visit(final ClassOrInterfaceDeclaration n, final FileDataHandler data) { // NOCS NOPMD
+  public void visit(final ClassOrInterfaceDeclaration n, final JavaFileDataHandler data) { // NOCS NOPMD
     data.enterClass(n.getFullyQualifiedName().orElse(UNKNOWN));
     data.getCurrentClassData().addMetric(LOC, String.valueOf(getLoc(n)));
 
@@ -164,11 +164,10 @@ public class FileDataVisitor extends VoidVisitorAdapter<FileDataHandler> { // NO
     data.leaveClass();
   }
 
-
   @Override
-  public void visit(final MethodDeclaration n, final FileDataHandler data) {
-    final String methodsFullyQualifiedName =
-        data.getCurrentClassFqn() + "." + n.getNameAsString() + "#" + Verification.parameterHash(
+  public void visit(final MethodDeclaration n, final JavaFileDataHandler data) {
+    final String methodsFullyQualifiedName = data.getCurrentClassFqn() + "." + n.getNameAsString() + "#"
+        + Verification.parameterHash(
             n.getParameters());
     data.enterMethod(methodsFullyQualifiedName);
     final String returnType = resolveFqn(n.getType(), data);
@@ -200,9 +199,9 @@ public class FileDataVisitor extends VoidVisitorAdapter<FileDataHandler> { // NO
   }
 
   @Override
-  public void visit(final ConstructorDeclaration n, final FileDataHandler data) {
-    final String constructorsFullyQualifiedName =
-        data.getCurrentClassFqn() + "." + n.getNameAsString() + "#" + Verification.parameterHash(
+  public void visit(final ConstructorDeclaration n, final JavaFileDataHandler data) {
+    final String constructorsFullyQualifiedName = data.getCurrentClassFqn() + "." + n.getNameAsString() + "#"
+        + Verification.parameterHash(
             n.getParameters());
     data.enterMethod(constructorsFullyQualifiedName);
     final MethodDataHandler constructor = data.getCurrentClassData()
@@ -220,13 +219,13 @@ public class FileDataVisitor extends VoidVisitorAdapter<FileDataHandler> { // NO
   }
 
   @Override
-  public void visit(final EnumConstantDeclaration n, final FileDataHandler data) {
+  public void visit(final EnumConstantDeclaration n, final JavaFileDataHandler data) {
     data.getCurrentClassData().addEnumConstant(n.getNameAsString());
     super.visit(n, data);
   }
 
   @Override
-  public void visit(final CompilationUnit n, final FileDataHandler data) {
+  public void visit(final CompilationUnit n, final JavaFileDataHandler data) {
     final String locValue = String.valueOf(getLoc(n));
     final String clocValue = String.valueOf(getCloc(n));
     data.addMetric(LOC, locValue);
@@ -238,13 +237,13 @@ public class FileDataVisitor extends VoidVisitorAdapter<FileDataHandler> { // NO
 
   // If FieldAccessExpr, then tight coupling
   @Override
-  public void visit(final MethodCallExpr n, final FileDataHandler data) {
+  public void visit(final MethodCallExpr n, final JavaFileDataHandler data) {
     // System.out.println(n.getNameAsString());
     super.visit(n, data);
   }
 
   @Override
-  public void visit(final ObjectCreationExpr n, final FileDataHandler data) {
+  public void visit(final ObjectCreationExpr n, final JavaFileDataHandler data) {
     if (n.getAnonymousClassBody().isPresent()) {
       data.enterAnonymousClass(n.getTypeAsString(), data.getCurrentMethodFqn());
       super.visit(n, data);
@@ -254,19 +253,7 @@ public class FileDataVisitor extends VoidVisitorAdapter<FileDataHandler> { // NO
     }
   }
 
-  // @Override
-  // public void visit(final ModuleDeclaration n, final FileDataHandler data) {
-  //   // NOT SUPPORTED
-  //   super.visit(n, data);
-  // }
-  //
-  // @Override
-  // public void visit(final RecordDeclaration n, final FileDataHandler data) {
-  //   // NOT SUPPORTED
-  //   super.visit(n, data);
-  // }
-
-  private String resolveFqn(final Type type, final FileDataHandler data) {
+  private String resolveFqn(final Type type, final JavaFileDataHandler data) {
     try {
       final ResolvedType resolvedType = type.resolve();
       if (resolvedType.isReferenceType()) {
@@ -306,13 +293,14 @@ public class FileDataVisitor extends VoidVisitorAdapter<FileDataHandler> { // NO
   }
 
   /**
-   * Returns the FQN for the type by simply comparing it with potential imports. If no import
+   * Returns the FQN for the type by simply comparing it with potential imports.
+   * If no import
    * matches the type, the type itself will be returned
    *
    * @param type the type of the Object
    * @return the fqn or the original type
    */
-  private String findFqnInImports(final Type type, final FileDataHandler data) {  // NOPMD NOCS
+  private String findFqnInImports(final Type type, final JavaFileDataHandler data) { // NOPMD NOCS
     final List<String> imports = data.getImportNames();
     String attachedGenerics = "";
     if (type instanceof ClassOrInterfaceType) {
@@ -354,7 +342,8 @@ public class FileDataVisitor extends VoidVisitorAdapter<FileDataHandler> { // NO
     }
 
     if (LOGGER.isWarnEnabled()) {
-      // if wildcard in imports, note here that it might be possible the type is defined there
+      // if wildcard in imports, note here that it might be possible the type is
+      // defined there
       if (wildcardImportCount > 1 && wildcardImportProperty) {
         LOGGER.warn("File contains multiple wildcard imports, type <" + type.asString() // NOPMD
             + "> is ambiguous.");

@@ -57,13 +57,13 @@ public class PythonFileDataListener extends PythonParserBaseListener {
     // Extract class name
     if (ctx.name() != null) {
       final String className = ctx.name().getText();
-      
+
       fileDataHandler.enterClass(className);
-      
+
       LOGGER.atTrace()
           .addArgument(className)
           .log("Class: {}");
-      
+
       // Calculate class LOC
       final int classLoc = calculateLoc(ctx);
       final var classData = fileDataHandler.getCurrentClassData();
@@ -84,48 +84,48 @@ public class PythonFileDataListener extends PythonParserBaseListener {
     // Extract function name
     if (ctx.name() != null) {
       final String functionName = ctx.name().getText();
-      
+
       // Check if we're inside a class or this is a global function
       if (fileDataHandler.isInClassContext()) {
         // Function inside a class - treat as a method
         final String functionFqn = functionName + "#1"; // TODO: Add proper parameter hashing
-        
+
         final var methodData = fileDataHandler.getCurrentClassData()
             .addMethod(functionFqn, "None"); // Python default return is None
-        
+
         LOGGER.atTrace()
             .addArgument(functionName)
             .log("Method: {}");
-        
+
         // Calculate function LOC
         final int functionLoc = calculateLoc(ctx);
         methodData.addMetric(LOC, String.valueOf(functionLoc));
-        
+
         // Check for async - commented out for now
         // TODO: Add async support to MethodDataHandler if needed
       } else {
         // Global function
-        final FunctionData.Builder funcBuilder = fileDataHandler.addGlobalFunction(
+        final var methodHandler = fileDataHandler.addGlobalFunction(
             functionName,
-            "None"  // TODO: Extract actual return type from type hints
+            "None" // TODO: Extract actual return type from type hints
         );
-        
+
         // Set function location
         if (ctx.start != null && ctx.stop != null) {
-          funcBuilder.setStartLine(ctx.start.getLine());
-          funcBuilder.setEndLine(ctx.stop.getLine());
+          methodHandler.setLines(ctx.start.getLine(), ctx.stop.getLine());
         }
-        
+
         // Calculate LOC
         final int functionLoc = calculateLoc(ctx);
-        funcBuilder.putMetric(LOC, String.valueOf(functionLoc));
-        
-        // Check for async - commented out for now as FunctionData.Builder may not support async
+        methodHandler.addMetric(LOC, String.valueOf(functionLoc));
+
+        // Check for async - commented out for now as FunctionData.Builder may not
+        // support async
         // TODO: Add async support if needed
         // if (ctx.ASYNC() != null) {
-        //   funcBuilder.setAsync(true);
+        // funcBuilder.setAsync(true);
         // }
-        
+
         LOGGER.atTrace()
             .addArgument(functionName)
             .log("Global function: {}");

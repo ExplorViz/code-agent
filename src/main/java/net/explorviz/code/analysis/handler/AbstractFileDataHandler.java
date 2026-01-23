@@ -9,7 +9,7 @@ public abstract class AbstractFileDataHandler {
 
   protected AbstractFileDataHandler(final String fileName) {
     this.fileName = fileName;
-    this.builder = FileData.newBuilder().setFileName(fileName);
+    this.builder = FileData.newBuilder().setFilePath(fileName);
   }
 
   public String getFileName() {
@@ -17,7 +17,7 @@ public abstract class AbstractFileDataHandler {
   }
 
   public void setCommitSha(final String commitSha) {
-    builder.setCommitID(commitSha);
+    builder.setFileHash(commitSha);
   }
 
   public void setPackageName(final String packageName) {
@@ -25,35 +25,37 @@ public abstract class AbstractFileDataHandler {
   }
 
   public void addImport(final String importName) {
-    builder.addImportName(importName);
+    builder.addImportNames(importName);
   }
 
   public String addMetric(final String metricName, final String metricValue) {
-    builder.putMetric(metricName, metricValue);
+    try {
+      builder.putMetrics(metricName, Double.parseDouble(metricValue));
+    } catch (NumberFormatException e) {
+      builder.putMetrics(metricName, 0.0);
+    }
     return metricValue;
   }
 
   public String getMetricValue(final String metricName) {
-    return builder.getMetricOrDefault(metricName, null);
+    return builder.getMetricsMap().containsKey(metricName)
+        ? String.valueOf(builder.getMetricsMap().get(metricName))
+        : null;
   }
 
   public void setModifications(final int modifiedLines, final int addedLines,
       final int deletedLines) {
-    builder.setModifiedLines(String.valueOf(modifiedLines));
-    builder.setAddedLines(String.valueOf(addedLines));
-    builder.setDeletedLines(String.valueOf(deletedLines));
+    builder.setModifiedLines(modifiedLines);
+    builder.setAddedLines(addedLines);
+    builder.setDeletedLines(deletedLines);
   }
 
   public void setAuthor(final String author) {
-    builder.setAuthor(author);
+    builder.setLastEditor(author);
   }
 
   public void setLandscapeToken(final String landscapeToken) {
     builder.setLandscapeToken(landscapeToken);
-  }
-
-  public void setApplicationName(final String applicationName) {
-    builder.setApplicationName(applicationName);
   }
 
   public abstract FileData getProtoBufObject();
@@ -63,4 +65,3 @@ public abstract class AbstractFileDataHandler {
     return getProtoBufObject().toString();
   }
 }
-

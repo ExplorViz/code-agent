@@ -15,7 +15,7 @@ public class ParameterDataHandler implements ProtoBufConvertable<ParameterData> 
   }
 
   public void setName(final String name) {
-    builder.setType(name);
+    builder.setName(name);
   }
 
   public void setType(final String type) {
@@ -23,11 +23,11 @@ public class ParameterDataHandler implements ProtoBufConvertable<ParameterData> 
   }
 
   public void addModifier(final String modifier) {
-    builder.addModifier(modifier);
+    builder.addModifiers(modifier);
   }
 
   public void addModifiers(final List<String> modifiers) {
-    builder.addAllModifier(modifiers);
+    builder.addAllModifiers(modifiers);
   }
 
   @Override

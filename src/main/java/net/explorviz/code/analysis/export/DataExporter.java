@@ -1,12 +1,12 @@
 package net.explorviz.code.analysis.export;
 
-import net.explorviz.code.proto.CommitReportData;
+import net.explorviz.code.proto.CommitData;
 import net.explorviz.code.proto.FileData;
 import net.explorviz.code.proto.StateData;
 
 /**
  * A DataExporter handles the export of {@link FileData},
- * {@link CommitReportData} and request of
+ * {@link CommitData} and request of
  * {@link StateData}.
  */
 public interface DataExporter {
@@ -16,7 +16,7 @@ public interface DataExporter {
 
   void sendFileData(final FileData fileData);
 
-  void sendCommitReport(final CommitReportData commitReportData);
+  void sendCommitReport(final CommitData commitData);
 
   boolean isInvalidCommitHash(final String hash);
 }

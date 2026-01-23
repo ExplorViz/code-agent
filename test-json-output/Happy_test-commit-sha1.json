@@ -1,44 +1,42 @@
 {
-  "commitID": "test-commit-sha1",
-  "fileName": "Happy.java",
+  "fileHash": "test-commit-sha1",
+  "filePath": "Happy.java",
+  "language": "JAVA",
   "packageName": "com.easy.life",
-  "importName": ["java.util.ArrayList", "java.util.List", "com.unknown.data.type.UnknownType", "com.unknown.data.type.UnknownTypeWithGenerics"],
-  "classData": {
-    "com.easy.life.Happy": {
-      "type": "CLASS",
-      "modifier": ["public"],
-      "field": [{
-        "name": "t",
-        "type": "com.unknown.data.type.UnknownType",
-        "modifier": ["private"]
-      }, {
-        "name": "t2",
-        "type": "com.unknown.data.type.UnknownTypeWithGenerics\u003cString,List\u003cInteger\u003e\u003e"
-      }, {
-        "name": "lst",
-        "type": "java.util.List\u003cList\u003cInteger\u003e\u003e"
+  "importNames": ["java.util.ArrayList", "java.util.List", "com.unknown.data.type.UnknownType", "com.unknown.data.type.UnknownTypeWithGenerics"],
+  "classes": [{
+    "name": "com.easy.life.Happy",
+    "type": "CLASS",
+    "modifiers": ["public"],
+    "fields": [{
+      "name": "t",
+      "type": "com.unknown.data.type.UnknownType",
+      "modifiers": ["private"]
+    }, {
+      "name": "t2",
+      "type": "com.unknown.data.type.UnknownTypeWithGenerics\u003cString,List\u003cInteger\u003e\u003e"
+    }, {
+      "name": "lst",
+      "type": "java.util.List\u003cList\u003cInteger\u003e\u003e"
+    }],
+    "functions": [{
+      "name": "com.easy.life.Happy.fromArrayToList#146d5",
+      "returnType": "java.util.List\u003cT\u003e",
+      "modifiers": ["public"],
+      "parameters": [{
+        "name": "a",
+        "type": "com.easy.life.T[]"
       }],
-      "methodData": {
-        "com.easy.life.Happy.fromArrayToList#146d5": {
-          "returnType": "java.util.List\u003cT\u003e",
-          "modifier": ["public"],
-          "parameter": [{
-            "name": "a",
-            "type": "com.easy.life.T[]"
-          }],
-          "metric": {
-            "loc": "6"
-          }
-        }
-      },
-      "metric": {
-        "loc": "13"
+      "metrics": {
+        "loc": 6.0
       }
+    }],
+    "metrics": {
+      "loc": 13.0
     }
-  },
-  "metric": {
-    "loc": "21",
-    "cloc": "0"
-  },
-  "language": "JAVA"
+  }],
+  "metrics": {
+    "loc": 21.0,
+    "cloc": 0.0
+  }
 }

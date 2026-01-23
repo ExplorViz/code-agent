@@ -17,7 +17,7 @@ import java.util.List;
 import java.util.NoSuchElementException;
 import java.util.Optional;
 import net.explorviz.code.analysis.exceptions.DebugFileWriter;
-import net.explorviz.code.analysis.handler.FileDataHandler;
+import net.explorviz.code.analysis.handler.JavaFileDataHandler;
 import net.explorviz.code.analysis.handler.MetricAppender;
 import net.explorviz.code.analysis.visitor.CyclomaticComplexityVisitor;
 import net.explorviz.code.analysis.visitor.FileDataVisitor;
@@ -36,12 +36,11 @@ public class JavaParserService {
   public static final Logger LOGGER = LoggerFactory.getLogger(JavaParserService.class);
   private static final String CRASHED_FILES_PATH = "/logs/crashedfiles/";
 
-
   @ConfigProperty(name = "explorviz.gitanalysis.save-crashed_files")
-  /* default */ boolean saveCrashedFilesProperty;  // NOCS
+  /* default */ boolean saveCrashedFilesProperty; // NOCS
 
   @ConfigProperty(name = "explorviz.gitanalysis.assume-unresolved-types-from-wildcard-imports")
-  /* default */ boolean wildcardImportProperty;  // NOCS
+  /* default */ boolean wildcardImportProperty; // NOCS
 
   private List<String> sourcePaths;
   private JavaSymbolSolver javaSymbolSolver;
@@ -50,7 +49,8 @@ public class JavaParserService {
 
   /**
    * Creates a new JavaParserService with only the reflectionTypeSolver, call
-   * {@link JavaParserService#reset(List)} to add JavaParserTypeSolvers and check in the given
+   * {@link JavaParserService#reset(List)} to add JavaParserTypeSolvers and check
+   * in the given
    * paths.
    */
   public JavaParserService() {
@@ -71,7 +71,7 @@ public class JavaParserService {
     reflectionTypeSolver = new ReflectionTypeSolver(false);
     combinedTypeSolver.add(reflectionTypeSolver);
     for (final String path : sourcePaths) {
-      combinedTypeSolver.add(new JavaParserTypeSolver(Path.of(path)));  // NOPMD
+      combinedTypeSolver.add(new JavaParserTypeSolver(Path.of(path))); // NOPMD
     }
     javaSymbolSolver = new JavaSymbolSolver(combinedTypeSolver);
   }
@@ -85,9 +85,9 @@ public class JavaParserService {
     this(Collections.singletonList(sourcePath));
   }
 
-  private FileDataHandler parse(final CompilationUnit compilationUnit, final String fileName,
+  private JavaFileDataHandler parse(final CompilationUnit compilationUnit, final String fileName,
       final boolean calculateMetrics) {
-    final FileDataHandler data = new FileDataHandler(fileName);
+    final JavaFileDataHandler data = new JavaFileDataHandler(fileName);
     final FileDataVisitor fileDataVisitor;
     fileDataVisitor = new FileDataVisitor(Optional.of(combinedTypeSolver), wildcardImportProperty);
     fileDataVisitor.visit(compilationUnit, data);
@@ -98,7 +98,8 @@ public class JavaParserService {
   }
 
   /**
-   * Resets the state of the JavaParserService, all cached values are cleared and the parser can be
+   * Resets the state of the JavaParserService, all cached values are cleared and
+   * the parser can be
    * reused for another task.
    */
   public void reset() {
@@ -121,7 +122,7 @@ public class JavaParserService {
     reset();
   }
 
-  private FileDataHandler parseAny(final String fileContent, final String fileName, final Path path,
+  private JavaFileDataHandler parseAny(final String fileContent, final String fileName, final Path path,
       final boolean calculateMetrics, final String commitSha)
       throws IOException {
     // ToDo: Make this configurable
@@ -145,7 +146,7 @@ public class JavaParserService {
     }
 
     try {
-      final FileDataHandler dataHandler = parse(compilationUnit, fileName, calculateMetrics);
+      final JavaFileDataHandler dataHandler = parse(compilationUnit, fileName, calculateMetrics);
       dataHandler.setCommitSha(commitSha);
       return dataHandler;
     } catch (NoSuchElementException e) {
@@ -175,12 +176,13 @@ public class JavaParserService {
    *
    * @param fileContent stringified java file
    */
-  public FileDataHandler parseFileContent(final String fileContent, final String fileName,
+  public JavaFileDataHandler parseFileContent(final String fileContent, final String fileName,
       final boolean calculateMetrics, final String commitSha) {
     try {
       return parseAny(fileContent, fileName, null, calculateMetrics, commitSha);
     } catch (IOException e) {
-      //   omit the IO Exception as the function can throw the exception only if path is not null
+      // omit the IO Exception as the function can throw the exception only if path is
+      // not null
       return null;
     }
   }
@@ -190,19 +192,20 @@ public class JavaParserService {
    *
    * @throws IOException Gets thrown if the file is not reachable
    */
-  public FileDataHandler parseFile(final String pathToFile, final boolean calculateMetrics,
+  public JavaFileDataHandler parseFile(final String pathToFile, final boolean calculateMetrics,
       final String commitSha) throws IOException {
     final Path path = Path.of(pathToFile);
     return parseAny("", path.getFileName().toString(), path, calculateMetrics, commitSha);
   }
 
-  private void calculateMetrics(final FileDataHandler data, // NOPMD
+  private void calculateMetrics(final JavaFileDataHandler data, // NOPMD
       final CompilationUnit compilationUnit, final String fileName) {
     try {
       final Pair<MetricAppender, Object> pair = new Pair<>(new MetricAppender(data), new Object());
       new CyclomaticComplexityVisitor().visit(compilationUnit, pair);
     } catch (Exception e) { // NOPMD
-      // Catch everything and proceed, as these are only the metrics, the analysis has to continue
+      // Catch everything and proceed, as these are only the metrics, the analysis has
+      // to continue
       if (LOGGER.isErrorEnabled()) {
         LOGGER.error("Unable to create cyclomatic complexity metric for File: " + fileName);
         LOGGER.error(e.getMessage(), e);
@@ -215,7 +218,8 @@ public class JavaParserService {
       new NestedBlockDepthVisitor().visit(compilationUnit,
           new Pair<>(new MetricAppender(data), null));
     } catch (Exception e) { // NOPMD
-      // Catch everything and proceed, as these are only the metrics, the analysis has to continue
+      // Catch everything and proceed, as these are only the metrics, the analysis has
+      // to continue
       if (LOGGER.isErrorEnabled()) {
         LOGGER.error("Unable to create nested block depth metric for File: " + fileName);
         LOGGER.error(e.getMessage(), e);
@@ -228,7 +232,8 @@ public class JavaParserService {
       new LackOfCohesionMethodsVisitor().visit(compilationUnit,
           new Pair<>(new MetricAppender(data), null));
     } catch (Exception e) { // NOPMD
-      // Catch everything and proceed, as these are only the metrics, the analysis has to continue
+      // Catch everything and proceed, as these are only the metrics, the analysis has
+      // to continue
       if (LOGGER.isErrorEnabled()) {
         LOGGER.error("Unable to create LCOM4 metric for File: " + fileName);
         LOGGER.error(e.getMessage(), e);

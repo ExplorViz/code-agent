@@ -2,8 +2,8 @@ package net.explorviz.code.analysis.export;
 
 import io.quarkus.grpc.GrpcClient;
 import jakarta.enterprise.context.ApplicationScoped;
-import net.explorviz.code.proto.CommitReportData;
-import net.explorviz.code.proto.CommitReportServiceGrpc;
+import net.explorviz.code.proto.CommitData;
+import net.explorviz.code.proto.CommitServiceGrpc;
 import net.explorviz.code.proto.FileData;
 import net.explorviz.code.proto.FileDataServiceGrpc;
 import net.explorviz.code.proto.StateData;
@@ -27,16 +27,13 @@ public final class GrpcExporter implements DataExporter {
   /* package */ FileDataServiceGrpc.FileDataServiceBlockingStub fileDataGrpcClient;
   //
   @GrpcClient(GRPC_CLIENT_NAME)
-  /* package */ CommitReportServiceGrpc.CommitReportServiceBlockingStub commitDataGrpcClient;
+  /* package */ CommitServiceGrpc.CommitServiceBlockingStub commitDataGrpcClient;
   //
   @GrpcClient(GRPC_CLIENT_NAME)
   /* package */ StateDataServiceGrpc.StateDataServiceBlockingStub stateDataGrpcClient;
 
   @ConfigProperty(name = "explorviz.landscape.token")
   /* default */ String landscapeTokenProperty;
-
-  @ConfigProperty(name = "explorviz.landscape.secret")
-  /* default */ String landscapeSecretProperty;
 
   @ConfigProperty(name = "explorviz.gitanalysis.application-name")
   /* default */ String applicationNameProperty;
@@ -53,11 +50,12 @@ public final class GrpcExporter implements DataExporter {
       final String applicationName) {
     final StateDataRequest.Builder requestBuilder = StateDataRequest.newBuilder();
     requestBuilder.setBranchName(branchName);
-    requestBuilder.setUpstreamName(upstreamName);
+    requestBuilder.setRepositoryName(upstreamName);
     requestBuilder.setLandscapeToken("".equals(token) ? landscapeTokenProperty : token);
-    requestBuilder.setLandscapeSecret(landscapeSecretProperty);
-    requestBuilder.setApplicationName(
-        "".equals(applicationName) ? applicationNameProperty : applicationName);
+
+    final String appName = "".equals(applicationName) ? applicationNameProperty : applicationName;
+    requestBuilder.putApplicationPaths(appName, "");
+
     return stateDataGrpcClient.requestStateData(requestBuilder.build());
   }
 
@@ -74,13 +72,13 @@ public final class GrpcExporter implements DataExporter {
   }
 
   @Override
-  public void sendCommitReport(final CommitReportData commitReportData) {
-    LOGGER.info("Sending commit report on {}", commitReportData.getCommitID());
+  public void sendCommitReport(final CommitData commitData) {
+    LOGGER.info("Sending commit data on {}", commitData.getCommitId());
     try {
-      commitDataGrpcClient.sendCommitReport(commitReportData);
+      commitDataGrpcClient.sendCommitData(commitData);
     } catch (final Exception e) {
       if (LOGGER.isErrorEnabled()) {
-        LOGGER.error("Failed to send commit report {}", commitReportData);
+        LOGGER.error("Failed to send commit data {}", commitData);
         LOGGER.error(e.getMessage());
       }
     }

@@ -1,52 +1,50 @@
 {
-  "commitID": "commit-2",
-  "fileName": "ColorParam.java",
+  "fileHash": "commit-2",
+  "filePath": "ColorParam.java",
+  "language": "JAVA",
   "packageName": "net.sourceforge.plantuml",
-  "classData": {
-    "net.sourceforge.plantuml.ColorParam": {
-      "type": "ENUM",
-      "modifier": ["public"],
-      "field": [{
-        "name": "isBackground",
-        "type": "boolean",
-        "modifier": ["private", "final"]
-      }],
-      "methodData": {
-        "net.sourceforge.plantuml.ColorParam.ColorParam#1": {
-          "modifier": ["private"],
-          "isConstructor": true,
-          "metric": {
-            "loc": "3"
-          }
-        },
-        "net.sourceforge.plantuml.ColorParam.ColorParam#3db6c47": {
-          "modifier": ["private"],
-          "parameter": [{
-            "name": "isBackground",
-            "type": "boolean"
-          }],
-          "isConstructor": true,
-          "metric": {
-            "loc": "3"
-          }
-        },
-        "net.sourceforge.plantuml.ColorParam.isBackground#1": {
-          "returnType": "boolean",
-          "modifier": ["protected"],
-          "metric": {
-            "loc": "3"
-          }
-        }
-      },
-      "enumConstant": ["background", "activityBackground", "activityBorder", "activityStart", "activityEnd", "activityBar", "activityArrow", "actorBackground", "actorBorder", "usecaseBorder", "usecaseBackground", "usecaseArrow", "objectBackground", "objectBorder", "objectArrow", "classBackground", "classBorder", "stereotypeCBackground", "stereotypeABackground", "stereotypeIBackground", "stereotypeEBackground", "classArrow", "packageBackground", "packageBorder", "componentBackground", "componentBorder", "interfaceBackground", "interfaceBorder", "componentArrow", "stateBackground", "stateBorder", "stateArrow", "noteBackground", "noteBorder", "sequenceActorBackground", "sequenceActorBorder", "sequenceGroupBackground", "sequenceDividerBackground", "sequenceLifeLineBackground", "sequenceLifeLineBorder", "sequenceParticipantBackground", "sequenceParticipantBorder", "sequenceArrow", "sequenceEngloberLine", "sequenceEngloberBackground", "iconPrivate", "iconPrivateBackground", "iconPackage", "iconPackageBackground", "iconProtected", "iconProtectedBackground", "iconPublic", "iconPublicBackground"],
-      "metric": {
-        "loc": "70"
+  "classes": [{
+    "name": "net.sourceforge.plantuml.ColorParam",
+    "type": "ENUM",
+    "modifiers": ["public"],
+    "fields": [{
+      "name": "isBackground",
+      "type": "boolean",
+      "modifiers": ["private", "final"]
+    }],
+    "functions": [{
+      "name": "net.sourceforge.plantuml.ColorParam.ColorParam#1",
+      "isConstructor": true,
+      "modifiers": ["private"],
+      "metrics": {
+        "loc": 3.0
       }
+    }, {
+      "name": "net.sourceforge.plantuml.ColorParam.ColorParam#3db6c47",
+      "isConstructor": true,
+      "modifiers": ["private"],
+      "parameters": [{
+        "name": "isBackground",
+        "type": "boolean"
+      }],
+      "metrics": {
+        "loc": 3.0
+      }
+    }, {
+      "name": "net.sourceforge.plantuml.ColorParam.isBackground#1",
+      "returnType": "boolean",
+      "modifiers": ["protected"],
+      "metrics": {
+        "loc": 3.0
+      }
+    }],
+    "enumValues": ["background", "activityBackground", "activityBorder", "activityStart", "activityEnd", "activityBar", "activityArrow", "actorBackground", "actorBorder", "usecaseBorder", "usecaseBackground", "usecaseArrow", "objectBackground", "objectBorder", "objectArrow", "classBackground", "classBorder", "stereotypeCBackground", "stereotypeABackground", "stereotypeIBackground", "stereotypeEBackground", "classArrow", "packageBackground", "packageBorder", "componentBackground", "componentBorder", "interfaceBackground", "interfaceBorder", "componentArrow", "stateBackground", "stateBorder", "stateArrow", "noteBackground", "noteBorder", "sequenceActorBackground", "sequenceActorBorder", "sequenceGroupBackground", "sequenceDividerBackground", "sequenceLifeLineBackground", "sequenceLifeLineBorder", "sequenceParticipantBackground", "sequenceParticipantBorder", "sequenceArrow", "sequenceEngloberLine", "sequenceEngloberBackground", "iconPrivate", "iconPrivateBackground", "iconPackage", "iconPackageBackground", "iconProtected", "iconProtectedBackground", "iconPublic", "iconPublicBackground"],
+    "metrics": {
+      "loc": 70.0
     }
-  },
-  "metric": {
-    "loc": "72",
-    "cloc": "0"
-  },
-  "language": "JAVA"
+  }],
+  "metrics": {
+    "loc": 72.0,
+    "cloc": 0.0
+  }
 }
