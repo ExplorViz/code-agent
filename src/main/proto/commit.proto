@@ -1,0 +1,33 @@
+syntax = "proto3";
+
+option java_multiple_files = true;
+option java_package = "net.explorviz.code.proto";
+option java_outer_classname = "CommitProto";
+
+import "google/protobuf/empty.proto";
+
+service CommitService {
+  rpc sendCommitData (CommitData) returns (google.protobuf.Empty) {}
+}
+
+message CommitData {
+  string landscape_token = 1;
+  string repository_name = 2;
+  string commit_id = 3;
+  string parent_commit_id = 4;
+  string branch_name = 5;
+  repeated string tags = 6;
+
+  // Git file metrics
+  repeated FileIdentifier unchanged_files = 7;
+  repeated FileIdentifier added_files = 8;
+  repeated FileIdentifier modified_files = 9;
+  repeated FileIdentifier deleted_files = 10;
+}
+
+message FileIdentifier {
+  string file_hash = 1;
+  
+  // Path relative to root of repository
+  string file_path = 2;
+}

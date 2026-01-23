@@ -2,7 +2,7 @@ syntax = "proto3";
 
 option java_multiple_files = true;
 option java_package = "net.explorviz.code.proto";
-option java_outer_classname = "FileDataEvent";
+option java_outer_classname = "FileProto";
 
 import "google/protobuf/empty.proto";
 
@@ -11,7 +11,7 @@ service FileDataService {
 }
 
 enum Language {
-  UNKNOWN = 0;
+  LANGUAGE_UNSPECIFIED = 0;
   JAVA = 1;
   JAVASCRIPT = 2;
   TYPESCRIPT = 3;
@@ -46,6 +46,7 @@ message FunctionData {
   repeated string annotations = 4;
   repeated string modifiers = 5;
   repeated ParameterData parameters = 6;
+  // Fully qualified method names that are called by this function
   repeated string outgoing_method_calls = 7;
   map<string, double> metrics = 8;
   int32 start_line = 9;
@@ -63,31 +64,30 @@ message ClassData {
   repeated ClassData inner_classes = 8;
   repeated FunctionData functions = 9;
   repeated string enum_values = 10;
-  map<string, string> metrics = 11;
+  
+  map<string, double> metrics = 11;
 }
 
 message FileData {
   string landscape_token = 1;
   string file_hash = 2;
 
-  // Path relative to root of application
+  // Path relative to root of repository
   string file_path = 3;
 
-  optional string package_name = 4;
-  repeated string import_names = 5;
-  repeated ClassData classes = 6;
-  map<string, double> metrics = 7;
+  Language language = 4;
+  optional string package_name = 5;
+  repeated string import_names = 6;
+  repeated ClassData classes = 7;
+  // Top-level / global functions
+  repeated FunctionData functions = 8;
+  map<string, double> metrics = 9;
 
   // Author of the last commit touching this file
-  string last_editor = 8;
+  string last_editor = 10;
 
   // Git file metrics
-  int32 added_lines = 9;
-  int32 modified_lines = 10;
-  int32 deleted_lines = 11;
-
-  Language language = 12;
-
-  // Top-level / global functions
-  repeated FunctionData functions = 13;
+  int32 added_lines = 11;
+  int32 modified_lines = 12;
+  int32 deleted_lines = 13;
 }
