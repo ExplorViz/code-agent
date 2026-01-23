@@ -21,6 +21,7 @@ public class AnalysisRequest {
   private boolean calculateMetrics = true;
   private String startCommit;
   private String endCommit;
+  private Integer cloneDepth;
   private String landscapeToken = "";
   private String applicationName = "";
 
@@ -115,6 +116,14 @@ public class AnalysisRequest {
     this.applicationName = applicationName;
   }
 
+  public Integer getCloneDepth() {
+    return cloneDepth;
+  }
+
+  public void setCloneDepth(final Integer cloneDepth) {
+    this.cloneDepth = cloneDepth;
+  }
+
   /**
    * Converts this request to an AnalysisConfig.
    *
@@ -132,6 +141,7 @@ public class AnalysisRequest {
         .calculateMetrics(calculateMetrics)
         .startCommit(Optional.ofNullable(startCommit))
         .endCommit(Optional.ofNullable(endCommit))
+        .cloneDepth(Optional.ofNullable(cloneDepth))
         .landscapeToken(landscapeToken != null ? landscapeToken : "")
         .applicationName(applicationName != null ? applicationName : "")
         .fetchRemoteData(fetchRemoteData)

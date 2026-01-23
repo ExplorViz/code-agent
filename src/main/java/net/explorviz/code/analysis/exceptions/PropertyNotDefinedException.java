@@ -12,7 +12,7 @@ public class PropertyNotDefinedException extends Exception {
   }
 
   public PropertyNotDefinedException(final String propertyName, final String errorMessage) {
-    super(toMessage(new String[]{propertyName}, errorMessage));
+    super(toMessage(new String[] {propertyName}, errorMessage));
   }
 
   public PropertyNotDefinedException(final String[] propertyNames) { //NOPMD

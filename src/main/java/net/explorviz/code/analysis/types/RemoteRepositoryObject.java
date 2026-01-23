@@ -12,6 +12,7 @@ public class RemoteRepositoryObject {
   private String url;
   private String storagePath;
   private String branchName;
+  private Integer cloneDepth;
   private CredentialsProvider credentialsProvider;
 
   /**
@@ -21,14 +22,22 @@ public class RemoteRepositoryObject {
    * @param storagePath         where to clone the repository to
    * @param credentialsProvider the credential provider for private repositories
    * @param branchName          the name of the branch to analyze
+   * @param cloneDepth          optional clone depth for shallow cloning (null for full clone)
    */
   public RemoteRepositoryObject(final String url, final String storagePath,
       final CredentialsProvider credentialsProvider,
-      final String branchName) {
+      final String branchName, final Integer cloneDepth) {
     this.url = url;
     this.storagePath = storagePath;
     this.credentialsProvider = credentialsProvider;
     this.branchName = branchName;
+    this.cloneDepth = cloneDepth;
+  }
+
+  public RemoteRepositoryObject(final String url, final String storagePath,
+      final CredentialsProvider credentialsProvider,
+      final String branchName) {
+    this(url, storagePath, credentialsProvider, branchName, null);
   }
 
   public RemoteRepositoryObject(final String url, final String storagePath,
@@ -78,5 +87,13 @@ public class RemoteRepositoryObject {
 
   public void setCredentialsProvider(final CredentialsProvider credentialsProvider) {
     this.credentialsProvider = credentialsProvider;
+  }
+
+  public Integer getCloneDepth() {
+    return cloneDepth;
+  }
+
+  public void setCloneDepth(final Integer cloneDepth) {
+    this.cloneDepth = cloneDepth;
   }
 }

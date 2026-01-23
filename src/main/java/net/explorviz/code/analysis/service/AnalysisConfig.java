@@ -17,6 +17,7 @@ public class AnalysisConfig {
   private final boolean calculateMetrics;
   private final Optional<String> startCommit;
   private final Optional<String> endCommit;
+  private final Optional<Integer> cloneDepth;
   private final String landscapeToken;
   private final String applicationName;
   private final boolean fetchRemoteData;
@@ -32,6 +33,7 @@ public class AnalysisConfig {
       final boolean calculateMetrics,
       final Optional<String> startCommit,
       final Optional<String> endCommit,
+      final Optional<Integer> cloneDepth,
       final String landscapeToken,
       final String applicationName,
       final boolean fetchRemoteData) {
@@ -45,6 +47,7 @@ public class AnalysisConfig {
     this.calculateMetrics = calculateMetrics;
     this.startCommit = startCommit;
     this.endCommit = endCommit;
+    this.cloneDepth = cloneDepth;
     this.landscapeToken = landscapeToken;
     this.applicationName = applicationName;
     this.fetchRemoteData = fetchRemoteData;
@@ -90,6 +93,10 @@ public class AnalysisConfig {
     return endCommit;
   }
 
+  public Optional<Integer> getCloneDepth() {
+    return cloneDepth;
+  }
+
   public String getLandscapeToken() {
     return landscapeToken;
   }
@@ -116,6 +123,7 @@ public class AnalysisConfig {
     private boolean calculateMetrics = true;
     private Optional<String> startCommit = Optional.empty();
     private Optional<String> endCommit = Optional.empty();
+    private Optional<Integer> cloneDepth = Optional.empty();
     private String landscapeToken = "";
     private String applicationName = "";
     private boolean fetchRemoteData = true;
@@ -170,6 +178,11 @@ public class AnalysisConfig {
       return this;
     }
 
+    public Builder cloneDepth(final Optional<Integer> cloneDepth) {
+      this.cloneDepth = cloneDepth;
+      return this;
+    }
+
     public Builder landscapeToken(final String landscapeToken) {
       this.landscapeToken = landscapeToken;
       return this;
@@ -197,6 +210,7 @@ public class AnalysisConfig {
           calculateMetrics,
           startCommit,
           endCommit,
+          cloneDepth,
           landscapeToken,
           applicationName,
           fetchRemoteData);

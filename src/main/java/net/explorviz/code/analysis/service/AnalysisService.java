@@ -26,7 +26,6 @@ import net.explorviz.code.analysis.parser.AntlrPythonParserService;
 import net.explorviz.code.analysis.parser.AntlrTypeScriptParserService;
 import net.explorviz.code.analysis.types.FileDescriptor;
 import net.explorviz.code.analysis.types.Triple;
-import net.explorviz.code.analysis.visitor.CyclomaticComplexityVisitor;
 import net.explorviz.code.analysis.visitor.FileDataVisitor;
 import net.explorviz.code.proto.StateData;
 import org.eclipse.jgit.api.Git;
@@ -95,7 +94,8 @@ public class AnalysisService { // NOPMD
 
       // get fetch data from remote
       final Optional<String> startCommit = findStartCommit(config, exporter, branch);
-      final Optional<String> endCommit = config.isFetchRemoteData() ? Optional.empty() : config.getEndCommit();
+      final Optional<String> endCommit =
+          config.isFetchRemoteData() ? Optional.empty() : config.getEndCommit();
 
       checkIfCommitsAreReachable(startCommit, endCommit, branch);
 
@@ -125,7 +125,8 @@ public class AnalysisService { // NOPMD
 
           LOGGER.atDebug().addArgument(commit.getName()).log("Analyzing commit: {}");
 
-          final Triple<List<FileDescriptor>, List<FileDescriptor>, List<FileDescriptor>> descriptorTriple = gitRepositoryHandler
+          final Triple<List<FileDescriptor>, List<FileDescriptor>, List<FileDescriptor>>
+              descriptorTriple = gitRepositoryHandler
               .listDiff(repository,
                   Optional.ofNullable(lastCheckedCommit), commit,
                   config.getRestrictAnalysisToFolders().orElse(""));
@@ -221,7 +222,8 @@ public class AnalysisService { // NOPMD
   private void commitAnalysis(final AnalysisConfig config, final Repository repository,
       final RevCommit commit, final RevCommit lastCommit, final List<FileDescriptor> descriptorList,
       final DataExporter exporter, final String branchName,
-      final Triple<List<FileDescriptor>, List<FileDescriptor>, List<FileDescriptor>> descriptorTriple)
+      final Triple<List<FileDescriptor>, List<FileDescriptor>,
+          List<FileDescriptor>> descriptorTriple)
       throws GitAPIException, NotFoundException, IOException {
     DirectoryFinder.resetDirectory(config.getSourceDirectory().orElse(""));
 
@@ -239,8 +241,9 @@ public class AnalysisService { // NOPMD
           .addArgument(fileDescriptor.relativePath)
           .log("📄 Analyzing file: {}");
 
-      final AbstractFileDataHandler fileDataHandler = fileAnalysis(config, repository, fileDescriptor,
-          commit.getName());
+      final AbstractFileDataHandler fileDataHandler =
+          fileAnalysis(config, repository, fileDescriptor,
+              commit.getName());
 
       if (fileDataHandler == null) {
         LOGGER.atError()
@@ -275,7 +278,8 @@ public class AnalysisService { // NOPMD
   private void createCommitReport(final AnalysisConfig config, final Repository repository,
       final RevCommit commit, final RevCommit lastCommit, final DataExporter exporter,
       final String branchName,
-      final Triple<List<FileDescriptor>, List<FileDescriptor>, List<FileDescriptor>> descriptorTriple,
+      final Triple<List<FileDescriptor>, List<FileDescriptor>,
+          List<FileDescriptor>> descriptorTriple,
       final Map<String, AbstractFileDataHandler> fileNameToFileDataHandlerMap)
       throws NotFoundException, IOException, GitAPIException {
     if (lastCommit == null) {
@@ -318,9 +322,8 @@ public class AnalysisService { // NOPMD
   }
 
   /**
-   * Analyzes a file and returns the appropriate handler based on file extension.
-   * Routes .java files to JavaParserService and .ts/.js files to
-   * TypeScriptParserService.
+   * Analyzes a file and returns the appropriate handler based on file extension. Routes .java files
+   * to JavaParserService and .ts/.js files to TypeScriptParserService.
    *
    * @param config     the analysis configuration
    * @param repository the git repository
@@ -347,7 +350,8 @@ public class AnalysisService { // NOPMD
             .addArgument(fileContent.length())
             .log("Parsing TypeScript/JavaScript file: {} (size: {} bytes)");
 
-        fileDataHandler = tsParserService.parseFileContent(fileContent, file.relativePath, commitSha);
+        fileDataHandler =
+            tsParserService.parseFileContent(fileContent, file.relativePath, commitSha);
 
         if (fileDataHandler != null) {
           // Add git metrics to the TypeScript/JavaScript file handler
@@ -367,7 +371,8 @@ public class AnalysisService { // NOPMD
             .addArgument(fileContent.length())
             .log("Parsing Java file with ANTLR: {} (size: {} bytes)");
 
-        fileDataHandler = antlrParserService.parseFileContent(fileContent, file.relativePath, commitSha);
+        fileDataHandler =
+            antlrParserService.parseFileContent(fileContent, file.relativePath, commitSha);
 
         if (fileDataHandler != null) {
           // Add git metrics to the Java file handler
@@ -387,7 +392,8 @@ public class AnalysisService { // NOPMD
             .addArgument(fileContent.length())
             .log("Parsing Python file with ANTLR: {} (size: {} bytes)");
 
-        fileDataHandler = pythonParserService.parseFileContent(fileContent, file.relativePath, commitSha);
+        fileDataHandler =
+            pythonParserService.parseFileContent(fileContent, file.relativePath, commitSha);
 
         if (fileDataHandler != null) {
           // Add git metrics to the Python file handler

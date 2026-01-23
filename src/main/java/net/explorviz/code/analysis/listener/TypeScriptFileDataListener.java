@@ -1,20 +1,15 @@
 package net.explorviz.code.analysis.listener;
 
-import java.util.ArrayList;
-import java.util.List;
 import net.explorviz.code.analysis.antlr.generated.TypeScriptParser;
 import net.explorviz.code.analysis.antlr.generated.TypeScriptParserBaseListener;
 import net.explorviz.code.analysis.handler.TypeScriptFileDataHandler;
-import net.explorviz.code.proto.FunctionData;
 import org.antlr.v4.runtime.CommonTokenStream;
 import org.antlr.v4.runtime.ParserRuleContext;
-import org.antlr.v4.runtime.tree.TerminalNode;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 /**
- * ANTLR Listener for extracting file data from TypeScript/JavaScript source
- * code.
+ * ANTLR Listener for extracting file data from TypeScript/JavaScript source code.
  */
 public class TypeScriptFileDataListener extends TypeScriptParserBaseListener {
 
@@ -131,7 +126,8 @@ public class TypeScriptFileDataListener extends TypeScriptParserBaseListener {
 
       final var classData = fileDataHandler.getCurrentClassData();
       if (classData != null) {
-        final var methodData = classData.addMethod(methodFqn, "void"); // TODO: Extract actual return type
+        final var methodData =
+            classData.addMethod(methodFqn, "void"); // TODO: Extract actual return type
 
         // Set method location
         if (ctx.start != null && ctx.stop != null) {
@@ -150,7 +146,8 @@ public class TypeScriptFileDataListener extends TypeScriptParserBaseListener {
   }
 
   @Override
-  public void enterConstructorDeclaration(final TypeScriptParser.ConstructorDeclarationContext ctx) {
+  public void enterConstructorDeclaration(
+      final TypeScriptParser.ConstructorDeclarationContext ctx) {
     // Handle class constructors
     if (fileDataHandler.isInClassContext()) {
       final var classData = fileDataHandler.getCurrentClassData();
@@ -277,12 +274,10 @@ public class TypeScriptFileDataListener extends TypeScriptParserBaseListener {
   }
 
   /**
-   * Extract the name of an arrow function from its parent context.
-   * Arrow functions are often assigned to variables: const foo = () => {}
+   * Extract the name of an arrow function from its parent context. Arrow functions are often
+   * assigned to variables: const foo = () => {}
    *
-   * <p>
-   * For now, we use a simple heuristic: try to extract text from nearby
-   * identifiers
+   * <p>For now, we use a simple heuristic: try to extract text from nearby identifiers
    */
   private String extractArrowFunctionName(
       final TypeScriptParser.ArrowFunctionDeclarationContext ctx) {
@@ -333,9 +328,8 @@ public class TypeScriptFileDataListener extends TypeScriptParserBaseListener {
   }
 
   /**
-   * Get comment lines of code by counting tokens on the hidden channel.
-   * ANTLR places comments on a hidden channel, so we need to extract them from
-   * there.
+   * Get comment lines of code by counting tokens on the hidden channel. ANTLR places comments on a
+   * hidden channel, so we need to extract them from there.
    */
   private int getCloc(final ParserRuleContext ctx) {
     if (ctx == null || tokens == null) {
@@ -357,9 +351,7 @@ public class TypeScriptFileDataListener extends TypeScriptParserBaseListener {
           // Count lines in single-line comments (//)
           if (tokenText.trim().startsWith("//")) {
             commentLines++;
-          }
-          // Count lines in multi-line comments (/* ... */)
-          else if (tokenText.trim().startsWith("/*")) {
+          } else if (tokenText.trim().startsWith("/*")) {
             // Count the number of newlines in the comment
             final long newlines = tokenText.chars().filter(ch -> ch == '\n').count();
             commentLines += (int) newlines + 1; // +1 for the first line

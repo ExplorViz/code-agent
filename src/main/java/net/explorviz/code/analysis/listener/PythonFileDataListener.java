@@ -3,7 +3,6 @@ package net.explorviz.code.analysis.listener;
 import net.explorviz.code.analysis.antlr.generated.PythonParser;
 import net.explorviz.code.analysis.antlr.generated.PythonParserBaseListener;
 import net.explorviz.code.analysis.handler.PythonFileDataHandler;
-import net.explorviz.code.proto.FunctionData;
 import org.antlr.v4.runtime.ParserRuleContext;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;

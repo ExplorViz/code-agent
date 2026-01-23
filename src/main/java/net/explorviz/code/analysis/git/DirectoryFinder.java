@@ -90,8 +90,6 @@ public final class DirectoryFinder {
             if (matcher.matches(startPath.relativize(dir))) {
               pathSet.add(dir.toAbsolutePath().normalize()
                   .toString());  // Normalize the path and add to the set
-              // If you want to stop searching after finding the first match uncomment the next line
-              // return FileVisitResult.TERMINATE;
             }
           }
           return FileVisitResult.CONTINUE;

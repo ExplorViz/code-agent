@@ -4,7 +4,6 @@ import com.github.javaparser.ast.Modifier;
 import com.github.javaparser.ast.NodeList;
 import java.util.List;
 import java.util.Map;
-import java.util.stream.Collectors;
 import net.explorviz.code.proto.FunctionData;
 import net.explorviz.code.proto.ParameterData;
 
@@ -32,7 +31,7 @@ public class MethodDataHandler implements ProtoBufConvertable<FunctionData> {
 
   /**
    * Creates a new Constructor object holding data describing the method.
-   * 
+   *
    * @param name the name of the constructor
    */
   public MethodDataHandler(final String name) {
@@ -109,8 +108,7 @@ public class MethodDataHandler implements ProtoBufConvertable<FunctionData> {
   }
 
   /**
-   * Returns the value of the metric, if no entry with the name exists, returns
-   * null.
+   * Returns the value of the metric, if no entry with the name exists, returns null.
    *
    * @param metricName the name/identifier of the metric
    * @return the value of the metric or null if the metric does not exist
@@ -143,7 +141,8 @@ public class MethodDataHandler implements ProtoBufConvertable<FunctionData> {
       metricDataString.append(entry.getValue()).append('\n');
     }
     return "  type: " + this.builder.getReturnType() + "\n" + "  modifiers: "
-        + this.builder.getModifiersList() + "\n" + "  parameters: " + this.builder.getParametersList()
+        + this.builder.getModifiersList() + "\n" + "  parameters: "
+        + this.builder.getParametersList()
         + "\n" + "  outgoing calls: " + this.builder.getOutgoingMethodCallsList() + "\n"
         + metricDataString;
   }

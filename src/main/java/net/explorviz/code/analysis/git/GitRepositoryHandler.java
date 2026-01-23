@@ -1,6 +1,5 @@
 package net.explorviz.code.analysis.git; // NOPMD
 
-
 import jakarta.enterprise.context.ApplicationScoped;
 import java.io.File;
 import java.io.IOException;
@@ -191,10 +190,23 @@ public class GitRepositoryHandler { // NOPMD
           .log("Cloning repository from: {}");
 
       FileIO.cleanDirectory(repoPath);
-      this.git = Git.cloneRepository().setURI(checkedRepositoryUrl.getValue())
+
+      final var cloneCommand = Git.cloneRepository()
+          .setURI(checkedRepositoryUrl.getValue())
           .setCredentialsProvider(remoteRepositoryObject.getCredentialsProvider())
-          .setDirectory(new File(repoPath)).setBranch(remoteRepositoryObject.getBranchNameOrNull())
-          .call();
+          .setDirectory(new File(repoPath))
+          .setBranch(remoteRepositoryObject.getBranchNameOrNull());
+
+      // Apply shallow clone if depth is specified
+      if (remoteRepositoryObject.getCloneDepth() != null
+          && remoteRepositoryObject.getCloneDepth() > 0) {
+        cloneCommand.setDepth(remoteRepositoryObject.getCloneDepth());
+        LOGGER.atInfo()
+            .addArgument(remoteRepositoryObject.getCloneDepth())
+            .log("Performing shallow clone with depth: {}");
+      }
+
+      this.git = cloneCommand.call();
       repositoryPath = new File(repoPath).getAbsolutePath();
       return this.git.getRepository();
     } catch (TransportException te) {
@@ -321,14 +333,13 @@ public class GitRepositoryHandler { // NOPMD
     } else {
       credentialsProvider = new UsernamePasswordCredentialsProvider(
           config.getGitUsername().get(),
-          config.getGitPassword().get()
-      );
+          config.getGitPassword().get());
     }
 
     return getGitRepository(config.getRepoPath().orElse(""),
         new RemoteRepositoryObject(config.getRepoRemoteUrl().orElse(""),
             repoLocalStoragePathProperty.orElse(""), credentialsProvider,
-            config.getBranch().orElse("")));
+            config.getBranch().orElse(""), config.getCloneDepth().orElse(null)));
   }
 
   /**
@@ -401,13 +412,14 @@ public class GitRepositoryHandler { // NOPMD
 
   private void putInList(final Repository repository, final DiffEntry diff,
       final List<FileDescriptor> objectIdList)
-      throws CorruptObjectException, MissingObjectException, IOException {
+      throws IOException {
     Triple<Integer, Integer, Integer> mods;
     try (DiffFormatter diffFormatter = new DiffFormatter(// NOPMD
         DisabledOutputStream.INSTANCE)) {
       diffFormatter.setRepository(repository);
       final FileHeader fileHeader = diffFormatter.toFileHeader(diff);
-      mods = countModifications(fileHeader.toEditList()); //TODO: don't need to do that when deleted
+      mods =
+          countModifications(fileHeader.toEditList()); // TODO: don't need to do that when deleted
     }
     final String[] parts = diff.getNewPath().split("/");
     objectIdList.add(
@@ -417,13 +429,14 @@ public class GitRepositoryHandler { // NOPMD
 
   private void putInList2(final Repository repository, final DiffEntry diff,
       final List<FileDescriptor> objectIdList)
-      throws CorruptObjectException, MissingObjectException, IOException {
+      throws IOException {
     Triple<Integer, Integer, Integer> mods;
     try (DiffFormatter diffFormatter = new DiffFormatter(// NOPMD
         DisabledOutputStream.INSTANCE)) {
       diffFormatter.setRepository(repository);
       final FileHeader fileHeader = diffFormatter.toFileHeader(diff);
-      mods = countModifications(fileHeader.toEditList()); //TODO: don't need to do that when deleted
+      mods =
+          countModifications(fileHeader.toEditList()); // TODO: don't need to do that when deleted
     }
     final String[] parts = diff.getOldPath().split("/");
     objectIdList.add(
@@ -471,10 +484,10 @@ public class GitRepositoryHandler { // NOPMD
    *
    * @param repository       the current repository
    * @param commit           the commit to get the list of files for
-   * @param pathRestrictions a comma separated list of search strings specifying the folders
-   *                         to analyze, if omitted, the entire repository will be searched
-   * @return returns a list of FileDescriptors of all supported source files within the
-   *         specified folders
+   * @param pathRestrictions a comma separated list of search strings specifying the folders to
+   *                         analyze, if omitted, the entire repository will be searched
+   * @return returns a list of FileDescriptors of all supported source files within the specified
+   *     folders
    * @throws IOException       thrown if files are not available
    * @throws NotFoundException thrown if the restrictionPath was not found
    */
@@ -587,7 +600,7 @@ public class GitRepositoryHandler { // NOPMD
         return true;
       }
     } catch (GitAPIException | MissingObjectException e) {
-      throw new RuntimeException(e);  // NOPMD
+      throw new RuntimeException(e); // NOPMD
     }
     return false;
   }

@@ -18,8 +18,8 @@ import org.slf4j.LoggerFactory;
  * desired. The MetricAppender is a convenient way to add metrics to the internal File
  * representation without the need to construct the fqn and keep track of the current Class-Method
  * hierarchy. If more direct access is required, use the
- * {@link net.explorviz.code.analysis.handler.JavaFileDataHandler} directly but you have to handle all
- * the fqn tracking yourself.
+ * {@link net.explorviz.code.analysis.handler.JavaFileDataHandler} directly but you have to handle
+ * all the fqn tracking yourself.
  */
 public class VisitorStub extends VoidVisitorAdapter<Pair<MetricAppender, Object>> {
 

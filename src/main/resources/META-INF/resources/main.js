@@ -14,6 +14,7 @@ const SAMPLE_VALUES = {
   startCommit: "",
   endCommit: "",
   landscapeToken: "",
+  cloneDepth: "",
 };
 
 const DEFAULT_STATUS = "Waiting for input…";
@@ -30,6 +31,10 @@ function collectPayload(formData) {
   payload.calculateMetrics = formData.get("calculateMetrics") !== null;
   payload.sendToRemote = formData.get("sendToRemote") !== null;
   payload.fetchRemoteData = formData.get("fetchRemoteData") !== null;
+
+  if (payload.cloneDepth) {
+    payload.cloneDepth = parseInt(payload.cloneDepth, 10);
+  }
 
   return payload;
 }

@@ -38,8 +38,8 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 /**
- * Visitor filling a FileData object with typical information about java files.
- * Includes the LOC (lines of code) metric.
+ * Visitor filling a FileData object with typical information about java files. Includes the LOC
+ * (lines of code) metric.
  */
 public class FileDataVisitor extends VoidVisitorAdapter<JavaFileDataHandler> { // NOPMD
 
@@ -114,7 +114,8 @@ public class FileDataVisitor extends VoidVisitorAdapter<JavaFileDataHandler> { /
   }
 
   @Override // NOCS
-  public void visit(final ClassOrInterfaceDeclaration n, final JavaFileDataHandler data) { // NOCS NOPMD
+  public void visit(final ClassOrInterfaceDeclaration n,
+      final JavaFileDataHandler data) { // NOCS NOPMD
     data.enterClass(n.getFullyQualifiedName().orElse(UNKNOWN));
     data.getCurrentClassData().addMetric(LOC, String.valueOf(getLoc(n)));
 
@@ -166,8 +167,9 @@ public class FileDataVisitor extends VoidVisitorAdapter<JavaFileDataHandler> { /
 
   @Override
   public void visit(final MethodDeclaration n, final JavaFileDataHandler data) {
-    final String methodsFullyQualifiedName = data.getCurrentClassFqn() + "." + n.getNameAsString() + "#"
-        + Verification.parameterHash(
+    final String methodsFullyQualifiedName =
+        data.getCurrentClassFqn() + "." + n.getNameAsString() + "#"
+            + Verification.parameterHash(
             n.getParameters());
     data.enterMethod(methodsFullyQualifiedName);
     final String returnType = resolveFqn(n.getType(), data);
@@ -200,8 +202,9 @@ public class FileDataVisitor extends VoidVisitorAdapter<JavaFileDataHandler> { /
 
   @Override
   public void visit(final ConstructorDeclaration n, final JavaFileDataHandler data) {
-    final String constructorsFullyQualifiedName = data.getCurrentClassFqn() + "." + n.getNameAsString() + "#"
-        + Verification.parameterHash(
+    final String constructorsFullyQualifiedName =
+        data.getCurrentClassFqn() + "." + n.getNameAsString() + "#"
+            + Verification.parameterHash(
             n.getParameters());
     data.enterMethod(constructorsFullyQualifiedName);
     final MethodDataHandler constructor = data.getCurrentClassData()
@@ -293,8 +296,7 @@ public class FileDataVisitor extends VoidVisitorAdapter<JavaFileDataHandler> { /
   }
 
   /**
-   * Returns the FQN for the type by simply comparing it with potential imports.
-   * If no import
+   * Returns the FQN for the type by simply comparing it with potential imports. If no import
    * matches the type, the type itself will be returned
    *
    * @param type the type of the Object

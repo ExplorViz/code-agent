@@ -1,6 +1,5 @@
 package net.explorviz.code.analysis.handler;
 
-import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -107,8 +106,7 @@ public class ClassDataHandler implements ProtoBufConvertable<ClassData> {
   }
 
   /**
-   * Set the current ClassType as class if it wasn't set to anonymous class
-   * already.
+   * Set the current ClassType as class if it wasn't set to anonymous class already.
    */
   public void setIsClass() {
     if (this.builder.getType() != ClassType.ANONYMOUS_CLASS) {
@@ -117,12 +115,10 @@ public class ClassDataHandler implements ProtoBufConvertable<ClassData> {
   }
 
   /**
-   * Set the current ClassType as class. If override is true, any ClassType value
-   * prior to this call
+   * Set the current ClassType as class. If override is true, any ClassType value prior to this call
    * gets overridden.
    *
-   * @param override set true to force set the ClassType, if false, the current
-   *                 classType is checked
+   * @param override set true to force set the ClassType, if false, the current classType is checked
    *                 to not override if it is set as anonymous class.
    */
   public void setIsClass(final boolean override) {
@@ -154,8 +150,7 @@ public class ClassDataHandler implements ProtoBufConvertable<ClassData> {
   }
 
   /**
-   * Adds a new metric entry to the ClassData, returns the old value of the metric
-   * if it existed,
+   * Adds a new metric entry to the ClassData, returns the old value of the metric if it existed,
    * null otherwise.
    *
    * @param metricName  the name/identifier of the metric
@@ -173,8 +168,7 @@ public class ClassDataHandler implements ProtoBufConvertable<ClassData> {
   }
 
   /**
-   * Returns the value of the metric, if no entry with the name exists, returns
-   * null.
+   * Returns the value of the metric, if no entry with the name exists, returns null.
    *
    * @param metricName the name/identifier of the metric
    * @return the value of the metric or null if the metric does not exist

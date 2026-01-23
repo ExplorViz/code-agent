@@ -6,7 +6,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Stack;
 import net.explorviz.code.proto.FileData;
-import net.explorviz.code.proto.FunctionData;
 import net.explorviz.code.proto.Language;
 
 /**

@@ -21,8 +21,7 @@ import org.slf4j.LoggerFactory;
 
 /**
  * Entrypoint for this service. Expects a local path to a Git repository folder
- * ("explorviz.repo.folder.path"). Sends the analysis's results to ExplorViz
- * code service.
+ * ("explorviz.repo.folder.path"). Sends the analysis's results to ExplorViz code service.
  */
 @ApplicationScoped
 public class GitAnalysis { // NOPMD

@@ -15,15 +15,14 @@ import net.explorviz.code.proto.FileIdentifier;
 @ApplicationScoped
 public class CommitReportHandler { // NOPMD
 
-  private CommitData.Builder builder;
   private final Map<String, FileDescriptor> allFiles = new HashMap<>();
   private final List<String> modifiedFiles = new ArrayList<>();
   private final List<String> deletedFiles = new ArrayList<>();
   private final List<String> addedFiles = new ArrayList<>();
+  private CommitData.Builder builder;
 
   /**
-   * Creates a blank handler, use
-   * {@link CommitReportHandler#init(String, String, String)} to
+   * Creates a blank handler, use {@link CommitReportHandler#init(String, String, String)} to
    * initialize it.
    */
   public CommitReportHandler() {
@@ -46,8 +45,7 @@ public class CommitReportHandler { // NOPMD
    * Initialize the current report handler.
    *
    * @param commitId       the id of the commit
-   * @param parentCommitId the id of the parent commit, can be null if no parent
-   *                       exists
+   * @param parentCommitId the id of the parent commit, can be null if no parent exists
    * @param branchName     the name of the branch
    */
   public void init(final String commitId, final String parentCommitId, final String branchName) {

@@ -49,8 +49,7 @@ public class JavaParserService {
 
   /**
    * Creates a new JavaParserService with only the reflectionTypeSolver, call
-   * {@link JavaParserService#reset(List)} to add JavaParserTypeSolvers and check
-   * in the given
+   * {@link JavaParserService#reset(List)} to add JavaParserTypeSolvers and check in the given
    * paths.
    */
   public JavaParserService() {
@@ -98,8 +97,7 @@ public class JavaParserService {
   }
 
   /**
-   * Resets the state of the JavaParserService, all cached values are cleared and
-   * the parser can be
+   * Resets the state of the JavaParserService, all cached values are cleared and the parser can be
    * reused for another task.
    */
   public void reset() {
@@ -122,7 +120,8 @@ public class JavaParserService {
     reset();
   }
 
-  private JavaFileDataHandler parseAny(final String fileContent, final String fileName, final Path path,
+  private JavaFileDataHandler parseAny(final String fileContent, final String fileName,
+      final Path path,
       final boolean calculateMetrics, final String commitSha)
       throws IOException {
     // ToDo: Make this configurable

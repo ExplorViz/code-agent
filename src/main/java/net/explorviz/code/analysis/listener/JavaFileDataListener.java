@@ -10,8 +10,6 @@ import net.explorviz.code.analysis.handler.JavaFileDataHandler;
 import net.explorviz.code.analysis.handler.MethodDataHandler;
 import net.explorviz.code.analysis.types.Verification;
 import org.antlr.v4.runtime.ParserRuleContext;
-import org.antlr.v4.runtime.Token;
-import org.antlr.v4.runtime.tree.TerminalNode;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -23,7 +21,7 @@ public class JavaFileDataListener extends Java20ParserBaseListener {
   public static final String FILE_SIZE = "size";
   public static final String LOC = "loc";
   public static final String CLOC = "cloc";
-  
+
   private static final Logger LOGGER = LoggerFactory.getLogger(JavaFileDataListener.class);
 
   private final JavaFileDataHandler fileDataHandler;
@@ -45,10 +43,10 @@ public class JavaFileDataListener extends Java20ParserBaseListener {
     // Calculate LOC and CLOC
     final int loc = getLoc(ctx);
     final int cloc = getCloc(ctx);
-    
+
     fileDataHandler.addMetric(LOC, String.valueOf(loc));
     fileDataHandler.addMetric(CLOC, String.valueOf(cloc));
-    
+
     LOGGER.atTrace()
         .addArgument(fileDataHandler.getFileName())
         .addArgument(loc)
@@ -84,7 +82,7 @@ public class JavaFileDataListener extends Java20ParserBaseListener {
     if (ctx.packageOrTypeName() != null) {
       final String importName = getPackageOrTypeName(ctx.packageOrTypeName()) + ".*";
       fileDataHandler.addImport(importName);
-      
+
       if (wildcardImportCount == 0 && wildcardImport == null) {
         wildcardImport = getPackageOrTypeName(ctx.packageOrTypeName());
       }
@@ -96,9 +94,9 @@ public class JavaFileDataListener extends Java20ParserBaseListener {
   public void enterNormalClassDeclaration(final Java20Parser.NormalClassDeclarationContext ctx) {
     final String className = ctx.typeIdentifier().getText();
     final String fqn = buildFqn(className);
-    
+
     fileDataHandler.enterClass(fqn);
-    
+
     // Determine if abstract
     final boolean isAbstract = hasModifier(ctx.classModifier(), "abstract");
     if (isAbstract) {
@@ -106,23 +104,23 @@ public class JavaFileDataListener extends Java20ParserBaseListener {
     } else {
       fileDataHandler.getCurrentClassData().setIsClass();
     }
-    
+
     // Add modifiers
     addModifiers(ctx.classModifier());
-    
+
     // Add LOC
     fileDataHandler.getCurrentClassData().addMetric(LOC, String.valueOf(getLoc(ctx)));
-    
+
     // Handle extends
     if (ctx.classExtends() != null && ctx.classExtends().classType() != null) {
       final String superClass = getClassType(ctx.classExtends().classType());
       fileDataHandler.getCurrentClassData().setSuperClass(superClass);
     }
-    
+
     // Handle implements
     if (ctx.classImplements() != null && ctx.classImplements().interfaceTypeList() != null) {
-      for (final Java20Parser.InterfaceTypeContext intfCtx : 
-           ctx.classImplements().interfaceTypeList().interfaceType()) {
+      for (final Java20Parser.InterfaceTypeContext intfCtx :
+          ctx.classImplements().interfaceTypeList().interfaceType()) {
         final String interfaceName = getClassType(intfCtx.classType());
         fileDataHandler.getCurrentClassData().addImplementedInterface(interfaceName);
       }
@@ -139,20 +137,20 @@ public class JavaFileDataListener extends Java20ParserBaseListener {
       final Java20Parser.NormalInterfaceDeclarationContext ctx) {
     final String interfaceName = ctx.typeIdentifier().getText();
     final String fqn = buildFqn(interfaceName);
-    
+
     fileDataHandler.enterClass(fqn);
     fileDataHandler.getCurrentClassData().setIsInterface();
-    
+
     // Add modifiers
     addModifiers(ctx.interfaceModifier());
-    
+
     // Add LOC
     fileDataHandler.getCurrentClassData().addMetric(LOC, String.valueOf(getLoc(ctx)));
-    
+
     // Handle extends
     if (ctx.interfaceExtends() != null && ctx.interfaceExtends().interfaceTypeList() != null) {
-      for (final Java20Parser.InterfaceTypeContext intfCtx : 
-           ctx.interfaceExtends().interfaceTypeList().interfaceType()) {
+      for (final Java20Parser.InterfaceTypeContext intfCtx :
+          ctx.interfaceExtends().interfaceTypeList().interfaceType()) {
         final String parentInterface = getClassType(intfCtx.classType());
         fileDataHandler.getCurrentClassData().addImplementedInterface(parentInterface);
       }
@@ -169,13 +167,13 @@ public class JavaFileDataListener extends Java20ParserBaseListener {
   public void enterEnumDeclaration(final Java20Parser.EnumDeclarationContext ctx) {
     final String enumName = ctx.typeIdentifier().getText();
     final String fqn = buildFqn(enumName);
-    
+
     fileDataHandler.enterClass(fqn);
     fileDataHandler.getCurrentClassData().setIsEnum();
-    
+
     // Add modifiers
     addModifiers(ctx.classModifier());
-    
+
     // Add LOC
     fileDataHandler.getCurrentClassData().addMetric(LOC, String.valueOf(getLoc(ctx)));
   }
@@ -197,9 +195,9 @@ public class JavaFileDataListener extends Java20ParserBaseListener {
     if (ctx.variableDeclaratorList() != null && ctx.unannType() != null) {
       final String fieldType = resolveTypeName(ctx.unannType().getText());
       final List<String> modifiers = extractFieldModifiers(ctx);
-      
-      for (final Java20Parser.VariableDeclaratorContext varCtx : 
-           ctx.variableDeclaratorList().variableDeclarator()) {
+
+      for (final Java20Parser.VariableDeclaratorContext varCtx :
+          ctx.variableDeclaratorList().variableDeclarator()) {
         final String fieldName = varCtx.variableDeclaratorId().identifier().getText();
         final String fieldFqn = fileDataHandler.getCurrentClassFqn() + "." + fieldName;
         fileDataHandler.enterMethod(fieldFqn);
@@ -214,22 +212,22 @@ public class JavaFileDataListener extends Java20ParserBaseListener {
     if (ctx.methodHeader() == null) {
       return;
     }
-    
+
     final Java20Parser.MethodHeaderContext header = ctx.methodHeader();
     final Java20Parser.MethodDeclaratorContext declarator = header.methodDeclarator();
-    
+
     if (declarator == null || declarator.identifier() == null) {
       return;
     }
-    
+
     final String methodName = declarator.identifier().getText();
     final List<String> parameterTypes = extractParameterTypes(declarator);
     final String parameterHash = Verification.parameterHash(parameterTypes);
-    final String methodFqn = fileDataHandler.getCurrentClassFqn() + "." + methodName 
+    final String methodFqn = fileDataHandler.getCurrentClassFqn() + "." + methodName
         + "#" + parameterHash;
-    
+
     fileDataHandler.enterMethod(methodFqn);
-    
+
     // Get return type
     String returnType = "void";
     if (header.result() != null) {
@@ -237,19 +235,19 @@ public class JavaFileDataListener extends Java20ParserBaseListener {
         returnType = resolveTypeName(header.result().unannType().getText());
       }
     }
-    
+
     final MethodDataHandler methodData = fileDataHandler.getCurrentClassData()
         .addMethod(methodFqn, returnType);
-    
+
     // Add modifiers
     final List<String> modifiers = extractMethodModifiers(ctx);
     for (final String modifier : modifiers) {
       methodData.addModifier(modifier);
     }
-    
+
     // Add parameters
     addParameters(methodData, declarator);
-    
+
     // Add LOC
     methodData.addMetric(LOC, String.valueOf(getLoc(ctx)));
   }
@@ -265,22 +263,22 @@ public class JavaFileDataListener extends Java20ParserBaseListener {
     if (ctx.methodHeader() == null) {
       return;
     }
-    
+
     final Java20Parser.MethodHeaderContext header = ctx.methodHeader();
     final Java20Parser.MethodDeclaratorContext declarator = header.methodDeclarator();
-    
+
     if (declarator == null || declarator.identifier() == null) {
       return;
     }
-    
+
     final String methodName = declarator.identifier().getText();
     final List<String> parameterTypes = extractParameterTypes(declarator);
     final String parameterHash = Verification.parameterHash(parameterTypes);
-    final String methodFqn = fileDataHandler.getCurrentClassFqn() + "." + methodName 
+    final String methodFqn = fileDataHandler.getCurrentClassFqn() + "." + methodName
         + "#" + parameterHash;
-    
+
     fileDataHandler.enterMethod(methodFqn);
-    
+
     // Get return type
     String returnType = "void";
     if (header.result() != null) {
@@ -288,19 +286,19 @@ public class JavaFileDataListener extends Java20ParserBaseListener {
         returnType = resolveTypeName(header.result().unannType().getText());
       }
     }
-    
+
     final MethodDataHandler methodData = fileDataHandler.getCurrentClassData()
         .addMethod(methodFqn, returnType);
-    
+
     // Add modifiers
     final List<String> modifiers = extractInterfaceMethodModifiers(ctx);
     for (final String modifier : modifiers) {
       methodData.addModifier(modifier);
     }
-    
+
     // Add parameters
     addParameters(methodData, declarator);
-    
+
     // Add LOC
     methodData.addMetric(LOC, String.valueOf(getLoc(ctx)));
   }
@@ -313,32 +311,32 @@ public class JavaFileDataListener extends Java20ParserBaseListener {
 
   @Override
   public void enterConstructorDeclaration(final Java20Parser.ConstructorDeclarationContext ctx) {
-    if (ctx.constructorDeclarator() == null 
+    if (ctx.constructorDeclarator() == null
         || ctx.constructorDeclarator().simpleTypeName() == null) {
       return;
     }
-    
+
     final String constructorName = ctx.constructorDeclarator().simpleTypeName().getText();
     final List<String> parameterTypes = extractConstructorParameterTypes(
         ctx.constructorDeclarator());
     final String parameterHash = Verification.parameterHash(parameterTypes);
-    final String constructorFqn = fileDataHandler.getCurrentClassFqn() + "." + constructorName 
+    final String constructorFqn = fileDataHandler.getCurrentClassFqn() + "." + constructorName
         + "#" + parameterHash;
-    
+
     fileDataHandler.enterMethod(constructorFqn);
-    
+
     final MethodDataHandler constructor = fileDataHandler.getCurrentClassData()
         .addConstructor(constructorFqn);
-    
+
     // Add modifiers
     final List<String> modifiers = extractConstructorModifiers(ctx);
     for (final String modifier : modifiers) {
       constructor.addModifier(modifier);
     }
-    
+
     // Add parameters
     addConstructorParameters(constructor, ctx.constructorDeclarator());
-    
+
     // Add LOC
     constructor.addMetric(LOC, String.valueOf(getLoc(ctx)));
   }
@@ -354,7 +352,7 @@ public class JavaFileDataListener extends Java20ParserBaseListener {
     if (currentPackage.isEmpty()) {
       return className;
     }
-    
+
     // Check if we're in a nested class
     try {
       final String currentFqn = fileDataHandler.getCurrentClassFqn();
@@ -376,7 +374,7 @@ public class JavaFileDataListener extends Java20ParserBaseListener {
     }
     return ctx.typeIdentifier() != null ? ctx.typeIdentifier().getText() : "";
   }
-  
+
   private String getPackageName(final Java20Parser.PackageNameContext ctx) {
     // packageName: identifier ('.' packageName)?
     if (ctx.identifier() == null) {
@@ -442,7 +440,7 @@ public class JavaFileDataListener extends Java20ParserBaseListener {
   private List<String> extractFieldModifiers(final Java20Parser.FieldDeclarationContext ctx) {
     // Field modifiers are part of the fieldDeclaration itself
     final List<String> modifiers = new ArrayList<>();
-    
+
     if (ctx.fieldModifier() != null) {
       for (final Java20Parser.FieldModifierContext modCtx : ctx.fieldModifier()) {
         final String modText = modCtx.getText();
@@ -451,7 +449,7 @@ public class JavaFileDataListener extends Java20ParserBaseListener {
         }
       }
     }
-    
+
     return modifiers;
   }
 
@@ -486,8 +484,8 @@ public class JavaFileDataListener extends Java20ParserBaseListener {
       final Java20Parser.InterfaceMethodDeclarationContext ctx) {
     final List<String> modifiers = new ArrayList<>();
     if (ctx.interfaceMethodModifier() != null) {
-      for (final Java20Parser.InterfaceMethodModifierContext modCtx : 
-           ctx.interfaceMethodModifier()) {
+      for (final Java20Parser.InterfaceMethodModifierContext modCtx :
+          ctx.interfaceMethodModifier()) {
         final String modText = modCtx.getText();
         if (!modText.startsWith("@")) {
           modifiers.add(modText);
@@ -499,44 +497,44 @@ public class JavaFileDataListener extends Java20ParserBaseListener {
 
   private List<String> extractParameterTypes(final Java20Parser.MethodDeclaratorContext ctx) {
     final List<String> parameterTypes = new ArrayList<>();
-    
+
     if (ctx.receiverParameter() != null) {
       // Skip receiver parameter (this)
     }
-    
+
     if (ctx.formalParameterList() != null) {
-      for (final Java20Parser.FormalParameterContext paramCtx : 
-           ctx.formalParameterList().formalParameter()) {
+      for (final Java20Parser.FormalParameterContext paramCtx :
+          ctx.formalParameterList().formalParameter()) {
         parameterTypes.add(paramCtx.unannType().getText());
       }
     }
-    
+
     return parameterTypes;
   }
 
   private List<String> extractConstructorParameterTypes(
       final Java20Parser.ConstructorDeclaratorContext ctx) {
     final List<String> parameterTypes = new ArrayList<>();
-    
+
     if (ctx.receiverParameter() != null) {
       // Skip receiver parameter (this)
     }
-    
+
     if (ctx.formalParameterList() != null) {
-      for (final Java20Parser.FormalParameterContext paramCtx : 
-           ctx.formalParameterList().formalParameter()) {
+      for (final Java20Parser.FormalParameterContext paramCtx :
+          ctx.formalParameterList().formalParameter()) {
         parameterTypes.add(paramCtx.unannType().getText());
       }
     }
-    
+
     return parameterTypes;
   }
 
   private void addParameters(final MethodDataHandler methodData,
       final Java20Parser.MethodDeclaratorContext ctx) {
     if (ctx.formalParameterList() != null) {
-      for (final Java20Parser.FormalParameterContext paramCtx : 
-           ctx.formalParameterList().formalParameter()) {
+      for (final Java20Parser.FormalParameterContext paramCtx :
+          ctx.formalParameterList().formalParameter()) {
         final String paramName = paramCtx.variableDeclaratorId().identifier().getText();
         final String paramType = resolveTypeName(paramCtx.unannType().getText());
         final List<String> modifiers = extractParameterModifiers(paramCtx);
@@ -548,8 +546,8 @@ public class JavaFileDataListener extends Java20ParserBaseListener {
   private void addConstructorParameters(final MethodDataHandler methodData,
       final Java20Parser.ConstructorDeclaratorContext ctx) {
     if (ctx.formalParameterList() != null) {
-      for (final Java20Parser.FormalParameterContext paramCtx : 
-           ctx.formalParameterList().formalParameter()) {
+      for (final Java20Parser.FormalParameterContext paramCtx :
+          ctx.formalParameterList().formalParameter()) {
         final String paramName = paramCtx.variableDeclaratorId().identifier().getText();
         final String paramType = resolveTypeName(paramCtx.unannType().getText());
         final List<String> modifiers = extractParameterModifiers(paramCtx);
@@ -574,11 +572,11 @@ public class JavaFileDataListener extends Java20ParserBaseListener {
   private String resolveTypeName(final String typeName) {
     // Try to resolve the type using imports
     final List<String> imports = fileDataHandler.getImportNames();
-    
+
     // Handle array types
     String baseType = typeName.replaceAll("\\[\\]", "");
     final String arraySuffix = typeName.substring(baseType.length());
-    
+
     // Handle generics - extract the base type
     final int genericStart = baseType.indexOf('<');
     String genericsPart = "";
@@ -586,29 +584,29 @@ public class JavaFileDataListener extends Java20ParserBaseListener {
       genericsPart = baseType.substring(genericStart);
       baseType = baseType.substring(0, genericStart);
     }
-    
+
     // Check if it's a primitive type
     if (isPrimitiveType(baseType)) {
       return typeName;
     }
-    
+
     // Check if already fully qualified
     if (baseType.contains(".")) {
       return typeName;
     }
-    
+
     // Try to find in imports
     for (final String importName : imports) {
       if (importName.endsWith("." + baseType)) {
         return importName + genericsPart + arraySuffix;
       }
     }
-    
+
     // Try wildcard import if enabled
     if (wildcardImportProperty && wildcardImportCount == 1 && wildcardImport != null) {
       return wildcardImport + "." + baseType + genericsPart + arraySuffix;
     }
-    
+
     // Check java.lang package
     final List<String> javaLangTypes = Arrays.asList(
         "String", "Integer", "Long", "Double", "Float", "Boolean", "Character",
@@ -618,17 +616,17 @@ public class JavaFileDataListener extends Java20ParserBaseListener {
     if (javaLangTypes.contains(baseType)) {
       return "java.lang." + baseType + genericsPart + arraySuffix;
     }
-    
+
     // If in same package
     if (!currentPackage.isEmpty()) {
       return currentPackage + "." + typeName;
     }
-    
+
     return typeName;
   }
 
   private boolean isPrimitiveType(final String type) {
-    return Arrays.asList("byte", "short", "int", "long", "float", "double", 
+    return Arrays.asList("byte", "short", "int", "long", "float", "double",
         "boolean", "char", "void").contains(type);
   }
 

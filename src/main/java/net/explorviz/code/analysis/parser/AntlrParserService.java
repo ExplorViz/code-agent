@@ -2,7 +2,6 @@ package net.explorviz.code.analysis.parser;
 
 import jakarta.enterprise.context.ApplicationScoped;
 import java.io.IOException;
-import java.nio.file.Files;
 import java.nio.file.Path;
 import net.explorviz.code.analysis.antlr.generated.Java20Lexer;
 import net.explorviz.code.analysis.antlr.generated.Java20Parser;
@@ -39,7 +38,7 @@ public class AntlrParserService {
     }
   }
 
-  public JavaFileDataHandler parseFile(final String pathToFile, final String commitSha) 
+  public JavaFileDataHandler parseFile(final String pathToFile, final String commitSha)
       throws IOException {
     try {
       final Path path = Path.of(pathToFile);
