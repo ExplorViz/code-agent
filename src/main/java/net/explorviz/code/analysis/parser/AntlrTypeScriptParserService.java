@@ -70,8 +70,8 @@ public class AntlrTypeScriptParserService {
     // Create and execute the listener
     final TypeScriptFileDataListener listener = new TypeScriptFileDataListener(
         fileDataHandler,
-        extension
-    );
+        extension,
+        tokens);
     final ParseTreeWalker walker = new ParseTreeWalker();
     walker.walk(listener, program);
 
@@ -87,4 +87,3 @@ public class AntlrTypeScriptParserService {
     LOGGER.trace("Reset called..");
   }
 }
-

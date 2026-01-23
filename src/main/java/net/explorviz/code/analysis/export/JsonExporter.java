@@ -80,7 +80,16 @@ public class JsonExporter implements DataExporter {
       }
 
       final String fileName = baseFileName + "_" + fileData.getFileHash() + JSON_FILE_EXTENSION;
-      Files.write(Paths.get(storageDirectory, fileName), json.getBytes());
+      final var outputPath = Paths.get(storageDirectory, fileName);
+
+      // Create parent directories if they don't exist
+      // This is necessary because fileName may contain subdirectories (e.g.,
+      // "src/utils/file.json")
+      if (outputPath.getParent() != null) {
+        Files.createDirectories(outputPath.getParent());
+      }
+
+      Files.write(outputPath, json.getBytes());
 
       LOGGER.atInfo()
           .addArgument(fileName)

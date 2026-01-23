@@ -6,6 +6,7 @@ import net.explorviz.code.analysis.antlr.generated.TypeScriptParser;
 import net.explorviz.code.analysis.antlr.generated.TypeScriptParserBaseListener;
 import net.explorviz.code.analysis.handler.TypeScriptFileDataHandler;
 import net.explorviz.code.proto.FunctionData;
+import org.antlr.v4.runtime.CommonTokenStream;
 import org.antlr.v4.runtime.ParserRuleContext;
 import org.antlr.v4.runtime.tree.TerminalNode;
 import org.slf4j.Logger;
@@ -25,11 +26,13 @@ public class TypeScriptFileDataListener extends TypeScriptParserBaseListener {
 
   private final TypeScriptFileDataHandler fileDataHandler;
   private final String fileExtension;
+  private final CommonTokenStream tokens;
 
   public TypeScriptFileDataListener(final TypeScriptFileDataHandler fileDataHandler,
-      final String fileExtension) {
+      final String fileExtension, final CommonTokenStream tokens) {
     this.fileDataHandler = fileDataHandler;
     this.fileExtension = fileExtension;
+    this.tokens = tokens;
   }
 
   @Override
@@ -115,6 +118,59 @@ public class TypeScriptFileDataListener extends TypeScriptParserBaseListener {
   public void exitInterfaceDeclaration(final TypeScriptParser.InterfaceDeclarationContext ctx) {
     // Leave interface
     fileDataHandler.leaveClass();
+  }
+
+  @Override
+  public void enterMethodDeclarationExpression(
+      final TypeScriptParser.MethodDeclarationExpressionContext ctx) {
+    // Handle class methods: methodName() { ... }
+    // This catches methods defined inside classes using the shorthand syntax
+    if (ctx.propertyName() != null && fileDataHandler.isInClassContext()) {
+      final String methodName = ctx.propertyName().getText();
+      final String methodFqn = methodName + "#1"; // TODO: Add proper parameter hashing
+
+      final var classData = fileDataHandler.getCurrentClassData();
+      if (classData != null) {
+        final var methodData = classData.addMethod(methodFqn, "void"); // TODO: Extract actual return type
+
+        // Set method location
+        if (ctx.start != null && ctx.stop != null) {
+          methodData.setLines(ctx.start.getLine(), ctx.stop.getLine());
+        }
+
+        // Calculate method LOC
+        final int methodLoc = calculateLoc(ctx);
+        methodData.addMetric(LOC, String.valueOf(methodLoc));
+
+        LOGGER.atTrace()
+            .addArgument(methodName)
+            .log("Class method: {}");
+      }
+    }
+  }
+
+  @Override
+  public void enterConstructorDeclaration(final TypeScriptParser.ConstructorDeclarationContext ctx) {
+    // Handle class constructors
+    if (fileDataHandler.isInClassContext()) {
+      final var classData = fileDataHandler.getCurrentClassData();
+      if (classData != null) {
+        final String constructorFqn = "constructor#1"; // TODO: Add proper parameter hashing
+        final var methodData = classData.addConstructor(constructorFqn);
+
+        // Set constructor location
+        if (ctx.start != null && ctx.stop != null) {
+          methodData.setLines(ctx.start.getLine(), ctx.stop.getLine());
+        }
+
+        // Calculate constructor LOC
+        final int constructorLoc = calculateLoc(ctx);
+        methodData.addMetric(LOC, String.valueOf(constructorLoc));
+
+        LOGGER.atTrace()
+            .log("Constructor detected");
+      }
+    }
   }
 
   @Override
@@ -277,11 +333,42 @@ public class TypeScriptFileDataListener extends TypeScriptParserBaseListener {
   }
 
   /**
-   * Get comment lines of code.
-   * TODO: Implement proper comment counting for JS/TS
+   * Get comment lines of code by counting tokens on the hidden channel.
+   * ANTLR places comments on a hidden channel, so we need to extract them from
+   * there.
    */
   private int getCloc(final ParserRuleContext ctx) {
-    // For now, return 0. We'll implement this later by counting comment tokens.
-    return 0;
+    if (ctx == null || tokens == null) {
+      return 0;
+    }
+
+    int commentLines = 0;
+
+    // Iterate through all tokens to find comments on the hidden channel
+    for (int i = 0; i < tokens.size(); i++) {
+      final var token = tokens.get(i);
+
+      // Comments are typically on channel 1 (hidden channel)
+      // Channel 0 is the default channel for regular tokens
+      if (token.getChannel() == 1) {
+        final String tokenText = token.getText();
+
+        if (tokenText != null) {
+          // Count lines in single-line comments (//)
+          if (tokenText.trim().startsWith("//")) {
+            commentLines++;
+          }
+          // Count lines in multi-line comments (/* ... */)
+          else if (tokenText.trim().startsWith("/*")) {
+            // Count the number of newlines in the comment
+            final long newlines = tokenText.chars().filter(ch -> ch == '\n').count();
+            commentLines += (int) newlines + 1; // +1 for the first line
+          }
+        }
+      }
+    }
+
+    return commentLines;
   }
+
 }

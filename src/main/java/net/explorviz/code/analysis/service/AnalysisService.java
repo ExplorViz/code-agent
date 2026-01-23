@@ -287,7 +287,6 @@ public class AnalysisService { // NOPMD
         config.getRestrictAnalysisToFolders().orElse(""));
     commitReportHandler.add(files);
 
-
     final List<FileDescriptor> modifiedFiles = descriptorTriple.getLeft();
     final List<FileDescriptor> deletedFiles = descriptorTriple.getMiddle();
     final List<FileDescriptor> addedFiles = descriptorTriple.getRight();
@@ -348,7 +347,7 @@ public class AnalysisService { // NOPMD
             .addArgument(fileContent.length())
             .log("Parsing TypeScript/JavaScript file: {} (size: {} bytes)");
 
-        fileDataHandler = tsParserService.parseFileContent(fileContent, file.fileName, commitSha);
+        fileDataHandler = tsParserService.parseFileContent(fileContent, file.relativePath, commitSha);
 
         if (fileDataHandler != null) {
           // Add git metrics to the TypeScript/JavaScript file handler
@@ -368,7 +367,7 @@ public class AnalysisService { // NOPMD
             .addArgument(fileContent.length())
             .log("Parsing Java file with ANTLR: {} (size: {} bytes)");
 
-        fileDataHandler = antlrParserService.parseFileContent(fileContent, file.fileName, commitSha);
+        fileDataHandler = antlrParserService.parseFileContent(fileContent, file.relativePath, commitSha);
 
         if (fileDataHandler != null) {
           // Add git metrics to the Java file handler
@@ -388,7 +387,7 @@ public class AnalysisService { // NOPMD
             .addArgument(fileContent.length())
             .log("Parsing Python file with ANTLR: {} (size: {} bytes)");
 
-        fileDataHandler = pythonParserService.parseFileContent(fileContent, file.fileName, commitSha);
+        fileDataHandler = pythonParserService.parseFileContent(fileContent, file.relativePath, commitSha);
 
         if (fileDataHandler != null) {
           // Add git metrics to the Python file handler
