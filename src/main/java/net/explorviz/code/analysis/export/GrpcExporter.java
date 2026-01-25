@@ -9,7 +9,6 @@ import net.explorviz.code.proto.FileDataServiceGrpc;
 import net.explorviz.code.proto.StateData;
 import net.explorviz.code.proto.StateDataRequest;
 import net.explorviz.code.proto.StateDataServiceGrpc;
-import net.explorviz.code.proto.StructureEventServiceGrpc;
 import org.eclipse.microprofile.config.inject.ConfigProperty;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -33,9 +32,6 @@ public final class GrpcExporter implements DataExporter {
   @GrpcClient(GRPC_CLIENT_NAME)
   /* package */ StateDataServiceGrpc.StateDataServiceBlockingStub stateDataGrpcClient;
 
-  @GrpcClient(GRPC_CLIENT_NAME)
-  /* package */ StructureEventServiceGrpc.StructureEventServiceBlockingStub grpcClient;
-
   @ConfigProperty(name = "explorviz.landscape.token")
   /* default */ String landscapeTokenProperty;
 
@@ -52,13 +48,16 @@ public final class GrpcExporter implements DataExporter {
    * @return the state of the remote database
    */
   @Override
-  public StateData requestStateData(final String upstreamName, final String branchName) {
+  public StateData requestStateData(final String upstreamName, final String branchName,
+      final String token,
+      final String applicationName) {
     final StateDataRequest.Builder requestBuilder = StateDataRequest.newBuilder();
     requestBuilder.setBranchName(branchName);
     requestBuilder.setUpstreamName(upstreamName);
-    requestBuilder.setLandscapeToken(landscapeTokenProperty);
+    requestBuilder.setLandscapeToken("".equals(token) ? landscapeTokenProperty : token);
     requestBuilder.setLandscapeSecret(landscapeSecretProperty);
-    requestBuilder.setApplicationName(applicationNameProperty);
+    requestBuilder.setApplicationName(
+        "".equals(applicationName) ? applicationNameProperty : applicationName);
     return stateDataGrpcClient.requestStateData(requestBuilder.build());
   }
 

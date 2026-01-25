@@ -67,10 +67,10 @@ public class AnalysisService { // NOPMD
   /* package */ CommitReportHandler commitReportHandler; // NOCS
 
   @ConfigProperty(name = "explorviz.gitanalysis.save-crashed_files")
-  /* default */ boolean saveCrashedFilesProperty;  // NOCS
+  /* default */ boolean saveCrashedFilesProperty; // NOCS
 
   @ConfigProperty(name = "explorviz.gitanalysis.fetch-remote-data", defaultValue = "true")
-  /* default */ boolean fetchRemoteDataProperty;  // NOCS
+  /* default */ boolean fetchRemoteDataProperty; // NOCS
 
   // only done because checkstyle does not like the duplication of literals
   private static String toErrorText(final String position, final String commitId,
@@ -84,9 +84,9 @@ public class AnalysisService { // NOPMD
    *
    * @param config   The analysis configuration
    * @param exporter The data exporter to use for sending results
-   * @throws IOException     If an I/O error occurs
-   * @throws GitAPIException If a Git operation fails
-   * @throws NotFoundException If a required resource is not found
+   * @throws IOException                 If an I/O error occurs
+   * @throws GitAPIException             If a Git operation fails
+   * @throws NotFoundException           If a required resource is not found
    * @throws PropertyNotDefinedException If a required property is not defined
    */
   public void analyzeAndSendRepo(final AnalysisConfig config, final DataExporter exporter) // NOCS
@@ -99,7 +99,7 @@ public class AnalysisService { // NOPMD
       // get fetch data from remote
       final Optional<String> startCommit = findStartCommit(config, exporter, branch);
       final Optional<String> endCommit =
-          fetchRemoteDataProperty ? Optional.empty() : config.getEndCommit();
+          config.isFetchRemoteData() ? Optional.empty() : config.getEndCommit();
 
       checkIfCommitsAreReachable(startCommit, endCommit, branch);
 
@@ -115,12 +115,12 @@ public class AnalysisService { // NOPMD
           if (!inAnalysisRange) {
             if (commit.name().equals(startCommit.get())) {
               inAnalysisRange = true;
-              if (fetchRemoteDataProperty) {
+              if (config.isFetchRemoteData()) {
                 lastCheckedCommit = commit;
                 continue;
               }
             } else {
-              if (fetchRemoteDataProperty) {
+              if (config.isFetchRemoteData()) {
                 lastCheckedCommit = commit;
               }
               continue;
@@ -130,9 +130,10 @@ public class AnalysisService { // NOPMD
           LOGGER.atDebug().addArgument(commit.getName()).log("Analyzing commit: {}");
 
           final Triple<List<FileDescriptor>, List<FileDescriptor>, List<FileDescriptor>>
-              descriptorTriple = gitRepositoryHandler.listDiff(repository,
-              Optional.ofNullable(lastCheckedCommit), commit,
-              config.getRestrictAnalysisToFolders().orElse(""));
+              descriptorTriple = gitRepositoryHandler
+              .listDiff(repository,
+                  Optional.ofNullable(lastCheckedCommit), commit,
+                  config.getRestrictAnalysisToFolders().orElse(""));
 
           final List<FileDescriptor> descriptorAddedList = descriptorTriple.getRight(); // NOPMD
           final List<FileDescriptor> descriptorModifiedList = descriptorTriple.getLeft();
@@ -187,9 +188,10 @@ public class AnalysisService { // NOPMD
 
   private Optional<String> findStartCommit(final AnalysisConfig config,
       final DataExporter exporter, final String branch) {
-    if (fetchRemoteDataProperty) {
+    if (config.isFetchRemoteData()) {
       final StateData remoteState = exporter.requestStateData(
-          getUnambiguousUpstreamName(config.getRepoRemoteUrl()), branch);
+          getUnambiguousUpstreamName(config.getRepoRemoteUrl()), branch,
+          config.getLandscapeToken(), config.getApplicationName());
       if (remoteState.getCommitID().isEmpty() || remoteState.getCommitID().isBlank()) {
         return Optional.empty();
       } else {

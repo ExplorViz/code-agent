@@ -19,7 +19,7 @@ public class AnalysisConfig {
   private final Optional<String> endCommit;
   private final String landscapeToken;
   private final String applicationName;
-
+  private final boolean fetchRemoteData;
 
   public AnalysisConfig(
       final Optional<String> repoPath,
@@ -33,7 +33,8 @@ public class AnalysisConfig {
       final Optional<String> startCommit,
       final Optional<String> endCommit,
       final String landscapeToken,
-      final String applicationName) {
+      final String applicationName,
+      final boolean fetchRemoteData) {
     this.repoPath = repoPath;
     this.repoRemoteUrl = repoRemoteUrl;
     this.gitUsername = gitUsername;
@@ -46,6 +47,7 @@ public class AnalysisConfig {
     this.endCommit = endCommit;
     this.landscapeToken = landscapeToken;
     this.applicationName = applicationName;
+    this.fetchRemoteData = fetchRemoteData;
   }
 
   public Optional<String> getRepoPath() {
@@ -96,6 +98,10 @@ public class AnalysisConfig {
     return applicationName;
   }
 
+  public boolean isFetchRemoteData() {
+    return fetchRemoteData;
+  }
+
   /**
    * Builder for AnalysisConfig.
    */
@@ -112,6 +118,7 @@ public class AnalysisConfig {
     private Optional<String> endCommit = Optional.empty();
     private String landscapeToken = "";
     private String applicationName = "";
+    private boolean fetchRemoteData = true;
 
     public Builder repoPath(final Optional<String> repoPath) {
       this.repoPath = repoPath;
@@ -122,7 +129,7 @@ public class AnalysisConfig {
       this.repoRemoteUrl = repoRemoteUrl;
       return this;
     }
-    
+
     public Builder gitUsername(final Optional<String> gitUsername) {
       this.gitUsername = gitUsername;
       return this;
@@ -173,6 +180,11 @@ public class AnalysisConfig {
       return this;
     }
 
+    public Builder fetchRemoteData(final boolean fetchRemoteData) {
+      this.fetchRemoteData = fetchRemoteData;
+      return this;
+    }
+
     public AnalysisConfig build() {
       return new AnalysisConfig(
           repoPath,
@@ -186,9 +198,8 @@ public class AnalysisConfig {
           startCommit,
           endCommit,
           landscapeToken,
-          applicationName
-      );
+          applicationName,
+          fetchRemoteData);
     }
   }
 }
-
