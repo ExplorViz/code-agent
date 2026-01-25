@@ -4,6 +4,7 @@ import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
 import java.io.File;
 import java.io.IOException;
+import java.nio.file.Files;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashMap;
@@ -22,7 +23,7 @@ import net.explorviz.code.analysis.handler.AbstractFileDataHandler;
 import net.explorviz.code.analysis.handler.CommitReportHandler;
 import net.explorviz.code.analysis.handler.FileDataHandler;
 import net.explorviz.code.analysis.handler.FileMetricHandler;
-import net.explorviz.code.analysis.handler.JavaFileDataHandler;
+import net.explorviz.code.analysis.handler.TextFileDataHandler;
 import net.explorviz.code.analysis.parser.AntlrParserService;
 import net.explorviz.code.analysis.parser.AntlrPythonParserService;
 import net.explorviz.code.analysis.parser.AntlrTypeScriptParserService;
@@ -370,14 +371,63 @@ public class AnalysisService { // NOPMD
   }
 
   /**
+   * Checks if a file is a text file by checking its MIME type.
+   * Detects text/*, application/json, and application/yaml files.
+   *
+   * @param fileName the file name
+   * @param file the file descriptor
+   * @return true if it's a readable text file
+   */
+  private boolean isTextFile(final FileDescriptor file) {
+    final String lowerName = file.fileName.toLowerCase();
+    if (lowerName.endsWith(".java") || lowerName.endsWith(".ts")
+        || lowerName.endsWith(".tsx") || lowerName.endsWith(".js")
+        || lowerName.endsWith(".jsx") || lowerName.endsWith(".py")) {
+      return false;
+    }
+    
+    // Detect MIME type using file path
+    try {
+      final File tempFile = new File(
+          GitRepositoryHandler.getCurrentRepositoryPath() + "/" + file.relativePath);
+      if (tempFile.exists()) {
+        final String mimeType = Files.probeContentType(tempFile.toPath());
+        if (mimeType != null) {
+          // Accept text/*, application/json, application/yaml
+          final boolean isTextFile = mimeType.startsWith("text/")
+              || mimeType.equals("application/json")
+              || mimeType.equals("application/yaml")
+              || mimeType.equals("application/x-yaml");
+          
+          if (isTextFile) {
+            LOGGER.atDebug()
+                .addArgument(file.relativePath)
+                .addArgument(mimeType)
+                .log("Detected text file by MIME type: {} -> {}");
+          }
+          
+          return isTextFile;
+        }
+      }
+    } catch (Exception e) {
+      LOGGER.atTrace()
+          .addArgument(file.relativePath)
+          .addArgument(e.getMessage())
+          .log("Could not detect MIME type for {}: {}");
+    }
+    
+    return false;
+  }
+
+  /**
    * Analyzes a file and returns the appropriate handler based on file extension.
-   * Routes .java files to JavaParserService and .ts/.js files to TypeScriptParserService.
+   * Routes code files to parsers and text files to basic metric collection.
    *
    * @param config     the analysis configuration
    * @param repository the git repository
    * @param file       the file descriptor
    * @param commitSha  the commit SHA
-   * @return the file data handler (Java or TypeScript specific)
+   * @return the file data handler
    * @throws IOException if file content cannot be read
    */
   private AbstractFileDataHandler fileAnalysis(final AnalysisConfig config,
@@ -394,65 +444,85 @@ public class AnalysisService { // NOPMD
           || fileName.endsWith(".js") || fileName.endsWith(".jsx")) {
         // TypeScript/JavaScript file
         LOGGER.atInfo()
-            .addArgument(file.fileName)
+            .addArgument(file.relativePath)
             .addArgument(fileContent.length())
             .log("Parsing TypeScript/JavaScript file: {} (size: {} bytes)");
         
-        fileDataHandler = tsParserService.parseFileContent(fileContent, file.fileName, commitSha);
+        fileDataHandler = tsParserService.parseFileContent(fileContent,
+            file.relativePath, commitSha);
         
         if (fileDataHandler != null) {
           // Add git metrics to the TypeScript/JavaScript file handler
           GitMetricCollector.addFileGitMetrics(fileDataHandler, file);
           LOGGER.atInfo()
-              .addArgument(file.fileName)
+              .addArgument(file.relativePath)
               .log("✅ Successfully parsed TypeScript/JavaScript file: {}");
         } else {
           LOGGER.atError()
-              .addArgument(file.fileName)
+              .addArgument(file.relativePath)
               .log("❌ TypeScript parser returned NULL for file: {}");
         }
       } else if (fileName.endsWith(".java")) {
         // Java file - using ANTLR parser
         LOGGER.atInfo()
-            .addArgument(file.fileName)
+            .addArgument(file.relativePath)
             .addArgument(fileContent.length())
             .log("Parsing Java file with ANTLR: {} (size: {} bytes)");
         
+        // Pass relativePath instead of fileName to preserve directory structure
         fileDataHandler =
-            antlrParserService.parseFileContent(fileContent, file.fileName, commitSha);
+            antlrParserService.parseFileContent(fileContent, file.relativePath, commitSha);
         
         if (fileDataHandler != null) {
           // Add git metrics to the Java file handler
           GitMetricCollector.addFileGitMetrics(fileDataHandler, file);
           LOGGER.atInfo()
-              .addArgument(file.fileName)
+              .addArgument(file.relativePath)
               .log("✅ Successfully parsed Java file with ANTLR: {}");
         } else {
           LOGGER.atError()
-              .addArgument(file.fileName)
+              .addArgument(file.relativePath)
               .log("❌ ANTLR Java parser returned NULL for file: {}");
         }
       } else if (fileName.endsWith(".py")) {
         // Python file - using ANTLR parser
         LOGGER.atInfo()
-            .addArgument(file.fileName)
+            .addArgument(file.relativePath)
             .addArgument(fileContent.length())
             .log("Parsing Python file with ANTLR: {} (size: {} bytes)");
         
+        // Pass relativePath instead of fileName to preserve directory structure
         fileDataHandler =
-            pythonParserService.parseFileContent(fileContent, file.fileName, commitSha);
+            pythonParserService.parseFileContent(fileContent, file.relativePath, commitSha);
         
         if (fileDataHandler != null) {
           // Add git metrics to the Python file handler
           GitMetricCollector.addFileGitMetrics(fileDataHandler, file);
           LOGGER.atInfo()
-              .addArgument(file.fileName)
+              .addArgument(file.relativePath)
               .log("✅ Successfully parsed Python file with ANTLR: {}");
         } else {
           LOGGER.atError()
-              .addArgument(file.fileName)
+              .addArgument(file.relativePath)
               .log("❌ ANTLR Python parser returned NULL for file: {}");
         }
+      } else if (isTextFile(file)) {
+        LOGGER.atInfo()
+            .addArgument(file.relativePath)
+            .addArgument(fileContent.length())
+            .log("📄 Processing detected text file: {} (size: {} bytes)");
+        
+        final TextFileDataHandler textHandler = new TextFileDataHandler(file.relativePath);
+        textHandler.setCommitSha(commitSha);
+        textHandler.calculateMetrics(fileContent);
+        
+        // Add git metrics
+        GitMetricCollector.addFileGitMetrics(textHandler, file);
+        
+        fileDataHandler = textHandler;
+        LOGGER.atInfo()
+            .addArgument(file.relativePath)
+            .log("✅ Successfully processed text file: {}");
       } else {
         LOGGER.atWarn()
             .addArgument(file.fileName)

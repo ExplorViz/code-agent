@@ -64,8 +64,13 @@ public class GitRepositoryHandler { // NOPMD
 
   private static final Logger LOGGER = LoggerFactory.getLogger(GitRepositoryHandler.class);
   private static final String JAVA_PATH_SUFFIX = ".java";
+  
   private static final String[] SUPPORTED_FILE_EXTENSIONS = {
-      ".java", ".ts", ".js", ".tsx", ".jsx", ".py"
+      // Code files
+      ".java", ".ts", ".js", ".tsx", ".jsx", ".py",
+      // Common text/config files (detected by content, but listed here for file discovery)
+      ".txt", ".md", ".json", ".yaml", ".yml", ".hcl",
+      ".toml", ".xml", ".properties", ".conf", ".config", ".ini"
   };
   private static String repositoryPath;
 

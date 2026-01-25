@@ -1,10 +1,13 @@
 package net.explorviz.code.analysis.listener;
 
+import net.explorviz.code.analysis.antlr.generated.PythonLexer;
 import net.explorviz.code.analysis.antlr.generated.PythonParser;
 import net.explorviz.code.analysis.antlr.generated.PythonParserBaseListener;
 import net.explorviz.code.analysis.handler.PythonFileDataHandler;
 import net.explorviz.code.proto.FunctionData;
+import org.antlr.v4.runtime.CommonTokenStream;
 import org.antlr.v4.runtime.ParserRuleContext;
+import org.antlr.v4.runtime.Token;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -20,9 +23,12 @@ public class PythonFileDataListener extends PythonParserBaseListener {
   private static final Logger LOGGER = LoggerFactory.getLogger(PythonFileDataListener.class);
 
   private final PythonFileDataHandler fileDataHandler;
+  private final CommonTokenStream tokens;
 
-  public PythonFileDataListener(final PythonFileDataHandler fileDataHandler) {
+  public PythonFileDataListener(final PythonFileDataHandler fileDataHandler,
+      final CommonTokenStream tokens) {
     this.fileDataHandler = fileDataHandler;
+    this.tokens = tokens;
   }
 
   @Override
@@ -110,21 +116,48 @@ public class PythonFileDataListener extends PythonParserBaseListener {
             "None"  // TODO: Extract actual return type from type hints
         );
         
-        // Set function location
-        if (ctx.start != null && ctx.stop != null) {
-          funcBuilder.setStartLine(ctx.start.getLine());
-          funcBuilder.setEndLine(ctx.stop.getLine());
+        // Set function location - find actual start/end lines
+        int startLine = ctx.start != null ? ctx.start.getLine() : 0;
+        int endLine = startLine;
+        
+        // Workaround for ANTLR Python grammar issue where ctx.stop includes next function
+        // See: https://github.com/antlr/grammars-v4/issues/4153
+        if (ctx.suite() != null) {
+          final var suite = ctx.suite();
+          
+          if (suite.simple_stmt() != null && suite.simple_stmt().stop != null) {
+            endLine = suite.simple_stmt().stop.getLine();
+          } else {
+            // Multi-line function body - find the DEDENT token that marks end of function
+            // Python uses INDENT/DEDENT tokens to mark indentation blocks
+            if (suite.stop != null) {
+              final int suiteStopIndex = suite.stop.getTokenIndex();
+              
+              for (int i = suiteStopIndex; i >= 0; i--) {
+                final Token token = tokens.get(i);
+                
+                // Skip DEDENT, NEWLINE, LINE_BREAK, and COMMENT tokens
+                if (token.getType() == PythonLexer.DEDENT 
+                    || token.getType() == PythonLexer.NEWLINE
+                    || token.getType() == PythonLexer.LINE_BREAK
+                    || token.getType() == PythonLexer.COMMENT) {
+                  continue;
+                }
+                
+                // Found the last actual code token
+                endLine = token.getLine();
+                break;
+              }
+            }
+          }
         }
         
-        // Calculate LOC
-        final int functionLoc = calculateLoc(ctx);
-        funcBuilder.putMetric(LOC, String.valueOf(functionLoc));
+        funcBuilder.setStartLine(startLine);
+        funcBuilder.setEndLine(endLine);
         
-        // Check for async - commented out for now as FunctionData.Builder may not support async
-        // TODO: Add async support if needed
-        // if (ctx.ASYNC() != null) {
-        //   funcBuilder.setAsync(true);
-        // }
+        // Calculate LOC using actual start and end lines
+        final int functionLoc = (endLine >= startLine) ? (endLine - startLine + 1) : 0;
+        funcBuilder.putMetric(LOC, String.valueOf(functionLoc));
         
         LOGGER.atTrace()
             .addArgument(functionName)

@@ -69,8 +69,8 @@ public class AntlrPythonParserService {
     final PythonFileDataHandler fileDataHandler = new PythonFileDataHandler(fileName);
     fileDataHandler.setCommitSha(commitSha);
 
-    // Create and execute the listener
-    final PythonFileDataListener listener = new PythonFileDataListener(fileDataHandler);
+    // Create and execute the listener (pass token stream for DEDENT detection)
+    final PythonFileDataListener listener = new PythonFileDataListener(fileDataHandler, tokens);
     final ParseTreeWalker walker = new ParseTreeWalker();
     walker.walk(listener, fileInput);
 

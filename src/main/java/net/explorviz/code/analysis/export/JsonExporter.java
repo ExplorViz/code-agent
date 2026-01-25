@@ -68,17 +68,27 @@ public class JsonExporter implements DataExporter {
       
       final String json = JsonFormat.printer().print(fileData);
       
+      String filePath = fileData.getFileName();
+      
       // Remove file extension from filename
-      String baseFileName = fileData.getFileName();
       for (final String extension : SOURCE_FILE_EXTENSIONS) {
-        if (baseFileName.endsWith(extension)) {
-          baseFileName = baseFileName.substring(0, baseFileName.length() - extension.length());
+        if (filePath.endsWith(extension)) {
+          filePath = filePath.substring(0, filePath.length() - extension.length());
           break;
         }
       }
       
-      final String fileName = baseFileName + "_" + fileData.getCommitID() + JSON_FILE_EXTENSION;
-      Files.write(Paths.get(storageDirectory, fileName), json.getBytes());
+      // Add commit ID and .json extension
+      final String fileName = filePath + "_" + fileData.getCommitID() + JSON_FILE_EXTENSION;
+      final java.nio.file.Path outputPath = Paths.get(storageDirectory, fileName);
+      
+      // Create parent directories if they don't exist
+      final java.nio.file.Path parentDir = outputPath.getParent();
+      if (parentDir != null) {
+        Files.createDirectories(parentDir);
+      }
+      
+      Files.write(outputPath, json.getBytes());
       
       LOGGER.atInfo()
           .addArgument(fileName)

@@ -7,15 +7,11 @@ import jakarta.ws.rs.Path;
 import jakarta.ws.rs.Produces;
 import jakarta.ws.rs.core.MediaType;
 import jakarta.ws.rs.core.Response;
-import java.io.IOException;
-import net.explorviz.code.analysis.exceptions.NotFoundException;
-import net.explorviz.code.analysis.exceptions.PropertyNotDefinedException;
 import net.explorviz.code.analysis.export.DataExporter;
 import net.explorviz.code.analysis.export.GrpcExporter;
 import net.explorviz.code.analysis.export.JsonExporter;
 import net.explorviz.code.analysis.service.AnalysisConfig;
-import net.explorviz.code.analysis.service.AnalysisService;
-import org.eclipse.jgit.api.errors.GitAPIException;
+import net.explorviz.code.analysis.service.ConcurrentAnalysisService;
 import org.eclipse.microprofile.config.inject.ConfigProperty;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -32,16 +28,17 @@ public class AnalysisResource {
   /* default */ boolean sendToRemoteProperty;  // NOCS
 
   @Inject
-  /* default */ AnalysisService analysisService; // NOCS
+  /* default */ ConcurrentAnalysisService analysisService; // NOCS
 
   @Inject
   /* default */ GrpcExporter grpcExporter; // NOCS
 
   /**
    * Triggers a Git repository analysis with the provided configuration.
+   * The request is queued and processed asynchronously to handle concurrent requests safely.
    *
    * @param request The analysis request containing configuration
-   * @return Response indicating success or failure
+   * @return Response indicating the request was accepted (202) or an error occurred
    */
   @POST
   @Path("/trigger")
@@ -58,7 +55,7 @@ public class AnalysisResource {
     try {
       final String repoInfo = request.getRepoPath() != null ? request.getRepoPath()
           : (request.getRepoRemoteUrl() != null ? request.getRepoRemoteUrl() : "unknown");
-      LOGGER.info("Triggering analysis for repository: {}", repoInfo);
+      LOGGER.info("📥 Received analysis request for repository: {}", repoInfo);
 
       final AnalysisConfig config = request.toConfig();
 
@@ -69,15 +66,26 @@ public class AnalysisResource {
         exporter = new JsonExporter();
       }
 
-      analysisService.analyzeAndSendRepo(config, exporter);
+      // Submit to queue for async processing
+      analysisService.analyzeAndSendRepoAsync(config, exporter)
+          .whenComplete((result, error) -> {
+            if (error != null) {
+              LOGGER.error("❌ Async analysis failed for {}: {}",
+                  repoInfo, error.getMessage());
+            } else {
+              LOGGER.info("✅ Async analysis completed for {}", repoInfo);
+            }
+          });
 
-      LOGGER.info("Analysis completed successfully");
-      return Response.ok("Analysis completed successfully").build();
+      LOGGER.info("✅ Analysis request queued for repository: {}", repoInfo);
+      return Response.status(Response.Status.ACCEPTED)
+          .entity("Analysis request accepted and queued for processing")
+          .build();
 
-    } catch (IOException | GitAPIException | NotFoundException | PropertyNotDefinedException e) {
-      LOGGER.error("Analysis failed: {}", e.getMessage(), e);
+    } catch (Exception e) {
+      LOGGER.error("❌ Failed to queue analysis request: {}", e.getMessage(), e);
       return Response.status(Response.Status.INTERNAL_SERVER_ERROR)
-          .entity("Analysis failed: " + e.getMessage())
+          .entity("Failed to queue analysis request: " + e.getMessage())
           .build();
     }
   }
