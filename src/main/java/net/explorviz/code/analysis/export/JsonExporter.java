@@ -25,7 +25,8 @@ public class JsonExporter implements DataExporter {
   private int commitCount;
 
   /**
-   * Creates a json exporter that exports the data into folder based on the current working folder
+   * Creates a json exporter that exports the data into folder based on the
+   * current working folder
    * and the given application name.
    *
    * @param applicationName the name of the application
@@ -72,20 +73,21 @@ public class JsonExporter implements DataExporter {
       final String json = JsonFormat.printer().print(fileData);
 
       // Remove file extension from filename
-      String baseFileName = fileData.getFilePath();
+      String filePath = fileData.getFilePath();
+
       for (final String extension : SOURCE_FILE_EXTENSIONS) {
-        if (baseFileName.endsWith(extension)) {
-          baseFileName = baseFileName.substring(0, baseFileName.length() - extension.length());
+        if (filePath.endsWith(extension)) {
+          filePath = filePath.substring(0, filePath.length() - extension.length());
           break;
         }
       }
 
-      final String fileName = baseFileName + "_" + fileData.getFileHash() + JSON_FILE_EXTENSION;
+      final String fileName = filePath + "_" + fileData.getFileHash() + JSON_FILE_EXTENSION;
       final var outputPath = Paths.get(storageDirectory, fileName);
 
       // Create parent directories if they don't exist
-      // This is necessary because fileName may contain subdirectories (e.g.,
-      // "src/utils/file.json")
+      // This is necessary because fileName may contain subdirectories
+      // (e.g., "src/utils/file.json")
       if (outputPath.getParent() != null) {
         Files.createDirectories(outputPath.getParent());
       }
