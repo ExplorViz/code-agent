@@ -127,7 +127,7 @@ public class GitAnalysis { // NOPMD
     if (sendToRemoteProperty) {
       exporter = grpcExporter;
     } else {
-      exporter = new JsonExporter();
+      exporter = new JsonExporter(applicationNameProperty);
     }
     analyzeAndSendRepo(exporter);
 

@@ -66,7 +66,7 @@ public class AnalysisResource {
       if (request.isSendToRemote()) {
         exporter = grpcExporter;
       } else {
-        exporter = new JsonExporter();
+        exporter = new JsonExporter(config.getApplicationName());
       }
 
       analysisService.analyzeAndSendRepo(config, exporter);

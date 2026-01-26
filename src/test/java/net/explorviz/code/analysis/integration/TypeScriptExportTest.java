@@ -82,7 +82,7 @@ public class TypeScriptExportTest {
 
     // Step 5: Export to JSON
     final String tempDir = System.getProperty("java.io.tmpdir");
-    final JsonExporter exporter = new JsonExporter(tempDir);
+    final JsonExporter exporter = new JsonExporter(Paths.get(tempDir));
 
     LOGGER.info("   - Export directory: {}", tempDir);
 
@@ -156,7 +156,7 @@ public class TypeScriptExportTest {
 
     // Export
     final String tempDir = System.getProperty("java.io.tmpdir");
-    final JsonExporter exporter = new JsonExporter(tempDir);
+    final JsonExporter exporter = new JsonExporter(Paths.get(tempDir));
     exporter.sendFileData(fileData);
 
     final String expectedFileName = "counter_test-commit-456.json";

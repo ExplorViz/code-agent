@@ -70,24 +70,25 @@ message ClassData {
 
 message FileData {
   string landscape_token = 1;
-  string file_hash = 2;
+  string commit_id = 2;
+  string file_hash = 3;
 
   // Path relative to root of repository
-  string file_path = 3;
+  string file_path = 4;
 
-  Language language = 4;
-  optional string package_name = 5;
-  repeated string import_names = 6;
-  repeated ClassData classes = 7;
+  Language language = 5;
+  optional string package_name = 6;
+  repeated string import_names = 7;
+  repeated ClassData classes = 8;
   // Top-level / global functions
-  repeated FunctionData functions = 8;
-  map<string, double> metrics = 9;
+  repeated FunctionData functions = 9;
+  map<string, double> metrics = 10;
 
   // Author of the last commit touching this file
-  string last_editor = 10;
+  string last_editor = 11;
 
   // Git file metrics
-  int32 added_lines = 11;
-  int32 modified_lines = 12;
-  int32 deleted_lines = 13;
+  int32 added_lines = 12;
+  int32 modified_lines = 13;
+  int32 deleted_lines = 14;
 }

@@ -5,6 +5,7 @@ option java_package = "net.explorviz.code.proto";
 option java_outer_classname = "CommitProto";
 
 import "google/protobuf/empty.proto";
+import "google/protobuf/timestamp.proto";
 
 service CommitService {
   rpc sendCommitData (CommitData) returns (google.protobuf.Empty) {}
@@ -15,14 +16,16 @@ message CommitData {
   string repository_name = 2;
   string commit_id = 3;
   string parent_commit_id = 4;
-  string branch_name = 5;
-  repeated string tags = 6;
+  google.protobuf.Timestamp author_date = 5;
+  google.protobuf.Timestamp commit_date = 6;
+  string branch_name = 7;
+  repeated string tags = 8;
 
   // Git file metrics
-  repeated FileIdentifier unchanged_files = 7;
-  repeated FileIdentifier added_files = 8;
-  repeated FileIdentifier modified_files = 9;
-  repeated FileIdentifier deleted_files = 10;
+  repeated FileIdentifier unchanged_files = 9;
+  repeated FileIdentifier added_files = 10;
+  repeated FileIdentifier modified_files = 11;
+  repeated FileIdentifier deleted_files = 12;
 }
 
 message FileIdentifier {

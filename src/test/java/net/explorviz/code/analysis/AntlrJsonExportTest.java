@@ -70,7 +70,7 @@ public class AntlrJsonExportTest {
 
     // Export to JSON
     System.out.println("\n5. Exporting to JSON...");
-    final JsonExporter jsonExporter = new JsonExporter(outputDir);
+    final JsonExporter jsonExporter = new JsonExporter(Paths.get(outputDir));
     jsonExporter.sendFileData(fileData);
 
     final String expectedFileName = "Happy_test-commit-sha1.json";
@@ -111,7 +111,7 @@ public class AntlrJsonExportTest {
 
     final String outputDir = "test-json-output-multi";
     Files.createDirectories(Paths.get(outputDir));
-    final JsonExporter jsonExporter = new JsonExporter(outputDir);
+    final JsonExporter jsonExporter = new JsonExporter(Paths.get(outputDir));
 
     final String[] testFiles = {
         "src/test/resources/files/Happy.java",

@@ -1,5 +1,6 @@
 package net.explorviz.code.analysis.handler;
 
+import com.google.protobuf.Timestamp;
 import jakarta.enterprise.context.ApplicationScoped;
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -104,6 +105,14 @@ public class CommitReportHandler { // NOPMD
 
   public void setRepositoryName(final String repositoryName) {
     builder.setRepositoryName(repositoryName);
+  }
+
+  public void setAuthorDate(final Timestamp authorDate) {
+    builder.setAuthorDate(authorDate);
+  }
+
+  public void setCommitDate(final Timestamp commitDate) {
+    builder.setCommitDate(commitDate);
   }
 
   /**

@@ -25,19 +25,21 @@ public class JsonExporter implements DataExporter {
   private int commitCount;
 
   /**
-   * Creates a json exporter that exports the data into folder based on the current working folder.
+   * Creates a json exporter that exports the data into folder based on the current working folder
+   * and the given application name.
    *
+   * @param applicationName the name of the application
    * @throws IOException gets thrown if the needed directories were not created.
    */
-  public JsonExporter() throws IOException {
+  public JsonExporter(final String applicationName) throws IOException {
     String systemPath = System.getProperty("user.dir");
     systemPath = systemPath.replace("\\build\\classes\\java\\main", "");
     systemPath = systemPath.replace("/build/classes/java/main", "");
-    this.storageDirectory = Paths.get(systemPath, "analysis-data").toString();
+    this.storageDirectory = Paths.get(systemPath, "analysis-data", applicationName).toString();
     Files.createDirectories(Paths.get(storageDirectory));
 
-    LOGGER.atInfo().addArgument(storageDirectory)
-        .log("The analysis-data folder is created here: {}");
+    LOGGER.atInfo().addArgument(applicationName).addArgument(storageDirectory)
+        .log("The analysis-data folder for application '{}' is created here: {}");
 
     this.commitCount = 0;
   }
@@ -47,8 +49,8 @@ public class JsonExporter implements DataExporter {
    *
    * @param pathToStorageDirectory the path to the json export folder
    */
-  public JsonExporter(final String pathToStorageDirectory) {
-    this.storageDirectory = pathToStorageDirectory;
+  public JsonExporter(final java.nio.file.Path pathToStorageDirectory) {
+    this.storageDirectory = pathToStorageDirectory.toString();
     this.commitCount = 0;
   }
 

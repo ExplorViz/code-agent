@@ -1,5 +1,6 @@
 package net.explorviz.code.analysis.service;
 
+import com.google.protobuf.Timestamp;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
 import java.io.File;
@@ -266,6 +267,7 @@ public class AnalysisService { // NOPMD
           GitMetricCollector.addCommitGitMetrics(fileDataHandler, commit);
         }
         fileDataHandler.setLandscapeToken(config.getLandscapeToken());
+        fileDataHandler.setCommitId(commit.getName());
         exporter.sendFileData(fileDataHandler.getProtoBufObject());
         fileNameToFileDataHandlerMap.put(fileDescriptor.relativePath, fileDataHandler);
       }
@@ -287,6 +289,12 @@ public class AnalysisService { // NOPMD
     } else {
       commitReportHandler.init(commit.getId().getName(), lastCommit.getId().getName(), branchName);
     }
+
+    commitReportHandler.setAuthorDate(Timestamp.newBuilder()
+        .setSeconds(commit.getAuthorIdent().getWhen().getTime() / 1000).build());
+    commitReportHandler.setCommitDate(Timestamp.newBuilder()
+        .setSeconds(commit.getCommitterIdent().getWhen().getTime() / 1000).build());
+
     final List<FileDescriptor> files = gitRepositoryHandler.listFilesInCommit(repository, commit,
         config.getRestrictAnalysisToFolders().orElse(""));
     commitReportHandler.add(files);
