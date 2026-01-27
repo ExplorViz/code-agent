@@ -7,13 +7,11 @@ import org.antlr.v4.runtime.Lexer;
 import org.antlr.v4.runtime.Token;
 
 /**
- * All lexer methods that used in grammar (IsStrictMode) should start with Upper Case Char similar
- * to Lexer rules.
+ * All lexer methods that used in grammar (IsStrictMode) should start with Upper Case Char similar to Lexer rules.
  */
 public abstract class TypeScriptLexerBase extends Lexer {
   /**
-   * Stores values of nested modes. By default mode is strict or defined externally
-   * (useStrictDefault)
+   * Stores values of nested modes. By default mode is strict or defined externally (useStrictDefault)
    */
   private final Deque<Boolean> scopeStrictModes = new ArrayDeque<>();
 
@@ -23,8 +21,7 @@ public abstract class TypeScriptLexerBase extends Lexer {
    */
   private boolean useStrictDefault = false;
   /**
-   * Current value of strict mode Can be defined during parsing, see StringFunctions.js and
-   * StringGlobal.js samples
+   * Current value of strict mode Can be defined during parsing, see StringFunctions.js and StringGlobal.js samples
    */
   private boolean useStrictCurrent = false;
   /**
@@ -32,8 +29,8 @@ public abstract class TypeScriptLexerBase extends Lexer {
    *
    * `${a ? `${X
    *
-   * templateDepth will be 2. This variable is needed to determine if a `}` is a plain CloseBrace,
-   * or one that closes an expression inside a template string.
+   * templateDepth will be 2. This variable is needed to determine if a `}` is a plain CloseBrace, or one that closes an
+   * expression inside a template string.
    */
   private int templateDepth = 0;
 
@@ -42,8 +39,8 @@ public abstract class TypeScriptLexerBase extends Lexer {
    *
    * `${[1, 2, 3].map(x => { return x * 2;}).join("")}`
    *
-   * where the '}' from `return x * 2;}` should not become a `TemplateCloseBrace` token but rather a
-   * `CloseBrace` token.
+   * where the '}' from `return x * 2;}` should not become a `TemplateCloseBrace` token but rather a `CloseBrace`
+   * token.
    */
   private int bracesDepth = 0;
 
@@ -73,10 +70,9 @@ public abstract class TypeScriptLexerBase extends Lexer {
   }
 
   /**
-   * Return the next token from the character stream and records this last token in case it resides
-   * on the default channel. This recorded token is used to determine when the lexer could possibly
-   * match a regex literal. Also changes scopeStrictModes stack if tokenize special string 'use
-   * strict';
+   * Return the next token from the character stream and records this last token in case it resides on the default
+   * channel. This recorded token is used to determine when the lexer could possibly match a regex literal. Also changes
+   * scopeStrictModes stack if tokenize special string 'use strict';
    *
    * @return the next token from the character stream.
    */

@@ -73,8 +73,8 @@ public class CyclomaticComplexityVisitor // NOPMD
       }
     }
 
-    if (!methodCounter.entrySet().isEmpty()) {
-      metricValue = metricValue / methodCounter.entrySet().size();
+    if (!methodCounter.isEmpty()) {
+      metricValue = metricValue / methodCounter.size();
     }
     try {
       data.a.putClassMetric(CYCLOMATIC_COMPLEXITY_WEIGHTED, String.valueOf(metricValue));
@@ -119,8 +119,8 @@ public class CyclomaticComplexityVisitor // NOPMD
       }
     }
 
-    if (!methodCounter.entrySet().isEmpty()) {
-      metricValue = metricValue / methodCounter.entrySet().size();
+    if (!methodCounter.isEmpty()) {
+      metricValue = metricValue / methodCounter.size();
     }
     try {
       data.a.putClassMetric(CYCLOMATIC_COMPLEXITY_WEIGHTED, String.valueOf(metricValue));

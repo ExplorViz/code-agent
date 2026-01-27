@@ -4,7 +4,6 @@ import net.explorviz.code.analysis.antlr.generated.PythonLexer;
 import net.explorviz.code.analysis.antlr.generated.PythonParser;
 import net.explorviz.code.analysis.antlr.generated.PythonParserBaseListener;
 import net.explorviz.code.analysis.handler.PythonFileDataHandler;
-import net.explorviz.code.proto.FunctionData;
 import org.antlr.v4.runtime.CommonTokenStream;
 import org.antlr.v4.runtime.ParserRuleContext;
 import org.antlr.v4.runtime.Token;

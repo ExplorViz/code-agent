@@ -25,9 +25,8 @@ public class JsonExporter implements DataExporter {
   private int commitCount;
 
   /**
-   * Creates a json exporter that exports the data into folder based on the
-   * current working folder
-   * and the given application name.
+   * Creates a json exporter that exports the data into folder based on the current working folder and the given
+   * application name.
    *
    * @param applicationName the name of the application
    * @throws IOException gets thrown if the needed directories were not created.

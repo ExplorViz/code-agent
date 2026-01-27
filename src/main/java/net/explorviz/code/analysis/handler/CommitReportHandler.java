@@ -23,8 +23,7 @@ public class CommitReportHandler { // NOPMD
   private CommitData.Builder builder;
 
   /**
-   * Creates a blank handler, use {@link CommitReportHandler#init(String, String, String)} to
-   * initialize it.
+   * Creates a blank handler, use {@link CommitReportHandler#init(String, String, String)} to initialize it.
    */
   public CommitReportHandler() {
     this.builder = CommitData.newBuilder();

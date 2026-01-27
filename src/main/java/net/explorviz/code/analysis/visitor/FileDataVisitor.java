@@ -38,8 +38,8 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 /**
- * Visitor filling a FileData object with typical information about java files. Includes the LOC
- * (lines of code) metric.
+ * Visitor filling a FileData object with typical information about java files. Includes the LOC (lines of code)
+ * metric.
  */
 public class FileDataVisitor extends VoidVisitorAdapter<JavaFileDataHandler> { // NOPMD
 
@@ -296,8 +296,8 @@ public class FileDataVisitor extends VoidVisitorAdapter<JavaFileDataHandler> { /
   }
 
   /**
-   * Returns the FQN for the type by simply comparing it with potential imports. If no import
-   * matches the type, the type itself will be returned
+   * Returns the FQN for the type by simply comparing it with potential imports. If no import matches the type, the type
+   * itself will be returned
    *
    * @param type the type of the Object
    * @return the fqn or the original type

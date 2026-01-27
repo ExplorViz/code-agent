@@ -62,7 +62,7 @@ public class GitRepositoryHandler { // NOPMD
 
   private static final Logger LOGGER = LoggerFactory.getLogger(GitRepositoryHandler.class);
   private static final String JAVA_PATH_SUFFIX = ".java";
-  
+
   private static final String[] SUPPORTED_FILE_EXTENSIONS = {
       // Code files
       ".java", ".ts", ".js", ".tsx", ".jsx", ".py",
@@ -91,11 +91,10 @@ public class GitRepositoryHandler { // NOPMD
   }
 
   /**
-   * Converts a git ssh url to a https url and returns it as well as if the conversion is usable. If
-   * the given url is already in https format, it will be returned as-is and the flag is set to
-   * true. If the given url is in ssh format, it will be converted to https and returned and the
-   * flag is set to true. If it is neither, a warning will be printed the url will get returned but
-   * the flag is set to false.
+   * Converts a git ssh url to a https url and returns it as well as if the conversion is usable. If the given url is
+   * already in https format, it will be returned as-is and the flag is set to true. If the given url is in ssh format,
+   * it will be converted to https and returned and the flag is set to true. If it is neither, a warning will be printed
+   * the url will get returned but the flag is set to false.
    *
    * @param url the original git url
    * @return a Tuple containing a flag if the returned url should be used and the url itself
@@ -165,8 +164,7 @@ public class GitRepositoryHandler { // NOPMD
   /**
    * Tries to download the Git {@link Repository} based on a given Url to the given.
    *
-   * @param remoteRepositoryObject the {@link RemoteRepositoryObject} object containing the path and
-   *                               url
+   * @param remoteRepositoryObject the {@link RemoteRepositoryObject} object containing the path and url
    * @return returns an opened git repository
    * @throws GitAPIException gets thrown if the git api encounters an error
    */
@@ -281,17 +279,14 @@ public class GitRepositoryHandler { // NOPMD
   }
 
   /**
-   * Returns a Git {@link Repository} object by opening the repository found at
-   * {@code localRepositoryPath}. <br> If {@code localRepositoryPath} is empty, the repository gets
-   * cloned based on data defined in {@code remoteRepositoryObject} and the opened repository gets
-   * returned.
+   * Returns a Git {@link Repository} object by opening the repository found at {@code localRepositoryPath}. <br> If
+   * {@code localRepositoryPath} is empty, the repository gets cloned based on data defined in
+   * {@code remoteRepositoryObject} and the opened repository gets returned.
    *
    * @param localRepositoryPath    the system path of the local Repository
-   * @param remoteRepositoryObject the {@link RemoteRepositoryObject} object containing the path and
-   *                               url
+   * @param remoteRepositoryObject the {@link RemoteRepositoryObject} object containing the path and url
    * @return returns an opened Git {@link Repository}
-   * @throws IOException     gets thrown if the path is not accessible or does not point to a
-   *                         folder
+   * @throws IOException     gets thrown if the path is not accessible or does not point to a folder
    * @throws GitAPIException gets thrown if the git api encounters an error
    */
   public Repository getGitRepository(final String localRepositoryPath,
@@ -309,15 +304,14 @@ public class GitRepositoryHandler { // NOPMD
   }
 
   /**
-   * Returns a Git {@link Repository} object by using the parameters set in the
-   * application.properties.<br> The local repository defined in
-   * {@code  explorviz.gitanalysis.local.storage-path} will be used.
+   * Returns a Git {@link Repository} object by using the parameters set in the application.properties.<br> The local
+   * repository defined in {@code  explorviz.gitanalysis.local.storage-path} will be used.
    * <br>
    * If {@code  explorviz.gitanalysis.local.storage-path} is empty, the repository defined in
    * {@code  explorviz.gitanalysis.remote.url} will be cloned to the location
-   * {@code explorviz.gitanalysis.remote.storage-path}.<br> If no storage path is given, a temporary
-   * directory will be created. <br> The branch given in {@code explorviz.gitanalysis.branch} will
-   * be used if present, otherwise the default (remote) or current (local) will be used.
+   * {@code explorviz.gitanalysis.remote.storage-path}.<br> If no storage path is given, a temporary directory will be
+   * created. <br> The branch given in {@code explorviz.gitanalysis.branch} will be used if present, otherwise the
+   * default (remote) or current (local) will be used.
    *
    * @param config the analysis config
    * @return an opened Git {@link Repository}
@@ -327,23 +321,23 @@ public class GitRepositoryHandler { // NOPMD
    */
   public Repository getGitRepository(AnalysisConfig config)
       throws PropertyNotDefinedException, GitAPIException, IOException {
-    if (config.getRepoPath().isEmpty() && config.getRepoRemoteUrl().isEmpty()) {
+    if (config.repoPath().isEmpty() && config.repoRemoteUrl().isEmpty()) {
       throw new PropertyNotDefinedException("explorviz.gitanalysis.remote.url");
     }
 
     final CredentialsProvider credentialsProvider;
-    if (config.getGitUsername().isEmpty() || config.getGitPassword().isEmpty()) {
+    if (config.gitUsername().isEmpty() || config.gitPassword().isEmpty()) {
       credentialsProvider = CredentialsProvider.getDefault();
     } else {
       credentialsProvider = new UsernamePasswordCredentialsProvider(
-          config.getGitUsername().get(),
-          config.getGitPassword().get());
+          config.gitUsername().get(),
+          config.gitPassword().get());
     }
 
-    return getGitRepository(config.getRepoPath().orElse(""),
-        new RemoteRepositoryObject(config.getRepoRemoteUrl().orElse(""),
+    return getGitRepository(config.repoPath().orElse(""),
+        new RemoteRepositoryObject(config.repoRemoteUrl().orElse(""),
             repoLocalStoragePathProperty.orElse(""), credentialsProvider,
-            config.getBranch().orElse(""), config.getCloneDepth().orElse(null)));
+            config.branch().orElse(""), config.cloneDepth().orElse(null)));
   }
 
   /**
@@ -471,8 +465,8 @@ public class GitRepositoryHandler { // NOPMD
    *
    * @param repository       the current repository
    * @param commit           the commit to get the list of files for
-   * @param pathRestrictions a list of search strings specifying the folders to analyze, if omitted,
-   *                         the entire repository will be searched
+   * @param pathRestrictions a list of search strings specifying the folders to analyze, if omitted, the entire
+   *                         repository will be searched
    * @return returns a list of FileDescriptors of all java files within the specified folders
    * @throws IOException       thrown if files are not available
    * @throws NotFoundException thrown if the restrictionPath was not found
@@ -488,10 +482,9 @@ public class GitRepositoryHandler { // NOPMD
    *
    * @param repository       the current repository
    * @param commit           the commit to get the list of files for
-   * @param pathRestrictions a comma separated list of search strings specifying the folders to
-   *                         analyze, if omitted, the entire repository will be searched
-   * @return returns a list of FileDescriptors of all supported source files within the specified
-   *     folders
+   * @param pathRestrictions a comma separated list of search strings specifying the folders to analyze, if omitted, the
+   *                         entire repository will be searched
+   * @return returns a list of FileDescriptors of all supported source files within the specified folders
    * @throws IOException       thrown if files are not available
    * @throws NotFoundException thrown if the restrictionPath was not found
    */

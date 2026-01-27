@@ -48,9 +48,8 @@ public class JavaParserService {
   private ReflectionTypeSolver reflectionTypeSolver;
 
   /**
-   * Creates a new JavaParserService with only the reflectionTypeSolver, call
-   * {@link JavaParserService#reset(List)} to add JavaParserTypeSolvers and check in the given
-   * paths.
+   * Creates a new JavaParserService with only the reflectionTypeSolver, call {@link JavaParserService#reset(List)} to
+   * add JavaParserTypeSolvers and check in the given paths.
    */
   public JavaParserService() {
     combinedTypeSolver = new CombinedTypeSolver();
@@ -97,8 +96,8 @@ public class JavaParserService {
   }
 
   /**
-   * Resets the state of the JavaParserService, all cached values are cleared and the parser can be
-   * reused for another task.
+   * Resets the state of the JavaParserService, all cached values are cleared and the parser can be reused for another
+   * task.
    */
   public void reset() {
     combinedTypeSolver = new CombinedTypeSolver();

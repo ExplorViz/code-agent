@@ -115,11 +115,10 @@ public class ClassDataHandler implements ProtoBufConvertable<ClassData> {
   }
 
   /**
-   * Set the current ClassType as class. If override is true, any ClassType value prior to this call
-   * gets overridden.
+   * Set the current ClassType as class. If override is true, any ClassType value prior to this call gets overridden.
    *
-   * @param override set true to force set the ClassType, if false, the current classType is checked
-   *                 to not override if it is set as anonymous class.
+   * @param override set true to force set the ClassType, if false, the current classType is checked to not override if
+   *                 it is set as anonymous class.
    */
   public void setIsClass(final boolean override) {
     if (override) {
@@ -150,8 +149,7 @@ public class ClassDataHandler implements ProtoBufConvertable<ClassData> {
   }
 
   /**
-   * Adds a new metric entry to the ClassData, returns the old value of the metric if it existed,
-   * null otherwise.
+   * Adds a new metric entry to the ClassData, returns the old value of the metric if it existed, null otherwise.
    *
    * @param metricName  the name/identifier of the metric
    * @param metricValue the value of the metric

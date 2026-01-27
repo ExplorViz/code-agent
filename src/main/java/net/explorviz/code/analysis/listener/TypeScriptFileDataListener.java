@@ -274,8 +274,8 @@ public class TypeScriptFileDataListener extends TypeScriptParserBaseListener {
   }
 
   /**
-   * Extract the name of an arrow function from its parent context. Arrow functions are often
-   * assigned to variables: const foo = () => {}
+   * Extract the name of an arrow function from its parent context. Arrow functions are often assigned to variables:
+   * const foo = () => {}
    *
    * <p>For now, we use a simple heuristic: try to extract text from nearby identifiers
    */
@@ -328,8 +328,8 @@ public class TypeScriptFileDataListener extends TypeScriptParserBaseListener {
   }
 
   /**
-   * Get comment lines of code by counting tokens on the hidden channel. ANTLR places comments on a
-   * hidden channel, so we need to extract them from there.
+   * Get comment lines of code by counting tokens on the hidden channel. ANTLR places comments on a hidden channel, so
+   * we need to extract them from there.
    */
   private int getCloc(final ParserRuleContext ctx) {
     if (ctx == null || tokens == null) {

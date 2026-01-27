@@ -97,7 +97,7 @@ public class AnalysisService { // NOPMD
 
       // get fetch data from remote
       final Optional<String> startCommit = findStartCommit(config, exporter, branch);
-      final Optional<String> endCommit = config.isFetchRemoteData() ? Optional.empty() : config.getEndCommit();
+      final Optional<String> endCommit = config.fetchRemoteData() ? Optional.empty() : config.endCommit();
 
       checkIfCommitsAreReachable(startCommit, endCommit, branch);
 
@@ -113,12 +113,12 @@ public class AnalysisService { // NOPMD
           if (!inAnalysisRange) {
             if (commit.name().equals(startCommit.get())) {
               inAnalysisRange = true;
-              if (config.isFetchRemoteData()) {
+              if (config.fetchRemoteData()) {
                 lastCheckedCommit = commit;
                 continue;
               }
             } else {
-              if (config.isFetchRemoteData()) {
+              if (config.fetchRemoteData()) {
                 lastCheckedCommit = commit;
               }
               continue;
@@ -127,13 +127,14 @@ public class AnalysisService { // NOPMD
 
           LOGGER.atDebug().addArgument(commit.getName()).log("Analyzing commit: {}");
 
-          final Triple<List<FileDescriptor>, List<FileDescriptor>, List<FileDescriptor>> descriptorTriple = gitRepositoryHandler
-              .listDiff(repository,
-                  Optional.ofNullable(lastCheckedCommit), commit,
-                  config.getRestrictAnalysisToFolders().orElse(""));
+          final Triple<List<FileDescriptor>, List<FileDescriptor>, List<FileDescriptor>> descriptorTriple =
+              gitRepositoryHandler
+                  .listDiff(repository,
+                      Optional.ofNullable(lastCheckedCommit), commit,
+                      config.restrictAnalysisToFolders().orElse(""));
 
-          final List<FileDescriptor> descriptorAddedList = descriptorTriple.getRight(); // NOPMD
-          final List<FileDescriptor> descriptorModifiedList = descriptorTriple.getLeft();
+          final List<FileDescriptor> descriptorAddedList = descriptorTriple.right(); // NOPMD
+          final List<FileDescriptor> descriptorModifiedList = descriptorTriple.left();
 
           LOGGER.atDebug().addArgument(descriptorAddedList.size())
               .addArgument(descriptorModifiedList.size())
@@ -185,21 +186,21 @@ public class AnalysisService { // NOPMD
 
   private Optional<String> findStartCommit(final AnalysisConfig config,
       final DataExporter exporter, final String branch) {
-    if (config.isFetchRemoteData()) {
+    if (config.fetchRemoteData()) {
       final StateData remoteState = exporter.requestStateData(
-          getUnambiguousUpstreamName(config.getRepoRemoteUrl()), branch,
-          config.getLandscapeToken(), config.getApplicationName());
+          getUnambiguousUpstreamName(config.repoRemoteUrl()), branch,
+          config.landscapeToken(), config.applicationName());
       if (remoteState.getCommitId().isEmpty() || remoteState.getCommitId().isBlank()) {
         return Optional.empty();
       } else {
         return Optional.of(remoteState.getCommitId());
       }
     } else {
-      if (config.getStartCommit().isPresent() && exporter.isInvalidCommitHash(
-          config.getStartCommit().get())) {
+      if (config.startCommit().isPresent() && exporter.isInvalidCommitHash(
+          config.startCommit().get())) {
         return Optional.empty();
       }
-      return config.getStartCommit();
+      return config.startCommit();
     }
   }
 
@@ -225,7 +226,7 @@ public class AnalysisService { // NOPMD
       final DataExporter exporter, final String branchName,
       final Triple<List<FileDescriptor>, List<FileDescriptor>, List<FileDescriptor>> descriptorTriple)
       throws GitAPIException, NotFoundException, IOException {
-    DirectoryFinder.resetDirectory(config.getSourceDirectory().orElse(""));
+    DirectoryFinder.resetDirectory(config.sourceDirectory().orElse(""));
 
     Git.wrap(repository).checkout().setName(commit.getName()).call();
 
@@ -264,7 +265,7 @@ public class AnalysisService { // NOPMD
         if (fileDataHandler instanceof JavaFileDataHandler) {
           GitMetricCollector.addCommitGitMetrics(fileDataHandler, commit);
         }
-        fileDataHandler.setLandscapeToken(config.getLandscapeToken());
+        fileDataHandler.setLandscapeToken(config.landscapeToken());
         fileDataHandler.setCommitId(commit.getName());
         exporter.sendFileData(fileDataHandler.getProtoBufObject());
         fileNameToFileDataHandlerMap.put(fileDescriptor.relativePath, fileDataHandler);
@@ -293,12 +294,12 @@ public class AnalysisService { // NOPMD
         .setSeconds(commit.getCommitterIdent().getWhen().getTime() / 1000).build());
 
     final List<FileDescriptor> files = gitRepositoryHandler.listFilesInCommit(repository, commit,
-        config.getRestrictAnalysisToFolders().orElse(""));
+        config.restrictAnalysisToFolders().orElse(""));
     commitReportHandler.add(files);
 
-    final List<FileDescriptor> modifiedFiles = descriptorTriple.getLeft();
-    final List<FileDescriptor> deletedFiles = descriptorTriple.getMiddle();
-    final List<FileDescriptor> addedFiles = descriptorTriple.getRight();
+    final List<FileDescriptor> modifiedFiles = descriptorTriple.left();
+    final List<FileDescriptor> deletedFiles = descriptorTriple.middle();
+    final List<FileDescriptor> addedFiles = descriptorTriple.right();
 
     for (final FileDescriptor modifiedFile : modifiedFiles) {
       commitReportHandler.addModified(modifiedFile);
@@ -320,17 +321,16 @@ public class AnalysisService { // NOPMD
       }
     }
     commitReportHandler.addTags(tags);
-    commitReportHandler.addToken(config.getLandscapeToken());
-    commitReportHandler.setRepositoryName(config.getApplicationName());
+    commitReportHandler.addToken(config.landscapeToken());
+    commitReportHandler.setRepositoryName(config.applicationName());
 
     exporter.sendCommitReport(commitReportHandler.getCommitData());
   }
 
   /**
-   * Checks if a file is a text file by checking its MIME type.
-   * Detects text/*, application/json, and application/yaml files.
+   * Checks if a file is a text file by checking its MIME type. Detects text/*, application/json, and application/yaml
+   * files.
    *
-   * @param fileName the file name
    * @param file     the file descriptor
    * @return true if it's a readable text file
    */
@@ -376,8 +376,8 @@ public class AnalysisService { // NOPMD
   }
 
   /**
-   * Analyzes a file and returns the appropriate handler based on file extension.
-   * Routes code files to parsers and text files to basic metric collection.
+   * Analyzes a file and returns the appropriate handler based on file extension. Routes code files to parsers and text
+   * files to basic metric collection.
    *
    * @param config     the analysis configuration
    * @param repository the git repository

@@ -5,109 +5,11 @@ import java.util.Optional;
 /**
  * Configuration object for Git analysis operations.
  */
-public class AnalysisConfig {
-
-  private final Optional<String> repoPath;
-  private final Optional<String> repoRemoteUrl;
-  private final Optional<String> gitUsername;
-  private final Optional<String> gitPassword;
-  private final Optional<String> branch;
-  private final Optional<String> sourceDirectory;
-  private final Optional<String> restrictAnalysisToFolders;
-  private final boolean calculateMetrics;
-  private final Optional<String> startCommit;
-  private final Optional<String> endCommit;
-  private final Optional<Integer> cloneDepth;
-  private final String landscapeToken;
-  private final String applicationName;
-  private final boolean fetchRemoteData;
-
-  public AnalysisConfig(
-      final Optional<String> repoPath,
-      final Optional<String> repoRemoteUrl,
-      final Optional<String> gitUsername,
-      final Optional<String> gitPassword,
-      final Optional<String> branch,
-      final Optional<String> sourceDirectory,
-      final Optional<String> restrictAnalysisToFolders,
-      final boolean calculateMetrics,
-      final Optional<String> startCommit,
-      final Optional<String> endCommit,
-      final Optional<Integer> cloneDepth,
-      final String landscapeToken,
-      final String applicationName,
-      final boolean fetchRemoteData) {
-    this.repoPath = repoPath;
-    this.repoRemoteUrl = repoRemoteUrl;
-    this.gitUsername = gitUsername;
-    this.gitPassword = gitPassword;
-    this.branch = branch;
-    this.sourceDirectory = sourceDirectory;
-    this.restrictAnalysisToFolders = restrictAnalysisToFolders;
-    this.calculateMetrics = calculateMetrics;
-    this.startCommit = startCommit;
-    this.endCommit = endCommit;
-    this.cloneDepth = cloneDepth;
-    this.landscapeToken = landscapeToken;
-    this.applicationName = applicationName;
-    this.fetchRemoteData = fetchRemoteData;
-  }
-
-  public Optional<String> getRepoPath() {
-    return repoPath;
-  }
-
-  public Optional<String> getRepoRemoteUrl() {
-    return repoRemoteUrl;
-  }
-
-  public Optional<String> getGitUsername() {
-    return gitUsername;
-  }
-
-  public Optional<String> getGitPassword() {
-    return gitPassword;
-  }
-
-  public Optional<String> getBranch() {
-    return branch;
-  }
-
-  public Optional<String> getSourceDirectory() {
-    return sourceDirectory;
-  }
-
-  public Optional<String> getRestrictAnalysisToFolders() {
-    return restrictAnalysisToFolders;
-  }
-
-  public boolean isCalculateMetrics() {
-    return calculateMetrics;
-  }
-
-  public Optional<String> getStartCommit() {
-    return startCommit;
-  }
-
-  public Optional<String> getEndCommit() {
-    return endCommit;
-  }
-
-  public Optional<Integer> getCloneDepth() {
-    return cloneDepth;
-  }
-
-  public String getLandscapeToken() {
-    return landscapeToken;
-  }
-
-  public String getApplicationName() {
-    return applicationName;
-  }
-
-  public boolean isFetchRemoteData() {
-    return fetchRemoteData;
-  }
+public record AnalysisConfig(Optional<String> repoPath, Optional<String> repoRemoteUrl, Optional<String> gitUsername,
+                             Optional<String> gitPassword, Optional<String> branch, Optional<String> sourceDirectory,
+                             Optional<String> restrictAnalysisToFolders, boolean calculateMetrics,
+                             Optional<String> startCommit, Optional<String> endCommit, Optional<Integer> cloneDepth,
+                             String landscapeToken, String applicationName, boolean fetchRemoteData) {
 
   /**
    * Builder for AnalysisConfig.

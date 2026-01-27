@@ -7,11 +7,7 @@ package net.explorviz.code.analysis.types;
  * @param <M> middle type
  * @param <R> right type
  */
-public class Triple<L, M, R> {
-
-  private final L left;
-  private final M middle;
-  private final R right;
+public record Triple<L, M, R>(L left, M middle, R right) {
 
   /**
    * Creates a Triple of data entries.
@@ -20,21 +16,6 @@ public class Triple<L, M, R> {
    * @param middle the middle data entry
    * @param right  the right data entry
    */
-  public Triple(final L left, final M middle, final R right) {
-    this.left = left;
-    this.middle = middle;
-    this.right = right;
-  }
-
-  public L getLeft() {
-    return left;
-  }
-
-  public M getMiddle() {
-    return middle;
-  }
-
-  public R getRight() {
-    return right;
+  public Triple {
   }
 }

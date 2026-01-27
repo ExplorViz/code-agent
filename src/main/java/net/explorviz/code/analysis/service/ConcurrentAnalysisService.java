@@ -17,8 +17,8 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 /**
- * Wrapper service that handles concurrent analysis requests safely.
- * Uses an executor service to queue and process analysis requests sequentially
+ * Wrapper service that handles concurrent analysis requests safely. Uses an executor service to queue and process
+ * analysis requests sequentially
  */
 @ApplicationScoped
 public class ConcurrentAnalysisService {
@@ -61,8 +61,8 @@ public class ConcurrentAnalysisService {
 
   public CompletableFuture<Void> analyzeAndSendRepoAsync(final AnalysisConfig config,
       final DataExporter exporter) {
-    final String repoUrl = config.getRepoRemoteUrl().orElse("unknown");
-    
+    final String repoUrl = config.repoRemoteUrl().orElse("unknown");
+
     LOGGER.info("📥 Queuing analysis request for repository: {}", repoUrl);
 
     return CompletableFuture.runAsync(() -> {

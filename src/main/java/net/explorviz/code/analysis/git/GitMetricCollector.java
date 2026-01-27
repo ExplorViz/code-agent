@@ -28,9 +28,8 @@ public final class GitMetricCollector {
   }
 
   /**
-   * Adds git metrics that are valid for all files within a commit. For performance reasons, some
-   * data gets cached. before calling this method for a commit, call
-   * {@link GitMetricCollector#resetAuthor()} once for every new commit.
+   * Adds git metrics that are valid for all files within a commit. For performance reasons, some data gets cached.
+   * before calling this method for a commit, call {@link GitMetricCollector#resetAuthor()} once for every new commit.
    *
    * @param fileDataHandler the fileDataHandler to add the metric to
    * @param commit          the current commit

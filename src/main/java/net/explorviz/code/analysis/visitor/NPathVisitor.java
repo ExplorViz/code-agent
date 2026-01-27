@@ -24,8 +24,8 @@ import com.github.javaparser.ast.visitor.GenericVisitorAdapter;
 import net.explorviz.code.analysis.handler.JavaFileDataHandler;
 
 /**
- * Visitor filling a FileData object with NPath data. Only handles constructor and methods bodies.
- * This implementation is a reimplementation of the {@code NPathBaseVisitor} from PMD.
+ * Visitor filling a FileData object with NPath data. Only handles constructor and methods bodies. This implementation
+ * is a reimplementation of the {@code NPathBaseVisitor} from PMD.
  */
 public class NPathVisitor
     extends GenericVisitorAdapter<Integer, JavaFileDataHandler> { // NOCS NOPMD

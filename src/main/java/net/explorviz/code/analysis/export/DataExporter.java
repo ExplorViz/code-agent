@@ -5,8 +5,7 @@ import net.explorviz.code.proto.FileData;
 import net.explorviz.code.proto.StateData;
 
 /**
- * A DataExporter handles the export of {@link FileData}, {@link CommitData} and request of
- * {@link StateData}.
+ * A DataExporter handles the export of {@link FileData}, {@link CommitData} and request of {@link StateData}.
  */
 public interface DataExporter {
 
