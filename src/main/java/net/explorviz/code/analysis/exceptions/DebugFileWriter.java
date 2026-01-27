@@ -15,12 +15,9 @@ import org.slf4j.LoggerFactory;
  */
 public final class DebugFileWriter {
 
-  private static final Logger LOGGER = LoggerFactory.getLogger(JavaParserService.class);
-  private static final String UNABLE_TO_WRITE = "Unable to write the content to file.";
+  private static final Logger LOGGER = LoggerFactory.getLogger(DebugFileWriter.class);
 
-  private DebugFileWriter() {
-
-  }
+  private DebugFileWriter() {}
 
   /**
    * Saves the given content to a file.
@@ -38,11 +35,7 @@ public final class DebugFileWriter {
       }
       Files.write(Paths.get(directoryPath, filename), content.getBytes());
     } catch (IOException e) {
-      if (LOGGER.isErrorEnabled()) {
-        // if something happens here, catch and ignore as the program can continue as normal
-        // only the debug file will not be present
-        LOGGER.error(UNABLE_TO_WRITE);
-      }
+      handleError(e);
     }
   }
 
@@ -57,11 +50,14 @@ public final class DebugFileWriter {
     try {
       Files.write(Paths.get(path), printer.output(compilationUnit).getBytes());
     } catch (IOException e) {
-      if (LOGGER.isErrorEnabled()) {
-        // if something happens here, catch and ignore as the program can continue as normal
-        // only the debug file will not be present
-        LOGGER.error(UNABLE_TO_WRITE);
-      }
+      handleError(e);
+    }
+  }
+
+  private static void handleError(IOException e) {
+    if (LOGGER.isErrorEnabled()) {
+      // Log error (other than that we ignore IO errors)
+      LOGGER.error("Unable to write the content to file: {}", e.getMessage());
     }
   }
 }

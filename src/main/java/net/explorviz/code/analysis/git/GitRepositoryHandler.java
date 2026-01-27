@@ -539,30 +539,6 @@ public class GitRepositoryHandler { // NOPMD
     }
   }
 
-  @Deprecated
-  private TreeFilter getJavaFileTreeFilter(final List<String> pathRestrictions)
-      throws NotFoundException {
-    if (pathRestrictions.isEmpty() || pathRestrictions.size() == 1 && pathRestrictions.get(0)
-        .isBlank()) {
-      return PathSuffixFilter.create(JAVA_PATH_SUFFIX);
-    } else {
-      final List<String> pathList = DirectoryFinder.getRelativeDirectory(pathRestrictions,
-          getCurrentRepositoryPath());
-      final List<String> newPathList = new ArrayList<>();
-      for (final String path : pathList) {
-        newPathList.add(path.replaceFirst("^\\\\|/", "").replaceAll("\\\\", "/"));
-      }
-      final PathSuffixFilter suffixFilter = PathSuffixFilter.create(JAVA_PATH_SUFFIX);
-
-      if (newPathList.isEmpty()) {
-        return PathSuffixFilter.create(JAVA_PATH_SUFFIX);
-      } else {
-        final TreeFilter pathFilter = PathFilterGroup.createFromStrings(newPathList);
-        return AndTreeFilter.create(pathFilter, suffixFilter);
-      }
-    }
-  }
-
   public boolean isUnreachableCommit(final Optional<String> commitId, final String branch) {
 
     return commitId.isPresent() && this.isUnreachableCommit(commitId.get(), branch);

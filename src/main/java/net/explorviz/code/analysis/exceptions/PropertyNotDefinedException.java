@@ -1,11 +1,14 @@
 package net.explorviz.code.analysis.exceptions;
 
+import java.io.Serial;
+
 /**
  * Exception regarding not existing property.
  */
 public class PropertyNotDefinedException extends Exception {
 
-  public static final long serialVersionUID = 765345121;
+  @Serial
+  private static final long serialVersionUID = 765345121;
 
   public PropertyNotDefinedException(final String propertyName) {
     this(propertyName, "");

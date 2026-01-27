@@ -11,7 +11,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 /**
- * Exports the data into files in json format.
+ * Exports the data into files in JSON format.
  */
 public class JsonExporter implements DataExporter {
 
@@ -25,7 +25,7 @@ public class JsonExporter implements DataExporter {
   private int commitCount;
 
   /**
-   * Creates a json exporter that exports the data into folder based on the current working folder and the given
+   * Creates a JSON exporter that exports the data into folder based on the current working folder and the given
    * application name.
    *
    * @param applicationName the name of the application
@@ -45,9 +45,9 @@ public class JsonExporter implements DataExporter {
   }
 
   /**
-   * Creates a json exporter that exports the data into folder given.
+   * Creates a JSON exporter that exports the data into folder given.
    *
-   * @param pathToStorageDirectory the path to the json export folder
+   * @param pathToStorageDirectory the path to the JSON export folder
    */
   public JsonExporter(final java.nio.file.Path pathToStorageDirectory) {
     this.storageDirectory = pathToStorageDirectory.toString();

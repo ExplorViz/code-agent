@@ -112,20 +112,6 @@ public class ClassDataHandler implements ProtoBufConvertable<ClassData> {
     }
   }
 
-  /**
-   * Set the current ClassType as class. If override is true, any ClassType value prior to this call gets overridden.
-   *
-   * @param override set true to force set the ClassType, if false, the current classType is checked to not override if
-   *                 it is set as anonymous class.
-   */
-  public void setIsClass(final boolean override) {
-    if (override) {
-      this.builder.setType(ClassType.CLASS);
-    } else {
-      setIsClass();
-    }
-  }
-
   public boolean isClass() {
     return this.builder.getType() == ClassType.CLASS;
   }
