@@ -12,8 +12,6 @@ import net.explorviz.code.proto.ParameterData;
  */
 public class MethodDataHandler implements ProtoBufConvertable<FunctionData> {
 
-  private static final int STRING_BUILDER_CAPACITY = 300;
-
   private final FunctionData.Builder builder;
 
   /**
@@ -135,7 +133,8 @@ public class MethodDataHandler implements ProtoBufConvertable<FunctionData> {
 
   @Override
   public String toString() {
-    final StringBuilder metricDataString = new StringBuilder(STRING_BUILDER_CAPACITY);
+    final int INITIAL_STRING_CAPACITY = 500;
+    final StringBuilder metricDataString = new StringBuilder(INITIAL_STRING_CAPACITY);
     for (final Map.Entry<String, Double> entry : this.builder.getMetricsMap().entrySet()) {
       metricDataString.append(entry.getKey()).append(": ");
       metricDataString.append(entry.getValue()).append('\n');

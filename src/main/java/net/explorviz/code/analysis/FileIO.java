@@ -29,19 +29,20 @@ public final class FileIO { // NOCS
    */
   public static void cleanDirectory(final String dir) throws IOException {
     final Path path = Paths.get(dir);
-    final File[] files = path.toFile().listFiles();
-    // clean if directory is not empty
-    if (files == null || files.length != 0) {
 
-      try (Stream<Path> walk = Files.walk(path)) {
-        walk
-            .sorted(Comparator.reverseOrder())
-            .forEach(FileIO::deleteDirectoryExtract);
-      } catch (NoSuchFileException e) {
-        assert true;
-      }
+    if (!Files.exists(path) || !Files.isDirectory(path)) {
+      return;
+    }
+
+    try (Stream<Path> walk = Files.walk(path)) {
+      walk
+          .filter(p -> !p.equals(path)) // keep the root directory
+          .sorted(Comparator.reverseOrder())
+          .forEach(FileIO::deleteDirectoryExtract);
     }
   }
+
+
 
   // extract method to handle exception in lambda
   private static void deleteDirectoryExtract(final Path path) {
@@ -50,7 +51,7 @@ public final class FileIO { // NOCS
     } catch (IOException e) {
       final boolean deleted = new File(path.toString()).delete();
       if (!deleted && LOGGER.isErrorEnabled()) {
-        LOGGER.error("Unable to delete this path : {} , {}", path, e);
+        LOGGER.error("Unable to delete this path : {} , {}", path, e.getMessage());
       }
     }
   }

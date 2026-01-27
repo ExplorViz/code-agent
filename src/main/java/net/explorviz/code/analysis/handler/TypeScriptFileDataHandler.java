@@ -14,8 +14,6 @@ import net.explorviz.code.proto.Language;
 public class TypeScriptFileDataHandler extends AbstractFileDataHandler
     implements ProtoBufConvertable<FileData> {
 
-  private static final int STRING_BUILDER_CAPACITY = 300;
-
   private final Stack<String> classStack;
   private final Map<String, ClassDataHandler> classDataMap;
 
@@ -119,7 +117,8 @@ public class TypeScriptFileDataHandler extends AbstractFileDataHandler
 
   @Override
   public String toString() {
-    final StringBuilder result = new StringBuilder(STRING_BUILDER_CAPACITY);
+    final int INITIAL_STRING_CAPACITY = 500;
+    final StringBuilder result = new StringBuilder(INITIAL_STRING_CAPACITY);
 
     result.append("Language: ")
         .append(fileName.endsWith(".ts") ? "TypeScript" : "JavaScript")

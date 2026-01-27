@@ -14,8 +14,6 @@ import net.explorviz.code.proto.Language;
 public class JavaFileDataHandler extends AbstractFileDataHandler
     implements ProtoBufConvertable<FileData> {
 
-  private static final int STRING_BUILDER_CAPACITY = 300;
-
   private final Stack<String> classStack;
   private final Stack<String> methodStack;
   private final Map<String, ClassDataHandler> classDataMap;
@@ -144,7 +142,8 @@ public class JavaFileDataHandler extends AbstractFileDataHandler
 
   @Override
   public String toString() {
-    final StringBuilder mapData = new StringBuilder(STRING_BUILDER_CAPACITY);
+    final int INITIAL_STRING_CAPACITY = 500;
+    final StringBuilder mapData = new StringBuilder(INITIAL_STRING_CAPACITY);
     for (final Map.Entry<String, ClassDataHandler> entry : this.classDataMap.entrySet()) {
       mapData.append(entry.getKey()).append(": \n");
       mapData.append(entry.getValue().toString());
