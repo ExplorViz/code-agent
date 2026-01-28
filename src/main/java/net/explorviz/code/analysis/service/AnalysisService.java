@@ -92,8 +92,6 @@ public class AnalysisService {
   /* package */ CommitReportHandler commitReportHandler;
   @ConfigProperty(name = "explorviz.gitanalysis.save-crashed_files")
   /* default */ boolean saveCrashedFilesProperty;
-  @ConfigProperty(name = "explorviz.gitanalysis.fetch-remote-data", defaultValue = "true")
-  /* default */ boolean fetchRemoteDataProperty;
 
   private static String toErrorText(final String position, final String commitId,
       final String branchName) {
@@ -120,8 +118,8 @@ public class AnalysisService {
       final String branch = repository.getBranch();
 
       // get fetch data from remote
-      final Optional<String> startCommit = findStartCommit(config, exporter, fullBranch);
-      final Optional<String> endCommit = config.fetchRemoteData() ? Optional.empty() : config.endCommit();
+      final Optional<String> startCommit = findStartCommit(config, exporter, branch);
+      final Optional<String> endCommit = exporter.isRemote() ? Optional.empty() : config.endCommit();
 
       checkIfCommitsAreReachable(startCommit, endCommit, fullBranch);
 
@@ -137,12 +135,12 @@ public class AnalysisService {
           if (!inAnalysisRange) {
             if (commit.name().equals(startCommit.get())) {
               inAnalysisRange = true;
-              if (config.fetchRemoteData()) {
+              if (exporter.isRemote()) {
                 lastCheckedCommit = commit;
                 continue;
               }
             } else {
-              if (config.fetchRemoteData()) {
+              if (exporter.isRemote()) {
                 lastCheckedCommit = commit;
               }
               continue;
@@ -151,10 +149,11 @@ public class AnalysisService {
 
           LOGGER.atDebug().addArgument(commit.getName()).log("Analyzing commit: {}");
 
-          final Triple<List<FileDescriptor>, List<FileDescriptor>, List<FileDescriptor>> descriptorTriple = gitRepositoryHandler
-              .listDiff(repository,
-                  Optional.ofNullable(lastCheckedCommit), commit,
-                  config.restrictAnalysisToFolders().orElse(""));
+          final Triple<List<FileDescriptor>, List<FileDescriptor>, List<FileDescriptor>> descriptorTriple =
+              gitRepositoryHandler
+                  .listDiff(repository,
+                      Optional.ofNullable(lastCheckedCommit), commit,
+                      config.restrictAnalysisToFolders().orElse(""));
 
           final List<FileDescriptor> descriptorAddedList = descriptorTriple.right(); // NOPMD
           final List<FileDescriptor> descriptorModifiedList = descriptorTriple.left();
@@ -208,13 +207,18 @@ public class AnalysisService {
 
   private Optional<String> findStartCommit(final AnalysisConfig config,
       final DataExporter exporter, final String branch) {
-    if (config.fetchRemoteData()) {
-      final StateData remoteState = exporter.getStateData(
-          getUnambiguousUpstreamName(config.repoRemoteUrl()), branch,
-          config.landscapeToken(), config.applicationName());
+    final StateData remoteState = exporter.getStateData(
+        getUnambiguousUpstreamName(config.repoRemoteUrl()), branch,
+        config.landscapeToken(), config.applicationName());
+    if (exporter.isRemote()) {
+
       if (remoteState.getCommitId().isEmpty() || remoteState.getCommitId().isBlank()) {
+        LOGGER.info("No remote state found for branch {}. Starting analysis from the beginning.",
+            branch);
         return Optional.empty();
       } else {
+        LOGGER.info("Remote state found. Starting analysis after already analyzed commit: {}",
+            remoteState.getCommitId());
         return Optional.of(remoteState.getCommitId());
       }
     } else {
@@ -285,7 +289,7 @@ public class AnalysisService {
         // Add Git metrics for all files
         GitMetricCollector.addCommitGitMetrics(fileDataHandler, commit);
         fileDataHandler.setLandscapeToken(config.landscapeToken());
-        fileDataHandler.setRepositoryName(config.applicationName());
+        fileDataHandler.setRepositoryName(getUnambiguousUpstreamName(config.repoRemoteUrl()));
         exporter.persistFile(fileDataHandler.getProtoBufObject());
       }
     }
@@ -336,14 +340,13 @@ public class AnalysisService {
     }
     commitReportHandler.addTags(tags);
     commitReportHandler.addToken(config.landscapeToken());
-    commitReportHandler.setRepositoryName(config.applicationName());
+    commitReportHandler.setRepositoryName(getUnambiguousUpstreamName(config.repoRemoteUrl()));
 
     exporter.persistCommit(commitReportHandler.getCommitData());
   }
 
   /**
-   * Checks if a file is a text file by checking its MIME type. Detects text/*,
-   * application/json, and application/yaml
+   * Checks if a file is a text file by checking its MIME type. Detects text/*, application/json, and application/yaml
    * files.
    *
    * @param file the file descriptor
@@ -376,8 +379,7 @@ public class AnalysisService {
   }
 
   /**
-   * Analyzes a file and returns the appropriate handler based on file extension.
-   * Routes code files to parsers and text
+   * Analyzes a file and returns the appropriate handler based on file extension. Routes code files to parsers and text
    * files to basic metric collection.
    *
    * @param config     the analysis configuration

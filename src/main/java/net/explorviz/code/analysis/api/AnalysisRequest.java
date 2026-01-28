@@ -16,13 +16,13 @@ public class AnalysisRequest {
   private String branch;
   private String sourceDirectory;
   private String restrictAnalysisToFolders;
-  private boolean fetchRemoteData = true;
+
   private boolean sendToRemote = true;
   private boolean calculateMetrics = true;
   private String startCommit;
   private String endCommit;
   private Integer cloneDepth;
-  private String landscapeToken = "";
+  private String landscapeToken = "mytokenvalue";
   private String applicationName = "";
 
   public AnalysisRequest() {
@@ -58,14 +58,6 @@ public class AnalysisRequest {
 
   public void setRestrictAnalysisToFolders(final String restrictAnalysisToFolders) {
     this.restrictAnalysisToFolders = restrictAnalysisToFolders;
-  }
-
-  public boolean isFetchRemoteData() {
-    return fetchRemoteData;
-  }
-
-  public void setFetchRemoteData(final boolean fetchRemoteData) {
-    this.fetchRemoteData = fetchRemoteData;
   }
 
   public boolean isSendToRemote() {
@@ -142,9 +134,9 @@ public class AnalysisRequest {
         .startCommit(Optional.ofNullable(startCommit))
         .endCommit(Optional.ofNullable(endCommit))
         .cloneDepth(Optional.ofNullable(cloneDepth))
-        .landscapeToken(landscapeToken != null ? landscapeToken : "")
+        .landscapeToken((landscapeToken != null && !landscapeToken.isBlank()) ? landscapeToken : "mytokenvalue")
         .applicationName(applicationName != null ? applicationName : "")
-        .fetchRemoteData(fetchRemoteData)
+
         .build();
   }
 }

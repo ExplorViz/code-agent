@@ -16,8 +16,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 /**
- * Integration test to verify TypeScript/JavaScript files are parsed and
- * exported correctly.
+ * Integration test to verify TypeScript/JavaScript files are parsed and exported correctly.
  */
 public class TypeScriptExportTest {
 
@@ -34,11 +33,11 @@ public class TypeScriptExportTest {
             return a + b;
           }
         }
-
+        
         function multiply(x: number, y: number): number {
           return x * y;
         }
-
+        
         export { Calculator, multiply };
         """;
 
@@ -125,7 +124,7 @@ public class TypeScriptExportTest {
             this.count++;
           }
         }
-
+        
         function reset() {
           return 0;
         }

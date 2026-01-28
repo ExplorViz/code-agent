@@ -59,7 +59,35 @@ public class JsonExporter implements DataExporter {
   public StateData getStateData(final String upstreamName, final String branchName,
       final String token,
       final String applicationName) {
-    return StateData.newBuilder().build();
+    LOGGER.atInfo()
+        .addArgument(upstreamName)
+        .addArgument(branchName)
+        .addArgument(applicationName)
+        .log("📥 State data requested for {} on branch {} (application: {})");
+
+    final StateData stateData = StateData.newBuilder().build();
+    try {
+      final String resultJson = JsonFormat.printer().print(stateData);
+      final String requestJson = String.format(
+          "{\n  \"upstreamName\": \"%s\",\n  \"branchName\": \"%s\",\n  \"landscapeToken\": \"%s\",\n  \"applicationName\": \"%s\"\n}",
+          upstreamName, branchName, token, applicationName);
+
+      final String stateFileName = "StateData_" + applicationName + JSON_FILE_EXTENSION;
+      final String requestFileName = "StateRequest_" + applicationName + JSON_FILE_EXTENSION;
+
+      Files.write(Paths.get(storageDirectory, stateFileName), resultJson.getBytes());
+      Files.write(Paths.get(storageDirectory, requestFileName), requestJson.getBytes());
+
+      LOGGER.atInfo()
+          .addArgument(applicationName)
+          .log("✅ Successfully exported state request and result for: {}");
+    } catch (IOException e) {
+      LOGGER.atError()
+          .addArgument(applicationName)
+          .addArgument(e.getMessage())
+          .log("❌ Failed to export state data for {}: {}");
+    }
+    return stateData;
   }
 
   @Override
@@ -117,6 +145,11 @@ public class JsonExporter implements DataExporter {
       throw new RuntimeException(e); // NOPMD
     }
     this.commitCount++;
+  }
+
+  @Override
+  public boolean isRemote() {
+    return false;
   }
 
   @Override

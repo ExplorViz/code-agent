@@ -30,7 +30,6 @@ function collectPayload(formData) {
 
   payload.calculateMetrics = formData.get("calculateMetrics") !== null;
   payload.sendToRemote = formData.get("sendToRemote") !== null;
-  payload.fetchRemoteData = formData.get("fetchRemoteData") !== null;
 
   if (payload.cloneDepth) {
     payload.cloneDepth = parseInt(payload.cloneDepth, 10);
@@ -102,7 +101,7 @@ function applySample() {
   });
   form.elements.calculateMetrics.checked = true;
   form.elements.sendToRemote.checked = true;
-  form.elements.fetchRemoteData.checked = false;
+
   handleInput();
   setStatus("Sample payload applied.", "success");
 }

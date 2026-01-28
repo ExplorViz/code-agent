@@ -56,7 +56,9 @@ public final class GrpcExporter implements DataExporter {
     final String appName = "".equals(applicationName) ? applicationNameProperty : applicationName;
     requestBuilder.putApplicationPaths(appName, "");
 
-    return stateDataGrpcClient.getStateData(requestBuilder.build());
+    final StateDataRequest request = requestBuilder.build();
+    LOGGER.debug("Sending state request: {}", request);
+    return stateDataGrpcClient.getStateData(request);
   }
 
   @Override
@@ -83,6 +85,11 @@ public final class GrpcExporter implements DataExporter {
       }
     }
 
+  }
+
+  @Override
+  public boolean isRemote() {
+    return true;
   }
 
   @Override

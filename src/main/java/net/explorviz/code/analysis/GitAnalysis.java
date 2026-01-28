@@ -20,7 +20,8 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 /**
- * Entrypoint for this service. Expects a local path to a Git repository folder ("explorviz.repo.folder.path"). Sends
+ * Entrypoint for this service. Expects a local path to a Git repository folder
+ * ("explorviz.repo.folder.path"). Sends
  * the analysis's results to ExplorViz code service.
  */
 @ApplicationScoped
@@ -60,16 +61,13 @@ public class GitAnalysis { // NOPMD
   @ConfigProperty(name = "explorviz.gitanalysis.calculate-metrics", defaultValue = "true")
   /* default */ boolean calculateMetricsProperty; // NOCS
 
-  @ConfigProperty(name = "explorviz.gitanalysis.fetch-remote-data", defaultValue = "true")
-  /* default */ boolean fetchRemoteDataProperty; // NOCS
-
   @ConfigProperty(name = "explorviz.gitanalysis.start-commit-sha1")
   /* default */ Optional<String> startCommitProperty; // NOCS
 
   @ConfigProperty(name = "explorviz.gitanalysis.end-commit-sha1")
   /* default */ Optional<String> endCommitProperty; // NOCS
 
-  @ConfigProperty(name = "explorviz.landscape.token")
+  @ConfigProperty(name = "explorviz.landscape.token", defaultValue = "mytokenvalue")
   /* default */ String landscapeTokenProperty; // NOCS
 
   @ConfigProperty(name = "explorviz.gitanalysis.application-name")
@@ -100,7 +98,7 @@ public class GitAnalysis { // NOPMD
         .endCommit(endCommitProperty)
         .landscapeToken(landscapeTokenProperty)
         .applicationName(applicationNameProperty)
-        .fetchRemoteData(fetchRemoteDataProperty)
+
         .build();
   }
 

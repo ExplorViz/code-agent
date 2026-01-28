@@ -27,6 +27,11 @@ public class VoidExporter implements DataExporter {
   }
 
   @Override
+  public boolean isRemote() {
+    return false;
+  }
+
+  @Override
   public boolean isInvalidCommitHash(final String hash) {
     return false;
   }

@@ -9,7 +9,7 @@ public record AnalysisConfig(Optional<String> repoPath, Optional<String> repoRem
                              Optional<String> gitPassword, Optional<String> branch, Optional<String> sourceDirectory,
                              Optional<String> restrictAnalysisToFolders, boolean calculateMetrics,
                              Optional<String> startCommit, Optional<String> endCommit, Optional<Integer> cloneDepth,
-                             String landscapeToken, String applicationName, boolean fetchRemoteData) {
+                             String landscapeToken, String applicationName) {
 
   /**
    * Builder for AnalysisConfig.
@@ -28,7 +28,6 @@ public record AnalysisConfig(Optional<String> repoPath, Optional<String> repoRem
     private Optional<Integer> cloneDepth = Optional.empty();
     private String landscapeToken = "";
     private String applicationName = "";
-    private boolean fetchRemoteData = true;
 
     public Builder repoPath(final Optional<String> repoPath) {
       this.repoPath = repoPath;
@@ -95,11 +94,6 @@ public record AnalysisConfig(Optional<String> repoPath, Optional<String> repoRem
       return this;
     }
 
-    public Builder fetchRemoteData(final boolean fetchRemoteData) {
-      this.fetchRemoteData = fetchRemoteData;
-      return this;
-    }
-
     public AnalysisConfig build() {
       return new AnalysisConfig(
           repoPath,
@@ -114,8 +108,7 @@ public record AnalysisConfig(Optional<String> repoPath, Optional<String> repoRem
           endCommit,
           cloneDepth,
           landscapeToken,
-          applicationName,
-          fetchRemoteData);
+          applicationName);
     }
   }
 }
