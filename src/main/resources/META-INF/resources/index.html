@@ -1,128 +1,128 @@
 <!doctype html>
 <html lang="en">
-  <head>
-    <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>ExplorViz Code Agent</title>
-    <link rel="stylesheet" href="styles.css" />
-  </head>
-  <body>
-    <main>
-      <header>
-        <div>
-          <h1>ExplorViz Code Agent</h1>
-          <p class="subtitle">
-            Wep interface to trigger code analysis via the REST API under
-            <code>/api/analysis/trigger</code>.
-          </p>
-        </div>
-      </header>
+<head>
+  <meta charset="UTF-8"/>
+  <meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+  <title>ExplorViz Code Agent</title>
+  <link href="styles.css" rel="stylesheet"/>
+</head>
+<body>
+<main>
+  <header>
+    <div>
+      <h1>ExplorViz Code Agent</h1>
+      <p class="subtitle">
+        Wep interface to trigger code analysis via the REST API under
+        <code>/api/analysis/trigger</code>.
+      </p>
+    </div>
+  </header>
 
-      <form id="analysis-form">
-        <section class="card">
-          <h2>Repository</h2>
-          <div class="field-grid">
-            <label>
-              Local Repository Path
-              <input name="repoPath" type="text" placeholder="/absolute/path/to/repo" />
-            </label>
-            <label>
-              Remote Repository URL
-              <input
-                name="repoRemoteUrl"
-                type="url"
-                placeholder="https://github.com/org/project.git"
-              />
-            </label>
-            <label>
-              Branch
-              <input name="branch" type="text" placeholder="default" />
-            </label>
-            <label>
-              Source Directories
-              <input
-                name="sourceDirectory"
-                type="text"
-                placeholder="**/src/main/java,**/src/test/java"
-              />
-            </label>
-            <label>
-              Restrict Analysis To Folders
-              <input name="restrictAnalysisToFolders" type="text" placeholder="**/src/main/java" />
-            </label>
-            <label>
-              Clone Depth (optional)
-              <input name="cloneDepth" type="number" min="1" placeholder="unlimited" />
-            </label>
-          </div>
-        </section>
+  <form id="analysis-form">
+    <section class="card">
+      <h2>Repository</h2>
+      <div class="field-grid">
+        <label>
+          Local Repository Path
+          <input name="repoPath" placeholder="/absolute/path/to/repo" type="text"/>
+        </label>
+        <label>
+          Remote Repository URL
+          <input
+              name="repoRemoteUrl"
+              placeholder="https://github.com/org/project.git"
+              type="url"
+          />
+        </label>
+        <label>
+          Branch
+          <input name="branch" placeholder="default" type="text"/>
+        </label>
+        <label>
+          Source Directories
+          <input
+              name="sourceDirectory"
+              placeholder="**/src/main/java,**/src/test/java"
+              type="text"
+          />
+        </label>
+        <label>
+          Restrict Analysis To Folders
+          <input name="restrictAnalysisToFolders" placeholder="**/src/main/java" type="text"/>
+        </label>
+        <label>
+          Clone Depth (optional)
+          <input min="1" name="cloneDepth" placeholder="unlimited" type="number"/>
+        </label>
+      </div>
+    </section>
 
-        <section class="card">
-          <h2>Commits & Metrics</h2>
-          <div class="field-grid">
-            <label>
-              Application Name
-              <input name="applicationName" type="text" placeholder="default-application-name" />
-            </label>
-            <label>
-              Start Commit (optional)
-              <input name="startCommit" type="text" placeholder="5e1ce23..." />
-            </label>
-            <label>
-              End Commit (optional)
-              <input name="endCommit" type="text" placeholder="3e1ce23..." />
-            </label>
-            <label>
-              Landscape Token
-              <input
-                name="landscapeToken"
-                type="password"
-                placeholder="token for ExplorViz landscape"
-              />
-            </label>
-          </div>
-          <div class="toggle-row">
-            <label class="toggle">
-              <input type="checkbox" name="calculateMetrics" checked />
-              Calculate Metrics
-            </label>
-            <label class="toggle">
-              <input type="checkbox" name="sendToRemote" checked />
-              Send Results via gRPC
-            </label>
-            <label class="toggle">
-              <input type="checkbox" name="fetchRemoteData" />
-              Fetch Remote State Data
-            </label>
-          </div>
-        </section>
+    <section class="card">
+      <h2>Commits & Metrics</h2>
+      <div class="field-grid">
+        <label>
+          Application Name
+          <input name="applicationName" placeholder="default-application-name" type="text"/>
+        </label>
+        <label>
+          Start Commit (optional)
+          <input name="startCommit" placeholder="5e1ce23..." type="text"/>
+        </label>
+        <label>
+          End Commit (optional)
+          <input name="endCommit" placeholder="3e1ce23..." type="text"/>
+        </label>
+        <label>
+          Landscape Token
+          <input
+              name="landscapeToken"
+              placeholder="token for ExplorViz landscape"
+              type="password"
+          />
+        </label>
+      </div>
+      <div class="toggle-row">
+        <label class="toggle">
+          <input checked name="calculateMetrics" type="checkbox"/>
+          Calculate Metrics
+        </label>
+        <label class="toggle">
+          <input checked name="sendToRemote" type="checkbox"/>
+          Send Results via gRPC
+        </label>
+        <label class="toggle">
+          <input name="fetchRemoteData" type="checkbox"/>
+          Fetch Remote State Data
+        </label>
+      </div>
+    </section>
 
-        <section class="card">
-          <h2>Authentication</h2>
-          <div class="field-grid">
-            <label>
-              Username
-              <input name="username" type="text" autocomplete="username" />
-            </label>
-            <label>
-              Password / Token
-              <input name="password" type="password" autocomplete="current-password" />
-            </label>
-          </div>
-        </section>
+    <section class="card">
+      <h2>Authentication</h2>
+      <div class="field-grid">
+        <label>
+          Username
+          <input autocomplete="username" name="username" type="text"/>
+        </label>
+        <label>
+          Password / Token
+          <input autocomplete="current-password" name="password" type="password"/>
+        </label>
+      </div>
+    </section>
 
-        <section class="card">
-          <details>
-            <summary>Payload Preview (read-only)</summary>
-            <pre id="payload-preview" class="status" aria-live="polite">{}</pre>
-          </details>
-        </section>
+    <section class="card">
+      <details>
+        <summary>Payload Preview (read-only)</summary>
+        <pre aria-live="polite" class="status" id="payload-preview">{}</pre>
+      </details>
+    </section>
 
-        <button class="primary" type="submit" id="run-analysis">Run Analysis</button>
+    <button class="primary" id="run-analysis" type="submit">Run Analysis</button>
 
-        <div id="status" class="status" role="status" aria-live="polite">Waiting for input…</div>
-      </form>
-    </main>
-    <script src="main.js" defer></script>
-  </body>
+    <div aria-live="polite" class="status" id="status" role="status">Waiting for input…</div>
+  </form>
+</main>
+<script defer src="main.js"></script>
+</body>
 </html>

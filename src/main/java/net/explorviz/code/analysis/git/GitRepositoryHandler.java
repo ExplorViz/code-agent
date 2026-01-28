@@ -44,10 +44,7 @@ import org.eclipse.jgit.transport.UsernamePasswordCredentialsProvider;
 import org.eclipse.jgit.treewalk.AbstractTreeIterator;
 import org.eclipse.jgit.treewalk.CanonicalTreeParser;
 import org.eclipse.jgit.treewalk.TreeWalk;
-import org.eclipse.jgit.treewalk.filter.AndTreeFilter;
-import org.eclipse.jgit.treewalk.filter.OrTreeFilter;
 import org.eclipse.jgit.treewalk.filter.PathFilterGroup;
-import org.eclipse.jgit.treewalk.filter.PathSuffixFilter;
 import org.eclipse.jgit.treewalk.filter.TreeFilter;
 import org.eclipse.jgit.util.io.DisabledOutputStream;
 import org.eclipse.microprofile.config.inject.ConfigProperty;
@@ -61,15 +58,7 @@ import org.slf4j.LoggerFactory;
 public class GitRepositoryHandler { // NOPMD
 
   private static final Logger LOGGER = LoggerFactory.getLogger(GitRepositoryHandler.class);
-  private static final String JAVA_PATH_SUFFIX = ".java";
 
-  private static final String[] SUPPORTED_FILE_EXTENSIONS = {
-      // Code files
-      ".java", ".ts", ".js", ".tsx", ".jsx", ".py",
-      // Common text/config files (detected by content, but listed here for file discovery)
-      ".txt", ".md", ".json", ".yaml", ".yml", ".hcl",
-      ".toml", ".xml", ".properties", ".conf", ".config", ".ini"
-  };
   private static String repositoryPath;
 
   @ConfigProperty(name = "explorviz.gitanalysis.remote.storage-path")
@@ -416,8 +405,7 @@ public class GitRepositoryHandler { // NOPMD
         DisabledOutputStream.INSTANCE)) {
       diffFormatter.setRepository(repository);
       final FileHeader fileHeader = diffFormatter.toFileHeader(diff);
-      mods =
-          countModifications(fileHeader.toEditList()); // TODO: don't need to do that when deleted
+      mods = countModifications(fileHeader.toEditList()); // TODO: don't need to do that when deleted
     }
     final String[] parts = diff.getNewPath().split("/");
     objectIdList.add(
@@ -433,8 +421,7 @@ public class GitRepositoryHandler { // NOPMD
         DisabledOutputStream.INSTANCE)) {
       diffFormatter.setRepository(repository);
       final FileHeader fileHeader = diffFormatter.toFileHeader(diff);
-      mods =
-          countModifications(fileHeader.toEditList()); // TODO: don't need to do that when deleted
+      mods = countModifications(fileHeader.toEditList()); // TODO: don't need to do that when deleted
     }
     final String[] parts = diff.getOldPath().split("/");
     objectIdList.add(
@@ -512,16 +499,9 @@ public class GitRepositoryHandler { // NOPMD
 
   private TreeFilter getSourceFileTreeFilter(final List<String> pathRestrictions)
       throws NotFoundException {
-
-    final List<TreeFilter> extensionFilters = new ArrayList<>();
-    for (final String extension : SUPPORTED_FILE_EXTENSIONS) {
-      extensionFilters.add(PathSuffixFilter.create(extension));
-    }
-    final TreeFilter suffixFilter = OrTreeFilter.create(extensionFilters);
-
     if (pathRestrictions.isEmpty() || pathRestrictions.size() == 1 && pathRestrictions.get(0)
         .isBlank()) {
-      return suffixFilter;
+      return TreeFilter.ALL;
     } else {
       final List<String> pathList = DirectoryFinder.getRelativeDirectory(pathRestrictions,
           getCurrentRepositoryPath());
@@ -531,10 +511,9 @@ public class GitRepositoryHandler { // NOPMD
       }
 
       if (newPathList.isEmpty()) {
-        return suffixFilter;
+        return TreeFilter.ALL;
       } else {
-        final TreeFilter pathFilter = PathFilterGroup.createFromStrings(newPathList);
-        return AndTreeFilter.create(pathFilter, suffixFilter);
+        return PathFilterGroup.createFromStrings(newPathList);
       }
     }
   }

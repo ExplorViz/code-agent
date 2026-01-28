@@ -6,7 +6,6 @@ import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
-import net.explorviz.code.analysis.parser.JavaParserService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -17,7 +16,8 @@ public final class DebugFileWriter {
 
   private static final Logger LOGGER = LoggerFactory.getLogger(DebugFileWriter.class);
 
-  private DebugFileWriter() {}
+  private DebugFileWriter() {
+  }
 
   /**
    * Saves the given content to a file.

@@ -16,6 +16,7 @@ enum Language {
   JAVASCRIPT = 2;
   TYPESCRIPT = 3;
   PYTHON = 4;
+  PLAINTEXT = 5;
 }
 
 enum ClassType {
@@ -64,7 +65,7 @@ message ClassData {
   repeated ClassData inner_classes = 8;
   repeated FunctionData functions = 9;
   repeated string enum_values = 10;
-  
+
   map<string, double> metrics = 11;
 }
 

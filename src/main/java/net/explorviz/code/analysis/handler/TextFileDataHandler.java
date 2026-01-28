@@ -5,9 +5,9 @@ import net.explorviz.code.proto.Language;
 
 public class TextFileDataHandler extends AbstractFileDataHandler {
 
-  public TextFileDataHandler(final String fileName) {
+  public TextFileDataHandler(final String fileName, final Language language) {
     super(fileName);
-    builder.setLanguage(Language.LANGUAGE_UNSPECIFIED);
+    builder.setLanguage(language);
   }
 
   @Override

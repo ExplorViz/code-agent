@@ -1,5 +1,9 @@
 package net.explorviz.code.analysis.integration;
 
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Paths;
@@ -11,11 +15,8 @@ import org.junit.jupiter.api.Test;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import static org.junit.jupiter.api.Assertions.*;
-
 /**
- * Integration test to verify TypeScript/JavaScript files are parsed and
- * exported correctly.
+ * Integration test to verify TypeScript/JavaScript files are parsed and exported correctly.
  */
 public class TypeScriptExportTest {
 
@@ -32,11 +33,11 @@ public class TypeScriptExportTest {
             return a + b;
           }
         }
-
+        
         function multiply(x: number, y: number): number {
           return x * y;
         }
-
+        
         export { Calculator, multiply };
         """;
 
@@ -123,7 +124,7 @@ public class TypeScriptExportTest {
             this.count++;
           }
         }
-
+        
         function reset() {
           return 0;
         }

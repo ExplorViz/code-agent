@@ -35,18 +35,13 @@ public class GitRepositoryHandlerTest {
 
   private static final String MASTER = "master";
   private static final String MAIN = "main";
-
-  @Inject
-  GitRepositoryHandler gitRepositoryHandler;  // NOCS
-
-  private File tempGitLocation;
-
   private final String sshUrl = "git@gitlab.com:0xhexdec/busydoingnothing.git";
   private final String httpsUrl = "https://gitlab.com/0xhexdec/busydoingnothing.git";
-
   private final String gitlabUserName = "privateTestConnector";
   private final String gitlabUserPassword = "_QGDgx@2!sD/y!Y";
-
+  @Inject
+  GitRepositoryHandler gitRepositoryHandler;  // NOCS
+  private File tempGitLocation;
 
   @BeforeEach
   void setup() throws IOException {
@@ -204,7 +199,7 @@ public class GitRepositoryHandlerTest {
 
   @Test()
   void testGetStringifiedFileInCommit()
-      throws InvalidRemoteException, TransportException, GitAPIException, IOException {
+      throws GitAPIException, IOException {
 
     try (final Repository repository = this.gitRepositoryHandler.getGitRepository("",
         new RemoteRepositoryObject(

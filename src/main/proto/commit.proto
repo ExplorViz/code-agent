@@ -30,7 +30,7 @@ message CommitData {
 
 message FileIdentifier {
   string file_hash = 1;
-  
+
   // Path relative to root of repository
   string file_path = 2;
 }

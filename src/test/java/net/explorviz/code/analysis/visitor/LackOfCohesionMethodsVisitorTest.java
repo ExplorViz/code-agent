@@ -21,29 +21,29 @@ import org.junit.jupiter.api.Test;
 @QuarkusTest
 public class LackOfCohesionMethodsVisitorTest {
 
-    private static final String LCOM4 = "LCOM4";
+  private static final String LCOM4 = "LCOM4";
 
-    @Test()
-    void fileDataTest1() throws FileNotFoundException { // NOCS
-        JavaFileDataHandler fileDataHandler = new JavaFileDataHandler("LCOM4.java");
-        FileDataVisitor visitor = new FileDataVisitor(Optional.empty(), false);
-        String path = "src/test/resources/files/LCOM4.java";
-        final CompilationUnit compilationUnit = StaticJavaParser.parse(new File(path));
-        visitor.visit(compilationUnit, fileDataHandler);
-        LackOfCohesionMethodsVisitor lcom4Visitor = new LackOfCohesionMethodsVisitor();
-        lcom4Visitor.visit(compilationUnit, new Pair<>(new MetricAppender(fileDataHandler), null));
-        FileData data = fileDataHandler.getProtoBufObject();
-        List<ClassData> classes = data.getClassesList();
+  @Test()
+  void fileDataTest1() throws FileNotFoundException { // NOCS
+    JavaFileDataHandler fileDataHandler = new JavaFileDataHandler("LCOM4.java");
+    FileDataVisitor visitor = new FileDataVisitor(Optional.empty(), false);
+    String path = "src/test/resources/files/LCOM4.java";
+    final CompilationUnit compilationUnit = StaticJavaParser.parse(new File(path));
+    visitor.visit(compilationUnit, fileDataHandler);
+    LackOfCohesionMethodsVisitor lcom4Visitor = new LackOfCohesionMethodsVisitor();
+    lcom4Visitor.visit(compilationUnit, new Pair<>(new MetricAppender(fileDataHandler), null));
+    FileData data = fileDataHandler.getProtoBufObject();
+    List<ClassData> classes = data.getClassesList();
 
-        Assertions.assertEquals(1.0, findClass(classes, "com.easy.life.LCOM4").getMetricsMap().get(LCOM4));
-        Assertions.assertEquals(1.0, findClass(classes, "com.easy.life.LCOM4Class2").getMetricsMap().get(LCOM4));
-        Assertions.assertEquals(1.0, findClass(classes, "com.easy.life.LCOM4Class3").getMetricsMap().get(LCOM4));
-        Assertions.assertEquals(0.0, findClass(classes, "com.easy.life.LCOM4Class4").getMetricsMap().get(LCOM4));
-        Assertions.assertEquals(1.0, findClass(classes, "com.easy.life.LCOM4Class5").getMetricsMap().get(LCOM4));
-        Assertions.assertEquals(6.0, findClass(classes, "com.easy.life.LCOM4Class6").getMetricsMap().get(LCOM4));
-    }
+    Assertions.assertEquals(1.0, findClass(classes, "com.easy.life.LCOM4").getMetricsMap().get(LCOM4));
+    Assertions.assertEquals(1.0, findClass(classes, "com.easy.life.LCOM4Class2").getMetricsMap().get(LCOM4));
+    Assertions.assertEquals(1.0, findClass(classes, "com.easy.life.LCOM4Class3").getMetricsMap().get(LCOM4));
+    Assertions.assertEquals(0.0, findClass(classes, "com.easy.life.LCOM4Class4").getMetricsMap().get(LCOM4));
+    Assertions.assertEquals(1.0, findClass(classes, "com.easy.life.LCOM4Class5").getMetricsMap().get(LCOM4));
+    Assertions.assertEquals(6.0, findClass(classes, "com.easy.life.LCOM4Class6").getMetricsMap().get(LCOM4));
+  }
 
-    private ClassData findClass(List<ClassData> classes, String name) {
-        return classes.stream().filter(c -> c.getName().equals(name)).findFirst().orElseThrow();
-    }
+  private ClassData findClass(List<ClassData> classes, String name) {
+    return classes.stream().filter(c -> c.getName().equals(name)).findFirst().orElseThrow();
+  }
 }

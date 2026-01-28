@@ -5,14 +5,15 @@ import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
 import java.io.File;
 import java.io.IOException;
+import java.nio.file.FileSystems;
 import java.nio.file.Files;
+import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.Collection;
-import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
 import java.util.NoSuchElementException;
 import java.util.Optional;
+import java.util.Set;
 import net.explorviz.code.analysis.exceptions.DebugFileWriter;
 import net.explorviz.code.analysis.exceptions.NotFoundException;
 import net.explorviz.code.analysis.exceptions.PropertyNotDefinedException;
@@ -22,7 +23,6 @@ import net.explorviz.code.analysis.git.GitMetricCollector;
 import net.explorviz.code.analysis.git.GitRepositoryHandler;
 import net.explorviz.code.analysis.handler.AbstractFileDataHandler;
 import net.explorviz.code.analysis.handler.CommitReportHandler;
-import net.explorviz.code.analysis.handler.JavaFileDataHandler;
 import net.explorviz.code.analysis.handler.TextFileDataHandler;
 import net.explorviz.code.analysis.parser.AntlrParserService;
 import net.explorviz.code.analysis.parser.AntlrPythonParserService;
@@ -30,6 +30,7 @@ import net.explorviz.code.analysis.parser.AntlrTypeScriptParserService;
 import net.explorviz.code.analysis.types.FileDescriptor;
 import net.explorviz.code.analysis.types.Triple;
 import net.explorviz.code.analysis.visitor.FileDataVisitor;
+import net.explorviz.code.proto.Language;
 import net.explorviz.code.proto.StateData;
 import org.eclipse.jgit.api.Git;
 import org.eclipse.jgit.api.errors.GitAPIException;
@@ -46,32 +47,54 @@ import org.slf4j.LoggerFactory;
  * Service for analyzing Git repositories and extracting code metrics.
  */
 @ApplicationScoped
-public class AnalysisService { // NOPMD
+public class AnalysisService {
 
   private static final Logger LOGGER = LoggerFactory.getLogger(AnalysisService.class);
+  private static final Set<String> TEXT_FILE_EXTENSIONS = Set.of(
+      // Plain text & docs
+      "txt", "md", "rst", "adoc", "log", "license", "notice", "readme",
 
+      // Configuration formats
+      "conf", "cfg", "ini", "properties", "prefs",
+      "env", "dotenv",
+      "toml",
+      "yaml", "yml",
+      "json",
+      "xml",
+
+      // Infrastructure / tooling configs
+      "gradle", "kts",
+      "editorconfig",
+      "gitignore", "gitattributes", "gitmodules",
+      "dockerignore",
+      "npmrc", "yarnrc", "pnpmrc",
+      "eslintrc", "prettierrc", "stylelintrc",
+      "babelrc",
+      "htaccess",
+
+      // CI / automation
+      "workflow",
+
+      // Data & text-based assets
+      "csv", "tsv", "sql",
+
+      // System / service configs
+      "service", "socket", "timer");
   @Inject
-  /* package */ GitRepositoryHandler gitRepositoryHandler; // NOCS
-
+  /* package */ GitRepositoryHandler gitRepositoryHandler;
   @Inject
-  /* package */ AntlrParserService antlrParserService; // NOCS (ANTLR-based Java parser)
-
+  /* package */ AntlrParserService antlrParserService;
   @Inject
-  /* package */ AntlrTypeScriptParserService tsParserService; // NOCS
-
+  /* package */ AntlrTypeScriptParserService tsParserService;
   @Inject
-  /* package */ AntlrPythonParserService pythonParserService; // NOCS
-
+  /* package */ AntlrPythonParserService pythonParserService;
   @Inject
-  /* package */ CommitReportHandler commitReportHandler; // NOCS
-
+  /* package */ CommitReportHandler commitReportHandler;
   @ConfigProperty(name = "explorviz.gitanalysis.save-crashed_files")
-  /* default */ boolean saveCrashedFilesProperty; // NOCS
-
+  /* default */ boolean saveCrashedFilesProperty;
   @ConfigProperty(name = "explorviz.gitanalysis.fetch-remote-data", defaultValue = "true")
-  /* default */ boolean fetchRemoteDataProperty; // NOCS
+  /* default */ boolean fetchRemoteDataProperty;
 
-  // only done because checkstyle does not like the duplication of literals
   private static String toErrorText(final String position, final String commitId,
       final String branchName) {
     return "The given " + position + " commit <" + commitId
@@ -260,10 +283,8 @@ public class AnalysisService { // NOPMD
           LOGGER.error("File size of file " + fileDescriptor.relativePath
               + " could not be analyzed." + e.getMessage());
         }
-        // Only add Git metrics for Java files (JavaFileDataHandler type)
-        if (fileDataHandler instanceof JavaFileDataHandler) {
-          GitMetricCollector.addCommitGitMetrics(fileDataHandler, commit);
-        }
+        // Add Git metrics for all files
+        GitMetricCollector.addCommitGitMetrics(fileDataHandler, commit);
         fileDataHandler.setLandscapeToken(config.landscapeToken());
         fileDataHandler.setCommitId(commit.getName());
         exporter.sendFileData(fileDataHandler.getProtoBufObject());
@@ -325,40 +346,25 @@ public class AnalysisService { // NOPMD
    * Checks if a file is a text file by checking its MIME type. Detects text/*, application/json, and application/yaml
    * files.
    *
-   * @param file     the file descriptor
+   * @param file the file descriptor
    * @return true if it's a readable text file
    */
-  private boolean isTextFile(final FileDescriptor file) {
-    final String lowerName = file.fileName.toLowerCase();
-    if (lowerName.endsWith(".java") || lowerName.endsWith(".ts")
-        || lowerName.endsWith(".tsx") || lowerName.endsWith(".js")
-        || lowerName.endsWith(".jsx") || lowerName.endsWith(".py")) {
+  /* package */ boolean isTextFile(final FileDescriptor file) {
+    final String fileName = file.fileName.toLowerCase();
+
+    if (fileName.lastIndexOf('.') == -1) {
       return false;
+    }
+
+    if (TEXT_FILE_EXTENSIONS.contains(fileName.substring(fileName.lastIndexOf('.') + 1))) {
+      return true;
     }
 
     // Detect MIME type using file path
     try {
-      final File tempFile = new File(
-          GitRepositoryHandler.getCurrentRepositoryPath() + "/" + file.relativePath);
-      if (tempFile.exists()) {
-        final String mimeType = Files.probeContentType(tempFile.toPath());
-        if (mimeType != null) {
-          // Accept text/*, application/json, application/yaml
-          final boolean isTextFile = mimeType.startsWith("text/")
-              || mimeType.equals("application/json")
-              || mimeType.equals("application/yaml")
-              || mimeType.equals("application/x-yaml");
-
-          if (isTextFile) {
-            LOGGER.atDebug()
-                .addArgument(file.relativePath)
-                .addArgument(mimeType)
-                .log("Detected text file by MIME type: {} -> {}");
-          }
-
-          return isTextFile;
-        }
-      }
+      Path path = FileSystems.getDefault()
+          .getPath(GitRepositoryHandler.getCurrentRepositoryPath() + "/" + file.relativePath);
+      return Files.probeContentType(path).startsWith("text");
     } catch (Exception e) {
       LOGGER.atTrace()
           .addArgument(file.relativePath)
@@ -460,7 +466,7 @@ public class AnalysisService { // NOPMD
             .addArgument(fileContent.length())
             .log("📄 Processing detected text file: {} (size: {} bytes)");
 
-        final TextFileDataHandler textHandler = new TextFileDataHandler(file.relativePath);
+        final TextFileDataHandler textHandler = new TextFileDataHandler(file.relativePath, Language.PLAINTEXT);
         textHandler.setCommitSha(commitSha);
         textHandler.calculateMetrics(fileContent);
 
@@ -472,10 +478,18 @@ public class AnalysisService { // NOPMD
             .addArgument(file.relativePath)
             .log("✅ Successfully processed text file: {}");
       } else {
-        LOGGER.atWarn()
-            .addArgument(file.fileName)
-            .log("Unsupported file type: {}");
-        return null;
+        LOGGER.atInfo()
+            .addArgument(file.relativePath)
+            .log("📄 Processing other file (size only): {}");
+
+        final TextFileDataHandler genericHandler = new TextFileDataHandler(file.relativePath,
+            Language.LANGUAGE_UNSPECIFIED);
+        genericHandler.setCommitSha(commitSha);
+
+        // Add git metrics
+        GitMetricCollector.addFileGitMetrics(genericHandler, file);
+
+        fileDataHandler = genericHandler;
       }
 
       if (fileDataHandler == null) {
