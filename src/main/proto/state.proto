@@ -7,7 +7,7 @@ option java_outer_classname = "StateProto";
 package net.explorviz.code.proto;
 
 service StateDataService {
-  rpc RequestStateData (StateDataRequest) returns (StateData) {}
+  rpc GetStateData (StateDataRequest) returns (StateData) {}
 }
 
 message StateDataRequest {

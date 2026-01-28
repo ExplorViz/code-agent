@@ -16,7 +16,8 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 /**
- * Integration test to verify TypeScript/JavaScript files are parsed and exported correctly.
+ * Integration test to verify TypeScript/JavaScript files are parsed and
+ * exported correctly.
  */
 public class TypeScriptExportTest {
 
@@ -33,11 +34,11 @@ public class TypeScriptExportTest {
             return a + b;
           }
         }
-        
+
         function multiply(x: number, y: number): number {
           return x * y;
         }
-        
+
         export { Calculator, multiply };
         """;
 
@@ -87,7 +88,7 @@ public class TypeScriptExportTest {
 
     LOGGER.info("   - Export directory: {}", tempDir);
 
-    exporter.sendFileData(fileData);
+    exporter.persistFile(fileData);
     LOGGER.info("✅ Step 5: Exported to JSON");
 
     // Step 6: Verify the JSON file was created
@@ -124,7 +125,7 @@ public class TypeScriptExportTest {
             this.count++;
           }
         }
-        
+
         function reset() {
           return 0;
         }
@@ -158,7 +159,7 @@ public class TypeScriptExportTest {
     // Export
     final String tempDir = System.getProperty("java.io.tmpdir");
     final JsonExporter exporter = new JsonExporter(Paths.get(tempDir));
-    exporter.sendFileData(fileData);
+    exporter.persistFile(fileData);
 
     final String expectedFileName = "counter_test-commit-456.json";
     final String expectedPath = Paths.get(tempDir, expectedFileName).toString();

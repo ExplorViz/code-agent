@@ -20,8 +20,8 @@ public abstract class AbstractFileDataHandler {
     builder.setFileHash(commitSha);
   }
 
-  public void setCommitId(final String commitId) {
-    builder.setCommitId(commitId);
+  public void setRepositoryName(final String repositoryName) {
+    builder.setRepositoryName(repositoryName);
   }
 
   public void setPackageName(final String packageName) {

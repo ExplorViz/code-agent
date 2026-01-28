@@ -25,7 +25,8 @@ public class JsonExporter implements DataExporter {
   private int commitCount;
 
   /**
-   * Creates a JSON exporter that exports the data into folder based on the current working folder and the given
+   * Creates a JSON exporter that exports the data into folder based on the
+   * current working folder and the given
    * application name.
    *
    * @param applicationName the name of the application
@@ -55,14 +56,14 @@ public class JsonExporter implements DataExporter {
   }
 
   @Override
-  public StateData requestStateData(final String upstreamName, final String branchName,
+  public StateData getStateData(final String upstreamName, final String branchName,
       final String token,
       final String applicationName) {
     return StateData.newBuilder().build();
   }
 
   @Override
-  public void sendFileData(final FileData fileData) {
+  public void persistFile(final FileData fileData) {
     try {
       LOGGER.atInfo()
           .addArgument(fileData.getFilePath())
@@ -106,7 +107,7 @@ public class JsonExporter implements DataExporter {
   }
 
   @Override
-  public void sendCommitReport(final CommitData commitData) {
+  public void persistCommit(final CommitData commitData) {
     try {
       final String json = JsonFormat.printer().print(commitData);
       final String fileName = "CommitReport_" + commitData.getCommitId() + "_" + commitCount

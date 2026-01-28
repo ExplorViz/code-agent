@@ -7,7 +7,7 @@ option java_outer_classname = "FileProto";
 import "google/protobuf/empty.proto";
 
 service FileDataService {
-  rpc sendFileData (FileData) returns (google.protobuf.Empty) {}
+  rpc PersistFile (FileData) returns (google.protobuf.Empty) {}
 }
 
 enum Language {
@@ -71,7 +71,7 @@ message ClassData {
 
 message FileData {
   string landscape_token = 1;
-  string commit_id = 2;
+  string repository_name = 2;
   string file_hash = 3;
 
   // Path relative to root of repository

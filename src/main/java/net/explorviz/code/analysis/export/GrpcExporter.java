@@ -45,7 +45,7 @@ public final class GrpcExporter implements DataExporter {
    * @return the state of the remote database
    */
   @Override
-  public StateData requestStateData(final String upstreamName, final String branchName,
+  public StateData getStateData(final String upstreamName, final String branchName,
       final String token,
       final String applicationName) {
     final StateDataRequest.Builder requestBuilder = StateDataRequest.newBuilder();
@@ -56,13 +56,13 @@ public final class GrpcExporter implements DataExporter {
     final String appName = "".equals(applicationName) ? applicationNameProperty : applicationName;
     requestBuilder.putApplicationPaths(appName, "");
 
-    return stateDataGrpcClient.requestStateData(requestBuilder.build());
+    return stateDataGrpcClient.getStateData(requestBuilder.build());
   }
 
   @Override
-  public void sendFileData(final FileData fileData) {
+  public void persistFile(final FileData fileData) {
     try {
-      fileDataGrpcClient.sendFileData(fileData);
+      fileDataGrpcClient.persistFile(fileData);
     } catch (final Exception e) {
       if (LOGGER.isErrorEnabled()) {
         LOGGER.error("Failed to send file data {}", fileData);
@@ -72,10 +72,10 @@ public final class GrpcExporter implements DataExporter {
   }
 
   @Override
-  public void sendCommitReport(final CommitData commitData) {
+  public void persistCommit(final CommitData commitData) {
     LOGGER.info("Sending commit data on {}", commitData.getCommitId());
     try {
-      commitDataGrpcClient.sendCommitData(commitData);
+      commitDataGrpcClient.persistCommit(commitData);
     } catch (final Exception e) {
       if (LOGGER.isErrorEnabled()) {
         LOGGER.error("Failed to send commit data {}", commitData);

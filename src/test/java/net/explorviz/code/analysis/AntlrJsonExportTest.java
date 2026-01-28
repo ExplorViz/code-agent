@@ -71,7 +71,7 @@ public class AntlrJsonExportTest {
     // Export to JSON
     System.out.println("\n5. Exporting to JSON...");
     final JsonExporter jsonExporter = new JsonExporter(Paths.get(outputDir));
-    jsonExporter.sendFileData(fileData);
+    jsonExporter.persistFile(fileData);
 
     final String expectedFileName = "Happy_test-commit-sha1.json";
     final Path jsonFilePath = Paths.get(outputDir, expectedFileName);
@@ -131,7 +131,7 @@ public class AntlrJsonExportTest {
 
       if (handler != null) {
         final FileData fileData = handler.getProtoBufObject();
-        jsonExporter.sendFileData(fileData);
+        jsonExporter.persistFile(fileData);
 
         System.out.println("  ✅ Parsed: " + fileData.getPackageName() +
             " (" + fileData.getClassesCount() + " classes)");

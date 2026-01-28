@@ -151,11 +151,10 @@ public class AnalysisService {
 
           LOGGER.atDebug().addArgument(commit.getName()).log("Analyzing commit: {}");
 
-          final Triple<List<FileDescriptor>, List<FileDescriptor>, List<FileDescriptor>> descriptorTriple =
-              gitRepositoryHandler
-                  .listDiff(repository,
-                      Optional.ofNullable(lastCheckedCommit), commit,
-                      config.restrictAnalysisToFolders().orElse(""));
+          final Triple<List<FileDescriptor>, List<FileDescriptor>, List<FileDescriptor>> descriptorTriple = gitRepositoryHandler
+              .listDiff(repository,
+                  Optional.ofNullable(lastCheckedCommit), commit,
+                  config.restrictAnalysisToFolders().orElse(""));
 
           final List<FileDescriptor> descriptorAddedList = descriptorTriple.right(); // NOPMD
           final List<FileDescriptor> descriptorModifiedList = descriptorTriple.left();
@@ -210,7 +209,7 @@ public class AnalysisService {
   private Optional<String> findStartCommit(final AnalysisConfig config,
       final DataExporter exporter, final String branch) {
     if (config.fetchRemoteData()) {
-      final StateData remoteState = exporter.requestStateData(
+      final StateData remoteState = exporter.getStateData(
           getUnambiguousUpstreamName(config.repoRemoteUrl()), branch,
           config.landscapeToken(), config.applicationName());
       if (remoteState.getCommitId().isEmpty() || remoteState.getCommitId().isBlank()) {
@@ -286,8 +285,8 @@ public class AnalysisService {
         // Add Git metrics for all files
         GitMetricCollector.addCommitGitMetrics(fileDataHandler, commit);
         fileDataHandler.setLandscapeToken(config.landscapeToken());
-        fileDataHandler.setCommitId(commit.getName());
-        exporter.sendFileData(fileDataHandler.getProtoBufObject());
+        fileDataHandler.setRepositoryName(config.applicationName());
+        exporter.persistFile(fileDataHandler.getProtoBufObject());
       }
     }
   }
@@ -339,11 +338,12 @@ public class AnalysisService {
     commitReportHandler.addToken(config.landscapeToken());
     commitReportHandler.setRepositoryName(config.applicationName());
 
-    exporter.sendCommitReport(commitReportHandler.getCommitData());
+    exporter.persistCommit(commitReportHandler.getCommitData());
   }
 
   /**
-   * Checks if a file is a text file by checking its MIME type. Detects text/*, application/json, and application/yaml
+   * Checks if a file is a text file by checking its MIME type. Detects text/*,
+   * application/json, and application/yaml
    * files.
    *
    * @param file the file descriptor
@@ -376,7 +376,8 @@ public class AnalysisService {
   }
 
   /**
-   * Analyzes a file and returns the appropriate handler based on file extension. Routes code files to parsers and text
+   * Analyzes a file and returns the appropriate handler based on file extension.
+   * Routes code files to parsers and text
    * files to basic metric collection.
    *
    * @param config     the analysis configuration

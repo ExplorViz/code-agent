@@ -10,19 +10,19 @@ import net.explorviz.code.proto.StateData;
 public class VoidExporter implements DataExporter {
 
   @Override
-  public StateData requestStateData(final String upstreamName, final String branchName,
+  public StateData getStateData(final String upstreamName, final String branchName,
       final String token,
       final String applicationName) {
     return StateData.newBuilder().build();
   }
 
   @Override
-  public void sendFileData(final FileData fileData) {
+  public void persistFile(final FileData fileData) {
     // DO NOTHING
   }
 
   @Override
-  public void sendCommitReport(final CommitData commitData) {
+  public void persistCommit(final CommitData commitData) {
     // DO NOTHING
   }
 
