@@ -93,16 +93,17 @@ public class AnalysisService { // NOPMD
 
     try (Repository repository = this.gitRepositoryHandler.getGitRepository(config)) {
 
-      final String branch = repository.getFullBranch();
+      final String fullBranch = repository.getFullBranch();
+      final String branch = repository.getBranch();
 
       // get fetch data from remote
-      final Optional<String> startCommit = findStartCommit(config, exporter, branch);
+      final Optional<String> startCommit = findStartCommit(config, exporter, fullBranch);
       final Optional<String> endCommit = config.fetchRemoteData() ? Optional.empty() : config.endCommit();
 
-      checkIfCommitsAreReachable(startCommit, endCommit, branch);
+      checkIfCommitsAreReachable(startCommit, endCommit, fullBranch);
 
       try (RevWalk revWalk = new RevWalk(repository)) {
-        prepareRevWalk(repository, revWalk, branch);
+        prepareRevWalk(repository, revWalk, fullBranch);
 
         int commitCount = 0;
         RevCommit lastCheckedCommit = null;
@@ -141,8 +142,7 @@ public class AnalysisService { // NOPMD
               .log("Files added: {}, files modified: {}");
 
           if (descriptorAddedList.isEmpty() && descriptorModifiedList.isEmpty()) {
-            createCommitReport(config, repository, commit, lastCheckedCommit, exporter, branch,
-                descriptorTriple, new HashMap<>()); // NOPMD
+            createCommitReport(config, repository, commit, lastCheckedCommit, exporter, branch, descriptorTriple);
 
             commitCount++;
             lastCheckedCommit = commit;
@@ -170,7 +170,7 @@ public class AnalysisService { // NOPMD
         LOGGER.atTrace().addArgument(commitCount).log("Analyzed {} commits");
       }
       // checkout the branch, so not a single commit is checked out after the run
-      Git.wrap(repository).checkout().setName(branch).call();
+      Git.wrap(repository).checkout().setName(fullBranch).call();
     }
   }
 
@@ -229,11 +229,10 @@ public class AnalysisService { // NOPMD
     DirectoryFinder.resetDirectory(config.sourceDirectory().orElse(""));
 
     Git.wrap(repository).checkout().setName(commit.getName()).call();
+    createCommitReport(config, repository, commit, lastCommit, exporter, branchName, descriptorTriple);
 
     antlrParserService.reset();
     GitMetricCollector.resetAuthor();
-
-    final Map<String, AbstractFileDataHandler> fileNameToFileDataHandlerMap = new HashMap<>();
 
     LOGGER.atTrace().addArgument(descriptorList.toString()).log("Files: {}");
 
@@ -268,19 +267,14 @@ public class AnalysisService { // NOPMD
         fileDataHandler.setLandscapeToken(config.landscapeToken());
         fileDataHandler.setCommitId(commit.getName());
         exporter.sendFileData(fileDataHandler.getProtoBufObject());
-        fileNameToFileDataHandlerMap.put(fileDescriptor.relativePath, fileDataHandler);
       }
     }
-    createCommitReport(config, repository, commit, lastCommit, exporter, branchName,
-        descriptorTriple, fileNameToFileDataHandlerMap);
-
   }
 
   private void createCommitReport(final AnalysisConfig config, final Repository repository,
       final RevCommit commit, final RevCommit lastCommit, final DataExporter exporter,
       final String branchName,
-      final Triple<List<FileDescriptor>, List<FileDescriptor>, List<FileDescriptor>> descriptorTriple,
-      final Map<String, AbstractFileDataHandler> fileNameToFileDataHandlerMap)
+      final Triple<List<FileDescriptor>, List<FileDescriptor>, List<FileDescriptor>> descriptorTriple)
       throws NotFoundException, IOException, GitAPIException {
     if (lastCommit == null) {
       commitReportHandler.init(commit.getId().getName(), null, branchName);
