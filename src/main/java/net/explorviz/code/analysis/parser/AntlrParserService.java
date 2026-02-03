@@ -24,27 +24,27 @@ public class AntlrParserService {
   public static final Logger LOGGER = LoggerFactory.getLogger(AntlrParserService.class);
 
   @ConfigProperty(name = "explorviz.gitanalysis.assume-unresolved-types-from-wildcard-imports")
-  /* default */ boolean wildcardImportProperty;  // NOCS
+  /* default */ boolean wildcardImportProperty; // NOCS
 
   public JavaFileDataHandler parseFileContent(final String fileContent, final String fileName,
-      final String commitSha) {
+      final String fileHash) {
     try {
       LOGGER.trace("Parsing file content for {}", fileName);
       final CharStream charStream = CharStreams.fromString(fileContent);
-      return parse(charStream, fileName, commitSha);
+      return parse(charStream, fileName, fileHash);
     } catch (Exception e) {
       LOGGER.error("Failed to parse file content for {}: {}", fileName, e.getMessage(), e);
       return null;
     }
   }
 
-  public JavaFileDataHandler parseFile(final String pathToFile, final String commitSha)
+  public JavaFileDataHandler parseFile(final String pathToFile, final String fileHash)
       throws IOException {
     try {
       final Path path = Path.of(pathToFile);
       LOGGER.trace("Parsing file for {}", pathToFile);
       final CharStream charStream = CharStreams.fromPath(path);
-      return parse(charStream, path.getFileName().toString(), commitSha);
+      return parse(charStream, path.getFileName().toString(), fileHash);
     } catch (IOException e) {
       LOGGER.error("Failed to read file {}: {}", pathToFile, e.getMessage());
       throw e;
@@ -55,7 +55,7 @@ public class AntlrParserService {
   }
 
   private JavaFileDataHandler parse(final CharStream charStream, final String fileName,
-      final String commitSha) {
+      final String fileHash) {
     // Create lexer and parser
     final Java20Lexer lexer = new Java20Lexer(charStream);
     final CommonTokenStream tokens = new CommonTokenStream(lexer);
@@ -66,7 +66,7 @@ public class AntlrParserService {
 
     // Create Java file data handler
     final JavaFileDataHandler fileDataHandler = new JavaFileDataHandler(fileName);
-    fileDataHandler.setCommitSha(commitSha);
+    fileDataHandler.setFileHash(fileHash);
 
     // Create and execute the listener
     final JavaFileDataListener listener = new JavaFileDataListener(fileDataHandler,
@@ -81,4 +81,3 @@ public class AntlrParserService {
     LOGGER.trace("Reset called..");
   }
 }
-

@@ -25,8 +25,7 @@ public class JsonExporter implements DataExporter {
   private int commitCount;
 
   /**
-   * Creates a JSON exporter that exports the data into folder based on the
-   * current working folder and the given
+   * Creates a JSON exporter that exports the data into folder based on the current working folder and the given
    * application name.
    *
    * @param applicationName the name of the application
@@ -69,7 +68,8 @@ public class JsonExporter implements DataExporter {
     try {
       final String resultJson = JsonFormat.printer().print(stateData);
       final String requestJson = String.format(
-          "{\n  \"upstreamName\": \"%s\",\n  \"branchName\": \"%s\",\n  \"landscapeToken\": \"%s\",\n  \"applicationName\": \"%s\"\n}",
+          "{\n  \"upstreamName\": \"%s\",\n  \"branchName\": \"%s\",\n  \"landscapeToken\": \"%s\","
+              + "\n  \"applicationName\": \"%s\"\n}",
           upstreamName, branchName, token, applicationName);
 
       final String stateFileName = "StateData_" + applicationName + JSON_FILE_EXTENSION;

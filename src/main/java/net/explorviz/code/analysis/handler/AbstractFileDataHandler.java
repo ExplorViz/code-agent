@@ -16,8 +16,8 @@ public abstract class AbstractFileDataHandler {
     return fileName;
   }
 
-  public void setCommitSha(final String commitSha) {
-    builder.setFileHash(commitSha);
+  public void setFileHash(final String fileHash) {
+    builder.setFileHash(fileHash);
   }
 
   public void setRepositoryName(final String repositoryName) {

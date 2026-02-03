@@ -48,7 +48,8 @@ public class JavaParserService {
   private ReflectionTypeSolver reflectionTypeSolver;
 
   /**
-   * Creates a new JavaParserService with only the reflectionTypeSolver, call {@link JavaParserService#reset(List)} to
+   * Creates a new JavaParserService with only the reflectionTypeSolver, call
+   * {@link JavaParserService#reset(List)} to
    * add JavaParserTypeSolvers and check in the given paths.
    */
   public JavaParserService() {
@@ -96,7 +97,8 @@ public class JavaParserService {
   }
 
   /**
-   * Resets the state of the JavaParserService, all cached values are cleared and the parser can be reused for another
+   * Resets the state of the JavaParserService, all cached values are cleared and
+   * the parser can be reused for another
    * task.
    */
   public void reset() {
@@ -121,7 +123,7 @@ public class JavaParserService {
 
   private JavaFileDataHandler parseAny(final String fileContent, final String fileName,
       final Path path,
-      final boolean calculateMetrics, final String commitSha)
+      final boolean calculateMetrics, final String fileHash)
       throws IOException {
     // ToDo: Make this configurable
     StaticJavaParser.getParserConfiguration().setLanguageLevel(LanguageLevel.JAVA_21);
@@ -145,7 +147,7 @@ public class JavaParserService {
 
     try {
       final JavaFileDataHandler dataHandler = parse(compilationUnit, fileName, calculateMetrics);
-      dataHandler.setCommitSha(commitSha);
+      dataHandler.setFileHash(fileHash);
       return dataHandler;
     } catch (NoSuchElementException e) {
       if (LOGGER.isErrorEnabled()) {
@@ -175,9 +177,9 @@ public class JavaParserService {
    * @param fileContent stringified java file
    */
   public JavaFileDataHandler parseFileContent(final String fileContent, final String fileName,
-      final boolean calculateMetrics, final String commitSha) {
+      final boolean calculateMetrics, final String fileHash) {
     try {
-      return parseAny(fileContent, fileName, null, calculateMetrics, commitSha);
+      return parseAny(fileContent, fileName, null, calculateMetrics, fileHash);
     } catch (IOException e) {
       // omit the IO Exception as the function can throw the exception only if path is
       // not null
@@ -191,9 +193,9 @@ public class JavaParserService {
    * @throws IOException Gets thrown if the file is not reachable
    */
   public JavaFileDataHandler parseFile(final String pathToFile, final boolean calculateMetrics,
-      final String commitSha) throws IOException {
+      final String fileHash) throws IOException {
     final Path path = Path.of(pathToFile);
-    return parseAny("", path.getFileName().toString(), path, calculateMetrics, commitSha);
+    return parseAny("", path.getFileName().toString(), path, calculateMetrics, fileHash);
   }
 
   private void calculateMetrics(final JavaFileDataHandler data, // NOPMD

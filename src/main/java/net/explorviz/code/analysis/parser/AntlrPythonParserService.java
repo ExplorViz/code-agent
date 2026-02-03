@@ -24,27 +24,27 @@ public class AntlrPythonParserService {
   public static final Logger LOGGER = LoggerFactory.getLogger(AntlrPythonParserService.class);
 
   @ConfigProperty(name = "explorviz.gitanalysis.assume-unresolved-types-from-wildcard-imports")
-  /* default */ boolean wildcardImportProperty;  // NOCS
+  /* default */ boolean wildcardImportProperty; // NOCS
 
   public PythonFileDataHandler parseFileContent(final String fileContent, final String fileName,
-      final String commitSha) {
+      final String fileHash) {
     try {
       LOGGER.trace("Parsing Python file content for {}", fileName);
       final CharStream charStream = CharStreams.fromString(fileContent);
-      return parse(charStream, fileName, commitSha);
+      return parse(charStream, fileName, fileHash);
     } catch (Exception e) {
       LOGGER.error("Failed to parse Python file content for {}: {}", fileName, e.getMessage(), e);
       return null;
     }
   }
 
-  public PythonFileDataHandler parseFile(final String pathToFile, final String commitSha)
+  public PythonFileDataHandler parseFile(final String pathToFile, final String fileHash)
       throws IOException {
     try {
       final Path path = Path.of(pathToFile);
       LOGGER.trace("Parsing Python file for {}", pathToFile);
       final CharStream charStream = CharStreams.fromPath(path);
-      return parse(charStream, path.getFileName().toString(), commitSha);
+      return parse(charStream, path.getFileName().toString(), fileHash);
     } catch (IOException e) {
       LOGGER.error("Failed to read Python file {}: {}", pathToFile, e.getMessage());
       throw e;
@@ -55,7 +55,7 @@ public class AntlrPythonParserService {
   }
 
   private PythonFileDataHandler parse(final CharStream charStream, final String fileName,
-      final String commitSha) {
+      final String fileHash) {
     // Create lexer and parser
     final PythonLexer lexer = new PythonLexer(charStream);
     final CommonTokenStream tokens = new CommonTokenStream(lexer);
@@ -66,7 +66,7 @@ public class AntlrPythonParserService {
 
     // Create Python file data handler
     final PythonFileDataHandler fileDataHandler = new PythonFileDataHandler(fileName);
-    fileDataHandler.setCommitSha(commitSha);
+    fileDataHandler.setFileHash(fileHash);
 
     // Create and execute the listener (pass token stream for DEDENT detection)
     final PythonFileDataListener listener = new PythonFileDataListener(fileDataHandler, tokens);
@@ -80,4 +80,3 @@ public class AntlrPythonParserService {
     LOGGER.trace("Reset called..");
   }
 }
-

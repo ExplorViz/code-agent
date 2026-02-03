@@ -23,19 +23,19 @@ public class AntlrTypeScriptParserService {
   public static final Logger LOGGER = LoggerFactory.getLogger(AntlrTypeScriptParserService.class);
 
   public TypeScriptFileDataHandler parseFileContent(final String fileContent, final String fileName,
-      final String commitSha) {
+      final String fileHash) {
     try {
       LOGGER.trace("Parsing TS/JS file content for {}", fileName);
       final CharStream charStream = CharStreams.fromString(fileContent);
       final String extension = getFileExtension(fileName);
-      return parse(charStream, fileName, commitSha, extension);
+      return parse(charStream, fileName, fileHash, extension);
     } catch (Exception e) {
       LOGGER.error("Failed to parse TS/JS file content for {}: {}", fileName, e.getMessage(), e);
       return null;
     }
   }
 
-  public TypeScriptFileDataHandler parseFile(final String pathToFile, final String commitSha)
+  public TypeScriptFileDataHandler parseFile(final String pathToFile, final String fileHash)
       throws IOException {
     try {
       final Path path = Path.of(pathToFile);
@@ -43,7 +43,7 @@ public class AntlrTypeScriptParserService {
       final CharStream charStream = CharStreams.fromPath(path);
       final String fileName = path.getFileName().toString();
       final String extension = getFileExtension(fileName);
-      return parse(charStream, fileName, commitSha, extension);
+      return parse(charStream, fileName, fileHash, extension);
     } catch (IOException e) {
       LOGGER.error("Failed to read TS/JS file {}: {}", pathToFile, e.getMessage());
       throw e;
@@ -54,7 +54,7 @@ public class AntlrTypeScriptParserService {
   }
 
   private TypeScriptFileDataHandler parse(final CharStream charStream, final String fileName,
-      final String commitSha, final String extension) {
+      final String fileHash, final String extension) {
     // Create lexer and parser
     final TypeScriptLexer lexer = new TypeScriptLexer(charStream);
     final CommonTokenStream tokens = new CommonTokenStream(lexer);
@@ -65,7 +65,7 @@ public class AntlrTypeScriptParserService {
 
     // Create TypeScript file data handler
     final TypeScriptFileDataHandler fileDataHandler = new TypeScriptFileDataHandler(fileName);
-    fileDataHandler.setCommitSha(commitSha);
+    fileDataHandler.setFileHash(fileHash);
 
     // Create and execute the listener
     final TypeScriptFileDataListener listener = new TypeScriptFileDataListener(

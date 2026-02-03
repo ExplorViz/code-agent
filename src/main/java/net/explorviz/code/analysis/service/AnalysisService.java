@@ -150,10 +150,9 @@ public class AnalysisService {
           LOGGER.atDebug().addArgument(commit.getName()).log("Analyzing commit: {}");
 
           final Triple<List<FileDescriptor>, List<FileDescriptor>, List<FileDescriptor>> descriptorTriple =
-              gitRepositoryHandler
-                  .listDiff(repository,
-                      Optional.ofNullable(lastCheckedCommit), commit,
-                      config.restrictAnalysisToFolders().orElse(""));
+              gitRepositoryHandler.listDiff(repository,
+                  Optional.ofNullable(lastCheckedCommit), commit,
+                  config.restrictAnalysisToFolders().orElse(""));
 
           final List<FileDescriptor> descriptorAddedList = descriptorTriple.right(); // NOPMD
           final List<FileDescriptor> descriptorModifiedList = descriptorTriple.left();
@@ -346,7 +345,8 @@ public class AnalysisService {
   }
 
   /**
-   * Checks if a file is a text file by checking its MIME type. Detects text/*, application/json, and application/yaml
+   * Checks if a file is a text file by checking its MIME type. Detects text/*,
+   * application/json, and application/yaml
    * files.
    *
    * @param file the file descriptor
@@ -379,7 +379,8 @@ public class AnalysisService {
   }
 
   /**
-   * Analyzes a file and returns the appropriate handler based on file extension. Routes code files to parsers and text
+   * Analyzes a file and returns the appropriate handler based on file extension.
+   * Routes code files to parsers and text
    * files to basic metric collection.
    *
    * @param config     the analysis configuration
@@ -408,7 +409,7 @@ public class AnalysisService {
             .log("Parsing TypeScript/JavaScript file: {} (size: {} bytes)");
 
         fileDataHandler = tsParserService.parseFileContent(fileContent,
-            file.relativePath, commitSha);
+            file.relativePath, file.objectId.getName());
 
         if (fileDataHandler != null) {
           // Add git metrics to the TypeScript/JavaScript file handler
@@ -429,7 +430,7 @@ public class AnalysisService {
             .log("Parsing Java file with ANTLR: {} (size: {} bytes)");
 
         // Pass relativePath instead of fileName to preserve directory structure
-        fileDataHandler = antlrParserService.parseFileContent(fileContent, file.relativePath, commitSha);
+        fileDataHandler = antlrParserService.parseFileContent(fileContent, file.relativePath, file.objectId.getName());
 
         if (fileDataHandler != null) {
           // Add git metrics to the Java file handler
@@ -450,7 +451,7 @@ public class AnalysisService {
             .log("Parsing Python file with ANTLR: {} (size: {} bytes)");
 
         // Pass relativePath instead of fileName to preserve directory structure
-        fileDataHandler = pythonParserService.parseFileContent(fileContent, file.relativePath, commitSha);
+        fileDataHandler = pythonParserService.parseFileContent(fileContent, file.relativePath, file.objectId.getName());
 
         if (fileDataHandler != null) {
           // Add git metrics to the Python file handler
@@ -470,7 +471,7 @@ public class AnalysisService {
             .log("📄 Processing detected text file: {} (size: {} bytes)");
 
         final TextFileDataHandler textHandler = new TextFileDataHandler(file.relativePath, Language.PLAINTEXT);
-        textHandler.setCommitSha(commitSha);
+        textHandler.setFileHash(file.objectId.getName());
         textHandler.calculateMetrics(fileContent);
 
         // Add git metrics
@@ -487,7 +488,7 @@ public class AnalysisService {
 
         final TextFileDataHandler genericHandler = new TextFileDataHandler(file.relativePath,
             Language.LANGUAGE_UNSPECIFIED);
-        genericHandler.setCommitSha(commitSha);
+        genericHandler.setFileHash(file.objectId.getName());
 
         // Add git metrics
         GitMetricCollector.addFileGitMetrics(genericHandler, file);
