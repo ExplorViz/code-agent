@@ -149,8 +149,8 @@ public class AnalysisService {
 
           LOGGER.atDebug().addArgument(commit.getName()).log("Analyzing commit: {}");
 
-          final Triple<List<FileDescriptor>, List<FileDescriptor>, List<FileDescriptor>> descriptorTriple =
-              gitRepositoryHandler.listDiff(repository,
+          final Triple<List<FileDescriptor>, List<FileDescriptor>, List<FileDescriptor>> descriptorTriple = gitRepositoryHandler
+              .listDiff(repository,
                   Optional.ofNullable(lastCheckedCommit), commit,
                   config.restrictAnalysisToFolders().orElse(""));
 
@@ -514,12 +514,22 @@ public class AnalysisService {
 
   private String getUnambiguousUpstreamName(final Optional<String> repoRemoteUrl) {
     if (repoRemoteUrl.isPresent()) {
-      // truncate https or anything else before the double slash
       String upstream = repoRemoteUrl.get();
+      // remove trailing slash if present
+      if (upstream.endsWith("/")) {
+        upstream = upstream.substring(0, upstream.length() - 1);
+      }
       // delete http(s):// or git@ in the front
       upstream = upstream.replaceFirst("^(https?://|.+@)", "");
       // replace potential .git ending
       upstream = upstream.replaceFirst("\\.git$", "");
+      // find the last slash or colon
+      final int lastSlash = upstream.lastIndexOf('/');
+      final int lastColon = upstream.lastIndexOf(':');
+      final int lastSeparator = Math.max(lastSlash, lastColon);
+      if (lastSeparator != -1) {
+        return upstream.substring(lastSeparator + 1);
+      }
       return upstream;
     } else {
       return "";
