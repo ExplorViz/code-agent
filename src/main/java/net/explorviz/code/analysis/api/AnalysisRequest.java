@@ -24,6 +24,7 @@ public class AnalysisRequest {
   private Integer cloneDepth;
   private String landscapeToken = "mytokenvalue";
   private String applicationName = "";
+  private String codeAnalysisExcludedFileExtensions;
 
   public AnalysisRequest() {
   }
@@ -116,6 +117,14 @@ public class AnalysisRequest {
     this.cloneDepth = cloneDepth;
   }
 
+  public String getCodeAnalysisExcludedFileExtensions() {
+    return codeAnalysisExcludedFileExtensions;
+  }
+
+  public void setCodeAnalysisExcludedFileExtensions(final String codeAnalysisExcludedFileExtensions) {
+    this.codeAnalysisExcludedFileExtensions = codeAnalysisExcludedFileExtensions;
+  }
+
   /**
    * Converts this request to an AnalysisConfig.
    *
@@ -136,7 +145,7 @@ public class AnalysisRequest {
         .cloneDepth(Optional.ofNullable(cloneDepth))
         .landscapeToken((landscapeToken != null && !landscapeToken.isBlank()) ? landscapeToken : "mytokenvalue")
         .applicationName(applicationName != null ? applicationName : "")
-
+        .codeAnalysisExcludedFileExtensions(codeAnalysisExcludedFileExtensions)
         .build();
   }
 }

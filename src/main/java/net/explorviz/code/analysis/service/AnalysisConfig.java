@@ -1,6 +1,10 @@
 package net.explorviz.code.analysis.service;
 
+import java.util.Collections;
 import java.util.Optional;
+import java.util.Set;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 /**
  * Configuration object for Git analysis operations.
@@ -9,7 +13,8 @@ public record AnalysisConfig(Optional<String> repoPath, Optional<String> repoRem
                              Optional<String> gitPassword, Optional<String> branch, Optional<String> sourceDirectory,
                              Optional<String> restrictAnalysisToFolders, boolean calculateMetrics,
                              Optional<String> startCommit, Optional<String> endCommit, Optional<Integer> cloneDepth,
-                             String landscapeToken, String applicationName) {
+                             String landscapeToken, String applicationName,
+                             Set<String> codeAnalysisExcludedFileExtensions) {
 
   /**
    * Builder for AnalysisConfig.
@@ -28,6 +33,7 @@ public record AnalysisConfig(Optional<String> repoPath, Optional<String> repoRem
     private Optional<Integer> cloneDepth = Optional.empty();
     private String landscapeToken = "";
     private String applicationName = "";
+    private Set<String> codeAnalysisExcludedFileExtensions = Collections.emptySet();
 
     public Builder repoPath(final Optional<String> repoPath) {
       this.repoPath = repoPath;
@@ -94,6 +100,19 @@ public record AnalysisConfig(Optional<String> repoPath, Optional<String> repoRem
       return this;
     }
 
+    public Builder codeAnalysisExcludedFileExtensions(final String extensions) {
+      if (extensions == null || extensions.isBlank()) {
+        this.codeAnalysisExcludedFileExtensions = Collections.emptySet();
+      } else {
+        this.codeAnalysisExcludedFileExtensions = Stream.of(extensions.split(","))
+            .map(String::trim)
+            .filter(s -> !s.isEmpty())
+            .map(String::toLowerCase)
+            .collect(Collectors.toUnmodifiableSet());
+      }
+      return this;
+    }
+
     public AnalysisConfig build() {
       return new AnalysisConfig(
           repoPath,
@@ -108,7 +127,8 @@ public record AnalysisConfig(Optional<String> repoPath, Optional<String> repoRem
           endCommit,
           cloneDepth,
           landscapeToken,
-          applicationName);
+          applicationName,
+          codeAnalysisExcludedFileExtensions);
     }
   }
 }

@@ -73,6 +73,9 @@ public class GitAnalysis { // NOPMD
   @ConfigProperty(name = "explorviz.gitanalysis.application-name")
   /* default */ String applicationNameProperty; // NOCS
 
+  @ConfigProperty(name = "explorviz.gitanalysis.code-analysis-excluded-file-extensions", defaultValue = "")
+  /* default */ Optional<String> codeAnalysisExcludedFileExtensionsProperty; // NOCS
+
   @Inject
   /* package */ GrpcExporter grpcExporter; // NOCS
 
@@ -98,7 +101,7 @@ public class GitAnalysis { // NOPMD
         .endCommit(endCommitProperty)
         .landscapeToken(landscapeTokenProperty)
         .applicationName(applicationNameProperty)
-
+        .codeAnalysisExcludedFileExtensions(codeAnalysisExcludedFileExtensionsProperty.orElse(""))
         .build();
   }
 

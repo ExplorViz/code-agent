@@ -378,6 +378,18 @@ public class AnalysisService {
     return false;
   }
 
+  private boolean isCodeAnalysisExcludedFile(final String fileName, final Set<String> extensions) {
+    if (extensions == null || extensions.isEmpty()) {
+      return false;
+    }
+    for (final String ext : extensions) {
+      if (fileName.endsWith(ext)) {
+        return true;
+      }
+    }
+    return false;
+  }
+
   /**
    * Analyzes a file and returns the appropriate handler based on file extension.
    * Routes code files to parsers and text
@@ -398,6 +410,23 @@ public class AnalysisService {
 
     try {
       AbstractFileDataHandler fileDataHandler = null;
+
+      // check if the file is excluded from code analysis
+      if (isCodeAnalysisExcludedFile(fileName, config.codeAnalysisExcludedFileExtensions())) {
+        LOGGER.atInfo()
+            .addArgument(file.relativePath)
+            .addArgument(fileContent.length())
+            .log("{} is excluded from code analysis. Doing shallow analysis only.");
+
+        final TextFileDataHandler shallowHandler = new TextFileDataHandler(file.relativePath,
+            Language.PLAINTEXT);
+        shallowHandler.setFileHash(file.objectId.getName());
+        shallowHandler.calculateMetrics(fileContent);
+
+        GitMetricCollector.addFileGitMetrics(shallowHandler, file);
+
+        return shallowHandler;
+      }
 
       // Route to appropriate parser based on file extension
       if (fileName.endsWith(".ts") || fileName.endsWith(".tsx")
