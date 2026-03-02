@@ -2,8 +2,10 @@ package net.explorviz.code.analysis.api;
 
 import jakarta.inject.Inject;
 import jakarta.ws.rs.Consumes;
+import jakarta.ws.rs.GET;
 import jakarta.ws.rs.POST;
 import jakarta.ws.rs.Path;
+import jakarta.ws.rs.PathParam;
 import jakarta.ws.rs.Produces;
 import jakarta.ws.rs.core.MediaType;
 import jakarta.ws.rs.core.Response;
@@ -12,6 +14,7 @@ import net.explorviz.code.analysis.export.GrpcExporter;
 import net.explorviz.code.analysis.export.JsonExporter;
 import net.explorviz.code.analysis.service.AnalysisConfig;
 import net.explorviz.code.analysis.service.ConcurrentAnalysisService;
+import net.explorviz.code.analysis.service.AnalysisStatusService;
 import org.eclipse.microprofile.config.inject.ConfigProperty;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -32,6 +35,9 @@ public class AnalysisResource {
 
   @Inject
   /* default */ GrpcExporter grpcExporter; // NOCS
+
+  @Inject
+  /* default */ AnalysisStatusService analysisStatusService; // NOCS
 
   /**
    * Triggers a Git repository analysis with the provided configuration. The request is queued and processed
@@ -57,6 +63,9 @@ public class AnalysisResource {
           : (request.getRepoRemoteUrl() != null ? request.getRepoRemoteUrl() : "unknown");
       LOGGER.info("📥 Received analysis request for repository: {}", repoInfo);
 
+      final String landscapeToken = request.getLandscapeToken();
+      analysisStatusService.markPending(landscapeToken);
+
       final AnalysisConfig config = request.toConfig();
 
       final DataExporter exporter;
@@ -70,9 +79,11 @@ public class AnalysisResource {
       analysisService.analyzeAndSendRepoAsync(config, exporter)
           .whenComplete((result, error) -> {
             if (error != null) {
+              analysisStatusService.markFailed(landscapeToken);
               LOGGER.error("❌ Async analysis failed for {}: {}",
                   repoInfo, error.getMessage());
             } else {
+              analysisStatusService.markFinished(landscapeToken);
               LOGGER.info("✅ Async analysis completed for {}", repoInfo);
             }
           });
@@ -88,5 +99,16 @@ public class AnalysisResource {
           .entity("Failed to queue analysis request: " + e.getMessage())
           .build();
     }
+  }
+
+  @GET
+  @Path("/status/{landscapeToken}")
+  @Produces(MediaType.TEXT_PLAIN)
+  public Response getStatusByLandscapeToken(@PathParam("landscapeToken") final String landscapeToken) {
+    return analysisStatusService.getStatus(landscapeToken)
+        .map(status -> Response.ok(status).build())
+        .orElseGet(() -> Response.status(Response.Status.NOT_FOUND)
+            .entity("No analysis status found for landscapeToken=" + landscapeToken)
+            .build());
   }
 }
