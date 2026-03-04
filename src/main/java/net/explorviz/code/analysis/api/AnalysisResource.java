@@ -9,6 +9,8 @@ import jakarta.ws.rs.PathParam;
 import jakarta.ws.rs.Produces;
 import jakarta.ws.rs.core.MediaType;
 import jakarta.ws.rs.core.Response;
+import jakarta.ws.rs.sse.Sse;
+import jakarta.ws.rs.sse.SseEventSink;
 import net.explorviz.code.analysis.export.DataExporter;
 import net.explorviz.code.analysis.export.GrpcExporter;
 import net.explorviz.code.analysis.export.JsonExporter;
@@ -122,5 +124,14 @@ public class AnalysisResource {
         .orElseGet(() -> Response.status(Response.Status.NOT_FOUND)
             .entity("No analysis state found for landscapeToken=" + landscapeToken)
             .build());
+  }
+
+  @GET
+  @Path("/state/stream/{landscapeToken}")
+  @Produces(MediaType.SERVER_SENT_EVENTS)
+  public void streamStateByLandscapeToken(@PathParam("landscapeToken") final String landscapeToken,
+      final SseEventSink eventSink,
+      final Sse sse) {
+    analysisStatusService.subscribeToStateUpdates(landscapeToken, eventSink, sse);
   }
 }
