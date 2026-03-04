@@ -306,6 +306,9 @@ public class AnalysisService {
 
     for (final FileDescriptor fileDescriptor : descriptorList) {
       try {
+        analysisStatusService.setCurrentAnalyzingFile(config.landscapeToken(),
+            fileDescriptor.relativePath);
+
         LOGGER.atInfo()
             .addArgument(fileDescriptor.relativePath)
             .log("📄 Analyzing file: {}");

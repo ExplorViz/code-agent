@@ -29,26 +29,35 @@ public class AnalysisStatusService {
     upsertState(landscapeToken, current -> {
       final AnalysisProgressState previous = current == null ? emptyState(STATUS_PENDING) : current;
       return new AnalysisProgressState(STATUS_RUNNING, totalCommits, previous.analyzedCommits(),
-          totalFiles, previous.analyzedFiles());
+          totalFiles, previous.analyzedFiles(), previous.currentAnalysingFile());
     });
   }
 
   public void incrementAnalyzedCommit(final String landscapeToken) {
     updateExistingState(landscapeToken, state ->
       new AnalysisProgressState(state.status(), state.totalCommits(),
-          state.analyzedCommits() + 1, state.totalFiles(), state.analyzedFiles()));
+          state.analyzedCommits() + 1, state.totalFiles(), state.analyzedFiles(),
+          state.currentAnalysingFile()));
   }
 
   public void setCurrentCommitFiles(final String landscapeToken, final int totalFiles) {
     updateExistingState(landscapeToken, state ->
       new AnalysisProgressState(state.status(), state.totalCommits(),
-          state.analyzedCommits(), Math.max(0, totalFiles), 0));
+          state.analyzedCommits(), Math.max(0, totalFiles), 0, null));
+  }
+
+  public void setCurrentAnalyzingFile(final String landscapeToken, final String currentAnalysingFile) {
+    updateExistingState(landscapeToken, state ->
+      new AnalysisProgressState(state.status(), state.totalCommits(),
+          state.analyzedCommits(), state.totalFiles(), state.analyzedFiles(),
+          currentAnalysingFile));
   }
 
   public void incrementAnalyzedFile(final String landscapeToken) {
     updateExistingState(landscapeToken, state ->
       new AnalysisProgressState(state.status(), state.totalCommits(),
-          state.analyzedCommits(), state.totalFiles(), state.analyzedFiles() + 1));
+          state.analyzedCommits(), state.totalFiles(), state.analyzedFiles() + 1,
+          state.currentAnalysingFile()));
   }
 
   public void markFinished(final String landscapeToken) {
@@ -57,7 +66,7 @@ public class AnalysisStatusService {
         return emptyState(STATUS_FINISHED);
       }
       return new AnalysisProgressState(STATUS_FINISHED, current.totalCommits(),
-          current.totalCommits(), current.totalFiles(), current.totalFiles());
+          current.totalCommits(), current.totalFiles(), current.totalFiles(), null);
     });
   }
 
@@ -67,7 +76,8 @@ public class AnalysisStatusService {
         return emptyState(STATUS_FAILED);
       }
       return new AnalysisProgressState(STATUS_FAILED, current.totalCommits(),
-          current.analyzedCommits(), current.totalFiles(), current.analyzedFiles());
+          current.analyzedCommits(), current.totalFiles(), current.analyzedFiles(),
+          current.currentAnalysingFile());
     });
   }
 
@@ -92,7 +102,7 @@ public class AnalysisStatusService {
   }
 
   private AnalysisProgressState emptyState(final String status) {
-    return new AnalysisProgressState(status, 0, 0, 0, 0);
+    return new AnalysisProgressState(status, 0, 0, 0, 0, null);
   }
 
   private String normalizeToken(final String landscapeToken) {

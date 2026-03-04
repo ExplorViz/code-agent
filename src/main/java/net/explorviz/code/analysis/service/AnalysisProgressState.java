@@ -8,5 +8,6 @@ public record AnalysisProgressState(
     int totalCommits,
     int analyzedCommits,
     int totalFiles,
-    int analyzedFiles) {
+    int analyzedFiles,
+    String currentAnalysingFile) {
 }
