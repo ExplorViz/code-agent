@@ -90,6 +90,8 @@ public class AnalysisService {
   /* package */ AntlrPythonParserService pythonParserService;
   @Inject
   /* package */ CommitReportHandler commitReportHandler;
+  @Inject
+  /* package */ AnalysisStatusService analysisStatusService;
   @ConfigProperty(name = "explorviz.gitanalysis.save-crashed_files")
   /* default */ boolean saveCrashedFilesProperty;
 
@@ -122,6 +124,10 @@ public class AnalysisService {
       final Optional<String> endCommit = exporter.isRemote() ? Optional.empty() : config.endCommit();
 
       checkIfCommitsAreReachable(startCommit, endCommit, fullBranch);
+
+      final int totalCommits = countCommitsInRange(repository, fullBranch, startCommit, endCommit, exporter.isRemote());
+      LOGGER.info("Total commits to analyze: {}", totalCommits);
+      analysisStatusService.markRunning(config.landscapeToken(), totalCommits, 0);
 
       try (RevWalk revWalk = new RevWalk(repository)) {
         prepareRevWalk(repository, revWalk, fullBranch);
@@ -161,10 +167,14 @@ public class AnalysisService {
               .addArgument(descriptorModifiedList.size())
               .log("Files added: {}, files modified: {}");
 
+            analysisStatusService.setCurrentCommitFiles(config.landscapeToken(),
+              descriptorAddedList.size() + descriptorModifiedList.size());
+
           if (descriptorAddedList.isEmpty() && descriptorModifiedList.isEmpty()) {
             createCommitReport(config, repository, commit, lastCheckedCommit, exporter, branch, descriptorTriple);
 
             commitCount++;
+            analysisStatusService.incrementAnalyzedCommit(config.landscapeToken());
             lastCheckedCommit = commit;
             if (endCommit.isPresent() && commit.name().equals(endCommit.get())) {
               break;
@@ -180,6 +190,8 @@ public class AnalysisService {
               branch, descriptorTriple);
 
           commitCount++;
+          analysisStatusService.incrementAnalyzedCommit(config.landscapeToken());
+
           lastCheckedCommit = commit;
           // break if endCommit is reached, if endCommit is empty, run for all commits
           if (endCommit.isPresent() && commit.name().equals(endCommit.get())) {
@@ -229,6 +241,37 @@ public class AnalysisService {
     }
   }
 
+  private int countCommitsInRange(final Repository repository, final String fullBranch,
+      final Optional<String> startCommit, final Optional<String> endCommit,
+      final boolean remoteExport) throws IOException {
+    try (RevWalk revWalk = new RevWalk(repository)) {
+      prepareRevWalk(repository, revWalk, fullBranch);
+
+      int totalCommits = 0;
+      boolean inAnalysisRange = startCommit.isEmpty() || "".equals(startCommit.get());
+
+      for (final RevCommit commit : revWalk) {
+        if (!inAnalysisRange) {
+          if (commit.name().equals(startCommit.get())) {
+            inAnalysisRange = true;
+            if (remoteExport) {
+              continue;
+            }
+          } else {
+            continue;
+          }
+        }
+
+        totalCommits++;
+        if (endCommit.isPresent() && commit.name().equals(endCommit.get())) {
+          break;
+        }
+      }
+
+      return totalCommits;
+    }
+  }
+
   private void prepareRevWalk(final Repository repository, final RevWalk revWalk,
       final String branch) throws IOException {
     revWalk.sort(RevSort.COMMIT_TIME_DESC, true);
@@ -262,34 +305,38 @@ public class AnalysisService {
     LOGGER.atTrace().addArgument(descriptorList.toString()).log("Files: {}");
 
     for (final FileDescriptor fileDescriptor : descriptorList) {
-      LOGGER.atInfo()
-          .addArgument(fileDescriptor.relativePath)
-          .log("📄 Analyzing file: {}");
-
-      final AbstractFileDataHandler fileDataHandler = fileAnalysis(config, repository, fileDescriptor,
-          commit.getName());
-
-      if (fileDataHandler == null) {
-        LOGGER.atError()
-            .addArgument(fileDescriptor.relativePath)
-            .log("❌ Analysis of file {} failed - handler is NULL");
-      } else {
+      try {
         LOGGER.atInfo()
             .addArgument(fileDescriptor.relativePath)
-            .log("✅ Analysis of file {} succeeded - sending to exporter");
-        try {
-          File file = new File(GitRepositoryHandler.getCurrentRepositoryPath() + "/"
-              + fileDescriptor.relativePath);
-          fileDataHandler.addMetric(FileDataVisitor.FILE_SIZE, String.valueOf(file.length()));
-        } catch (NullPointerException e) {
-          LOGGER.error("File size of file " + fileDescriptor.relativePath
-              + " could not be analyzed." + e.getMessage());
+            .log("📄 Analyzing file: {}");
+
+        final AbstractFileDataHandler fileDataHandler = fileAnalysis(config, repository, fileDescriptor,
+            commit.getName());
+
+        if (fileDataHandler == null) {
+          LOGGER.atError()
+              .addArgument(fileDescriptor.relativePath)
+              .log("❌ Analysis of file {} failed - handler is NULL");
+        } else {
+          LOGGER.atInfo()
+              .addArgument(fileDescriptor.relativePath)
+              .log("✅ Analysis of file {} succeeded - sending to exporter");
+          try {
+            File file = new File(GitRepositoryHandler.getCurrentRepositoryPath() + "/"
+                + fileDescriptor.relativePath);
+            fileDataHandler.addMetric(FileDataVisitor.FILE_SIZE, String.valueOf(file.length()));
+          } catch (NullPointerException e) {
+            LOGGER.error("File size of file " + fileDescriptor.relativePath
+                + " could not be analyzed." + e.getMessage());
+          }
+          // Add Git metrics for all files
+          GitMetricCollector.addCommitGitMetrics(fileDataHandler, commit);
+          fileDataHandler.setLandscapeToken(config.landscapeToken());
+          fileDataHandler.setRepositoryName(getUnambiguousUpstreamName(config.repoRemoteUrl()));
+          exporter.persistFile(fileDataHandler.getProtoBufObject());
         }
-        // Add Git metrics for all files
-        GitMetricCollector.addCommitGitMetrics(fileDataHandler, commit);
-        fileDataHandler.setLandscapeToken(config.landscapeToken());
-        fileDataHandler.setRepositoryName(getUnambiguousUpstreamName(config.repoRemoteUrl()));
-        exporter.persistFile(fileDataHandler.getProtoBufObject());
+      } finally {
+        analysisStatusService.incrementAnalyzedFile(config.landscapeToken());
       }
     }
   }

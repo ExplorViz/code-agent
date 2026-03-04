@@ -14,6 +14,7 @@ import net.explorviz.code.analysis.export.GrpcExporter;
 import net.explorviz.code.analysis.export.JsonExporter;
 import net.explorviz.code.analysis.service.AnalysisConfig;
 import net.explorviz.code.analysis.service.ConcurrentAnalysisService;
+import net.explorviz.code.analysis.service.AnalysisProgressState;
 import net.explorviz.code.analysis.service.AnalysisStatusService;
 import org.eclipse.microprofile.config.inject.ConfigProperty;
 import org.slf4j.Logger;
@@ -109,6 +110,17 @@ public class AnalysisResource {
         .map(status -> Response.ok(status).build())
         .orElseGet(() -> Response.status(Response.Status.NOT_FOUND)
             .entity("No analysis status found for landscapeToken=" + landscapeToken)
+            .build());
+  }
+
+  @GET
+  @Path("/state/{landscapeToken}")
+  @Produces(MediaType.APPLICATION_JSON)
+  public Response getStateByLandscapeToken(@PathParam("landscapeToken") final String landscapeToken) {
+    return analysisStatusService.getState(landscapeToken)
+        .map(state -> Response.ok(state).build())
+        .orElseGet(() -> Response.status(Response.Status.NOT_FOUND)
+            .entity("No analysis state found for landscapeToken=" + landscapeToken)
             .build());
   }
 }
