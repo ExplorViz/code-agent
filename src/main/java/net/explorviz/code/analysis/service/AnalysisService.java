@@ -455,7 +455,14 @@ public class AnalysisService {
   private AbstractFileDataHandler fileAnalysis(final AnalysisConfig config,
       final Repository repository, final FileDescriptor file, final String commitSha)
       throws IOException {
-    final String fileContent = GitRepositoryHandler.getContent(file.objectId, repository);
+    final String fileContent;
+    try {
+      fileContent = GitRepositoryHandler.getContent(file.objectId, repository);
+    } catch (Exception e) {
+      // skipping unreadable files
+      return null;
+    }
+
     final String fileName = file.fileName.toLowerCase();
 
     try {
