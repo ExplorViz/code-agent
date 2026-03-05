@@ -12,7 +12,7 @@ import java.util.function.Function;
 import org.jboss.logging.Logger;
 
 /**
- * In-memory status tracking for analysis jobs
+ * In-memory status tracking for analysis jobs.
  */
 @ApplicationScoped
 public class AnalysisStatusService {

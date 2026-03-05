@@ -155,9 +155,11 @@ public class AnalysisService {
 
           LOGGER.atDebug().addArgument(commit.getName()).log("Analyzing commit: {}");
 
-          final Triple<List<FileDescriptor>, List<FileDescriptor>, List<FileDescriptor>> descriptorTriple = gitRepositoryHandler
-              .listDiff(repository,
-                  Optional.ofNullable(lastCheckedCommit), commit,
+          final Triple<List<FileDescriptor>, List<FileDescriptor>,
+              List<FileDescriptor>> descriptorTriple = gitRepositoryHandler.listDiff(
+                  repository,
+                  Optional.ofNullable(lastCheckedCommit),
+                  commit,
                   config.restrictAnalysisToFolders().orElse(""));
 
           final List<FileDescriptor> descriptorAddedList = descriptorTriple.right(); // NOPMD
@@ -167,7 +169,7 @@ public class AnalysisService {
               .addArgument(descriptorModifiedList.size())
               .log("Files added: {}, files modified: {}");
 
-            analysisStatusService.setCurrentCommitFiles(config.landscapeToken(),
+          analysisStatusService.setCurrentCommitFiles(config.landscapeToken(),
               descriptorAddedList.size() + descriptorModifiedList.size());
 
           if (descriptorAddedList.isEmpty() && descriptorModifiedList.isEmpty()) {
