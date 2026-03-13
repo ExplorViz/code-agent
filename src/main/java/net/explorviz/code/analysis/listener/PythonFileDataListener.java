@@ -13,7 +13,7 @@ import org.slf4j.LoggerFactory;
 /**
  * ANTLR Listener for extracting file data from Python source code.
  */
-public class PythonFileDataListener extends PythonParserBaseListener {
+public class PythonFileDataListener extends PythonParserBaseListener implements CommonFileDataListener {
 
   public static final String FILE_SIZE = "size";
   public static final String LOC = "loc";
@@ -74,6 +74,18 @@ public class PythonFileDataListener extends PythonParserBaseListener {
       final var classData = fileDataHandler.getCurrentClassData();
       if (classData != null) {
         classData.addMetric(LOC, String.valueOf(classLoc));
+
+        // Extract superclasses
+        if (ctx.arglist() != null) {
+          for (final PythonParser.ArgumentContext argCtx : ctx.arglist().argument()) {
+            if (argCtx.ASSIGN() == null && argCtx.comp_for() == null && argCtx.POWER() == null
+                && argCtx.STAR() == null) {
+              final String superClassFqn = argCtx.getText();
+              classData.setSuperClass(getClassPathFromFqn(superClassFqn, ".py", fileDataHandler.getFileName(),
+                  fileDataHandler.getPackageName()) + "::" + getClassNameFromFqn(superClassFqn));
+            }
+          }
+        }
       }
     }
   }
@@ -165,25 +177,5 @@ public class PythonFileDataListener extends PythonParserBaseListener {
           .addArgument(functionName)
           .log("Global function: {}");
     }
-  }
-
-  /**
-   * Calculate lines of code for a given context.
-   */
-  private int calculateLoc(final ParserRuleContext ctx) {
-    if (ctx == null || ctx.start == null || ctx.stop == null) {
-      return 0;
-    }
-    return ctx.stop.getLine() - ctx.start.getLine() + 1;
-  }
-
-  /**
-   * Get total lines of code.
-   */
-  private int getLoc(final ParserRuleContext ctx) {
-    if (ctx == null || ctx.stop == null) {
-      return 0;
-    }
-    return ctx.stop.getLine();
   }
 }

@@ -17,7 +17,7 @@ import org.slf4j.LoggerFactory;
  * ANTLR Listener-based implementation for extracting file data from Java source
  * code.
  */
-public class JavaFileDataListener extends Java20ParserBaseListener {
+public class JavaFileDataListener extends Java20ParserBaseListener implements CommonFileDataListener {
 
   public static final String FILE_SIZE = "size";
   public static final String LOC = "loc";
@@ -116,7 +116,8 @@ public class JavaFileDataListener extends Java20ParserBaseListener {
     if (ctx.classExtends() != null && ctx.classExtends().classType() != null) {
       final String superClassFqn = getClassType(ctx.classExtends().classType());
       fileDataHandler.getCurrentClassData()
-          .setSuperClass(getClassPathFromFqn(superClassFqn) + "::" + getClassNameFromFqn(superClassFqn));
+          .setSuperClass(getClassPathFromFqn(superClassFqn, ".java", fileDataHandler.getFileName(),
+              fileDataHandler.getPackageName()) + "::" + getClassNameFromFqn(superClassFqn));
     }
 
     // Handle implements
@@ -625,72 +626,9 @@ public class JavaFileDataListener extends Java20ParserBaseListener {
         "boolean", "char", "void").contains(type);
   }
 
-  private int getLoc(final ParserRuleContext ctx) {
-    if (ctx.getStart() != null && ctx.getStop() != null) {
-      final int startLine = ctx.getStart().getLine();
-      final int endLine = ctx.getStop().getLine();
-      return endLine - startLine + 1;
-    }
-    return 0;
-  }
-
   private int getCloc(final ParserRuleContext ctx) {
     // Simplified comment counting
     // In a full implementation, you'd need to access the token stream
     return 0; // TODO: Implement proper comment counting
-  }
-
-  private String getClassPathFromFqn(final String fqn) {
-    if (fqn == null || fqn.isEmpty()) {
-      return "unknown/file";
-    }
-
-    String baseFqn = fqn;
-
-    // Clean up fqn to prepare for path conversion
-    final int genericIdx = baseFqn.indexOf('<');
-    if (genericIdx != -1) {
-      baseFqn = baseFqn.substring(0, genericIdx);
-    }
-    baseFqn = baseFqn.replace("[]", "");
-
-    // Convert fqn to path
-    final int lastDot = baseFqn.lastIndexOf('.');
-    final String fqnPath;
-    if (lastDot != -1) {
-      fqnPath = baseFqn.replace('.', '/') + ".java";
-    } else {
-      fqnPath = baseFqn + ".java";
-    }
-
-    // Use current file path to best guess path prefix of given class
-    String pathPrefix = "";
-    final String currentFilePath = fileDataHandler.getFileName();
-    final String currentPackage = fileDataHandler.getPackageName();
-    if (currentFilePath != null && currentPackage != null && !currentPackage.isEmpty()) {
-      final String packagePath = currentPackage.replace('.', '/');
-      final int packageIdx = currentFilePath.lastIndexOf(packagePath);
-      if (packageIdx != -1) {
-        pathPrefix = currentFilePath.substring(0, packageIdx);
-      }
-    } else if (currentFilePath != null && currentFilePath.contains("/")) {
-      pathPrefix = currentFilePath.substring(0, currentFilePath.lastIndexOf("/") + 1);
-    }
-
-    // Return best guess path for given fqn
-    return pathPrefix + fqnPath;
-  }
-
-  private String getClassNameFromFqn(final String fqn) {
-    if (fqn == null || fqn.isEmpty()) {
-      return "unknown";
-    }
-
-    final int lastDot = fqn.lastIndexOf('.');
-    if (lastDot != -1) {
-      return fqn.substring(lastDot + 1);
-    }
-
-    return fqn;
   }
 }

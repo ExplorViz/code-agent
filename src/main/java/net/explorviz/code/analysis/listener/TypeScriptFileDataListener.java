@@ -9,9 +9,10 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 /**
- * ANTLR Listener for extracting file data from TypeScript/JavaScript source code.
+ * ANTLR Listener for extracting file data from TypeScript/JavaScript source
+ * code.
  */
-public class TypeScriptFileDataListener extends TypeScriptParserBaseListener {
+public class TypeScriptFileDataListener extends TypeScriptParserBaseListener implements CommonFileDataListener {
 
   public static final String FILE_SIZE = "size";
   public static final String LOC = "loc";
@@ -76,6 +77,12 @@ public class TypeScriptFileDataListener extends TypeScriptParserBaseListener {
       final var classData = fileDataHandler.getCurrentClassData();
       if (classData != null) {
         classData.addMetric(LOC, String.valueOf(classLoc));
+
+        if (ctx.classHeritage() != null && ctx.classHeritage().classExtendsClause() != null) {
+          final String superClassFqn = ctx.classHeritage().classExtendsClause().typeReference().getText();
+          classData.setSuperClass(getClassPathFromFqn(superClassFqn, fileExtension, fileDataHandler.getFileName(),
+              fileDataHandler.getPackageName()) + "::" + getClassNameFromFqn(superClassFqn));
+        }
       }
     }
   }
@@ -101,6 +108,16 @@ public class TypeScriptFileDataListener extends TypeScriptParserBaseListener {
         // Calculate interface LOC
         final int interfaceLoc = calculateLoc(ctx);
         classData.addMetric(LOC, String.valueOf(interfaceLoc));
+
+        if (ctx.interfaceExtendsClause() != null) {
+          for (final TypeScriptParser.TypeReferenceContext typeRef : ctx.interfaceExtendsClause()
+              .classOrInterfaceTypeList().typeReference()) {
+            final String superClassFqn = typeRef.getText();
+            classData.addImplementedInterface(
+                getClassPathFromFqn(superClassFqn, fileExtension, fileDataHandler.getFileName(),
+                    fileDataHandler.getPackageName()) + "::" + getClassNameFromFqn(superClassFqn));
+          }
+        }
       }
 
       LOGGER.atTrace()
@@ -126,8 +143,7 @@ public class TypeScriptFileDataListener extends TypeScriptParserBaseListener {
 
       final var classData = fileDataHandler.getCurrentClassData();
       if (classData != null) {
-        final var methodData =
-            classData.addMethod(methodFqn, "void"); // TODO: Extract actual return type
+        final var methodData = classData.addMethod(methodFqn, "void"); // TODO: Extract actual return type
 
         // Set method location
         if (ctx.start != null && ctx.stop != null) {
@@ -274,10 +290,13 @@ public class TypeScriptFileDataListener extends TypeScriptParserBaseListener {
   }
 
   /**
-   * Extract the name of an arrow function from its parent context. Arrow functions are often assigned to variables:
+   * Extract the name of an arrow function from its parent context. Arrow
+   * functions are often assigned to variables:
    * const foo = () => {}
    *
-   * <p>For now, we use a simple heuristic: try to extract text from nearby identifiers
+   * <p>
+   * For now, we use a simple heuristic: try to extract text from nearby
+   * identifiers
    */
   private String extractArrowFunctionName(
       final TypeScriptParser.ArrowFunctionDeclarationContext ctx) {
@@ -308,27 +327,8 @@ public class TypeScriptFileDataListener extends TypeScriptParserBaseListener {
   }
 
   /**
-   * Calculate lines of code for a given context.
-   */
-  private int calculateLoc(final ParserRuleContext ctx) {
-    if (ctx == null || ctx.start == null || ctx.stop == null) {
-      return 0;
-    }
-    return ctx.stop.getLine() - ctx.start.getLine() + 1;
-  }
-
-  /**
-   * Get total lines of code.
-   */
-  private int getLoc(final ParserRuleContext ctx) {
-    if (ctx == null || ctx.stop == null) {
-      return 0;
-    }
-    return ctx.stop.getLine();
-  }
-
-  /**
-   * Get comment lines of code by counting tokens on the hidden channel. ANTLR places comments on a hidden channel, so
+   * Get comment lines of code by counting tokens on the hidden channel. ANTLR
+   * places comments on a hidden channel, so
    * we need to extract them from there.
    */
   private int getCloc(final ParserRuleContext ctx) {
@@ -362,5 +362,4 @@ public class TypeScriptFileDataListener extends TypeScriptParserBaseListener {
 
     return commentLines;
   }
-
 }
