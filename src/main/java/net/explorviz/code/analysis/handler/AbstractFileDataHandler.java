@@ -24,6 +24,10 @@ public abstract class AbstractFileDataHandler {
     builder.setRepositoryName(repositoryName);
   }
 
+  public String getPackageName() {
+    return builder.getPackageName();
+  }
+
   public void setPackageName(final String packageName) {
     builder.setPackageName(packageName);
   }
