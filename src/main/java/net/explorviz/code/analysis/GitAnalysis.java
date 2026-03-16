@@ -125,10 +125,11 @@ public class GitAnalysis { // NOPMD
       return;
     }
     DataExporter exporter;
+    final AnalysisConfig config = createConfig();
     if (sendToRemoteProperty) {
       exporter = grpcExporter;
     } else {
-      exporter = new JsonExporter(applicationNameProperty);
+      exporter = new JsonExporter(config.getRepositoryName(), applicationNameProperty);
     }
     analyzeAndSendRepo(exporter);
 

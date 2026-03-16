@@ -155,15 +155,15 @@ public class AnalysisService {
 
           LOGGER.atDebug().addArgument(commit.getName()).log("Analyzing commit: {}");
 
-          final Triple<List<FileDescriptor>, List<FileDescriptor>,
-              List<FileDescriptor>> descriptorTriple = gitRepositoryHandler.listDiff(
+          final var descTriple = gitRepositoryHandler
+              .listDiff(
                   repository,
                   Optional.ofNullable(lastCheckedCommit),
                   commit,
                   config.restrictAnalysisToFolders().orElse(""));
 
-          final List<FileDescriptor> descriptorAddedList = descriptorTriple.right(); // NOPMD
-          final List<FileDescriptor> descriptorModifiedList = descriptorTriple.left();
+          final List<FileDescriptor> descriptorAddedList = descTriple.right(); // NOPMD
+          final List<FileDescriptor> descriptorModifiedList = descTriple.left();
 
           LOGGER.atDebug().addArgument(descriptorAddedList.size())
               .addArgument(descriptorModifiedList.size())
@@ -173,7 +173,7 @@ public class AnalysisService {
               descriptorAddedList.size() + descriptorModifiedList.size());
 
           if (descriptorAddedList.isEmpty() && descriptorModifiedList.isEmpty()) {
-            createCommitReport(config, repository, commit, lastCheckedCommit, exporter, branch, descriptorTriple);
+            createCommitReport(config, repository, commit, lastCheckedCommit, exporter, branch, descTriple);
 
             commitCount++;
             analysisStatusService.incrementAnalyzedCommit(config.landscapeToken());
@@ -189,7 +189,7 @@ public class AnalysisService {
           descriptorList.addAll(descriptorModifiedList);
 
           commitAnalysis(config, repository, commit, lastCheckedCommit, descriptorList, exporter,
-              branch, descriptorTriple);
+              branch, descTriple);
 
           commitCount++;
           analysisStatusService.incrementAnalyzedCommit(config.landscapeToken());
@@ -221,7 +221,7 @@ public class AnalysisService {
   private Optional<String> findStartCommit(final AnalysisConfig config,
       final DataExporter exporter, final String branch) {
     final StateData remoteState = exporter.getStateData(
-        getUnambiguousUpstreamName(config.repoRemoteUrl()), branch,
+        config.getRepositoryName(), branch,
         config.landscapeToken(), config.applicationName());
     if (exporter.isRemote()) {
 
@@ -337,7 +337,7 @@ public class AnalysisService {
           // Add Git metrics for all files
           GitMetricCollector.addCommitGitMetrics(fileDataHandler, commit);
           fileDataHandler.setLandscapeToken(config.landscapeToken());
-          fileDataHandler.setRepositoryName(getUnambiguousUpstreamName(config.repoRemoteUrl()));
+          fileDataHandler.setRepositoryName(config.getRepositoryName());
           exporter.persistFile(fileDataHandler.getProtoBufObject());
         }
       } finally {
@@ -391,7 +391,7 @@ public class AnalysisService {
     }
     commitReportHandler.addTags(tags);
     commitReportHandler.addToken(config.landscapeToken());
-    commitReportHandler.setRepositoryName(getUnambiguousUpstreamName(config.repoRemoteUrl()));
+    commitReportHandler.setRepositoryName(config.getRepositoryName());
 
     exporter.persistCommit(commitReportHandler.getCommitData());
   }
@@ -600,27 +600,4 @@ public class AnalysisService {
     }
   }
 
-  private String getUnambiguousUpstreamName(final Optional<String> repoRemoteUrl) {
-    if (repoRemoteUrl.isPresent()) {
-      String upstream = repoRemoteUrl.get();
-      // remove trailing slash if present
-      if (upstream.endsWith("/")) {
-        upstream = upstream.substring(0, upstream.length() - 1);
-      }
-      // delete http(s):// or git@ in the front
-      upstream = upstream.replaceFirst("^(https?://|.+@)", "");
-      // replace potential .git ending
-      upstream = upstream.replaceFirst("\\.git$", "");
-      // find the last slash or colon
-      final int lastSlash = upstream.lastIndexOf('/');
-      final int lastColon = upstream.lastIndexOf(':');
-      final int lastSeparator = Math.max(lastSlash, lastColon);
-      if (lastSeparator != -1) {
-        return upstream.substring(lastSeparator + 1);
-      }
-      return upstream;
-    } else {
-      return "";
-    }
-  }
 }

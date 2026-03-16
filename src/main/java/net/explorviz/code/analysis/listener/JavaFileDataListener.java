@@ -14,8 +14,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 /**
- * ANTLR Listener-based implementation for extracting file data from Java source
- * code.
+ * ANTLR Listener-based implementation for extracting file data from Java source code.
  */
 public class JavaFileDataListener extends Java20ParserBaseListener implements CommonFileDataListener {
 

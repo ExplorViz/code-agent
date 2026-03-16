@@ -25,21 +25,29 @@ public class JsonExporter implements DataExporter {
   private int commitCount;
 
   /**
-   * Creates a JSON exporter that exports the data into folder based on the current working folder and the given
-   * application name.
+   * Creates a JSON exporter that exports the data into folder based on the
+   * current working folder and the given
+   * repository and application name.
    *
+   * @param repositoryName  the name of the repository
    * @param applicationName the name of the application
    * @throws IOException gets thrown if the needed directories were not created.
    */
-  public JsonExporter(final String applicationName) throws IOException {
+  public JsonExporter(final String repositoryName, final String applicationName) throws IOException {
     String systemPath = System.getProperty("user.dir");
     systemPath = systemPath.replace("\\build\\classes\\java\\main", "");
     systemPath = systemPath.replace("/build/classes/java/main", "");
-    this.storageDirectory = Paths.get(systemPath, "analysis-data", applicationName).toString();
+
+    if (applicationName == null || applicationName.isBlank()) {
+      this.storageDirectory = Paths.get(systemPath, "analysis-data", repositoryName).toString();
+    } else {
+      this.storageDirectory = Paths.get(systemPath, "analysis-data", repositoryName, applicationName).toString();
+    }
+
     Files.createDirectories(Paths.get(storageDirectory));
 
-    LOGGER.atInfo().addArgument(applicationName).addArgument(storageDirectory)
-        .log("The analysis-data folder for application '{}' is created here: {}");
+    LOGGER.atInfo().addArgument(repositoryName).addArgument(applicationName).addArgument(storageDirectory)
+        .log("The analysis-data folder for repository '{}' and application '{}' is created here: {}");
 
     this.commitCount = 0;
   }

@@ -10,11 +10,11 @@ import java.util.stream.Stream;
  * Configuration object for Git analysis operations.
  */
 public record AnalysisConfig(Optional<String> repoPath, Optional<String> repoRemoteUrl, Optional<String> gitUsername,
-                             Optional<String> gitPassword, Optional<String> branch, Optional<String> sourceDirectory,
-                             Optional<String> restrictAnalysisToFolders, boolean calculateMetrics,
-                             Optional<String> startCommit, Optional<String> endCommit, Optional<Integer> cloneDepth,
-                             String landscapeToken, String applicationName,
-                             Set<String> codeAnalysisExcludedFileExtensions) {
+    Optional<String> gitPassword, Optional<String> branch, Optional<String> sourceDirectory,
+    Optional<String> restrictAnalysisToFolders, boolean calculateMetrics,
+    Optional<String> startCommit, Optional<String> endCommit, Optional<Integer> cloneDepth,
+    String landscapeToken, String applicationName,
+    Set<String> codeAnalysisExcludedFileExtensions) {
 
   /**
    * Builder for AnalysisConfig.
@@ -130,5 +130,46 @@ public record AnalysisConfig(Optional<String> repoPath, Optional<String> repoRem
           applicationName,
           codeAnalysisExcludedFileExtensions);
     }
+  }
+
+  /**
+   * Returns the name of the repository extracted from the remote URL or the local
+   * path.
+   *
+   * @return The repository name, or an empty string if not found.
+   */
+  public String getRepositoryName() {
+    if (repoRemoteUrl.isPresent()) {
+      String upstream = repoRemoteUrl.get();
+      // remove trailing slash if present
+      if (upstream.endsWith("/")) {
+        upstream = upstream.substring(0, upstream.length() - 1);
+      }
+      // delete http(s):// or git@ in the front
+      upstream = upstream.replaceFirst("^(https?://|.+@)", "");
+      // replace potential .git ending
+      upstream = upstream.replaceFirst("\\.git$", "");
+      // find the last slash or colon
+      final int lastSlash = upstream.lastIndexOf('/');
+      final int lastColon = upstream.lastIndexOf(':');
+      final int lastSeparator = Math.max(lastSlash, lastColon);
+      if (lastSeparator != -1) {
+        return upstream.substring(lastSeparator + 1);
+      }
+      return upstream;
+    } else if (repoPath.isPresent()) {
+      String pathStr = repoPath.get();
+      // remove trailing slash if present
+      if (pathStr.endsWith("/") || pathStr.endsWith("\\")) {
+        pathStr = pathStr.substring(0, pathStr.length() - 1);
+      }
+      // handle both / and \
+      final int lastSlash = Math.max(pathStr.lastIndexOf('/'), pathStr.lastIndexOf('\\'));
+      if (lastSlash != -1) {
+        return pathStr.substring(lastSlash + 1);
+      }
+      return pathStr;
+    }
+    return "";
   }
 }

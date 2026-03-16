@@ -9,8 +9,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 /**
- * ANTLR Listener for extracting file data from TypeScript/JavaScript source
- * code.
+ * ANTLR Listener for extracting file data from TypeScript/JavaScript source code.
  */
 public class TypeScriptFileDataListener extends TypeScriptParserBaseListener implements CommonFileDataListener {
 
@@ -290,13 +289,10 @@ public class TypeScriptFileDataListener extends TypeScriptParserBaseListener imp
   }
 
   /**
-   * Extract the name of an arrow function from its parent context. Arrow
-   * functions are often assigned to variables:
+   * Extract the name of an arrow function from its parent context. Arrow functions are often assigned to variables:
    * const foo = () => {}
    *
-   * <p>
-   * For now, we use a simple heuristic: try to extract text from nearby
-   * identifiers
+   * <p>For now, we use a simple heuristic: try to extract text from nearby identifiers
    */
   private String extractArrowFunctionName(
       final TypeScriptParser.ArrowFunctionDeclarationContext ctx) {
@@ -327,8 +323,7 @@ public class TypeScriptFileDataListener extends TypeScriptParserBaseListener imp
   }
 
   /**
-   * Get comment lines of code by counting tokens on the hidden channel. ANTLR
-   * places comments on a hidden channel, so
+   * Get comment lines of code by counting tokens on the hidden channel. ANTLR places comments on a hidden channel, so
    * we need to extract them from there.
    */
   private int getCloc(final ParserRuleContext ctx) {

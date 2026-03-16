@@ -43,11 +43,13 @@ public class AnalysisResource {
   /* default */ AnalysisStatusService analysisStatusService; // NOCS
 
   /**
-   * Triggers a Git repository analysis with the provided configuration. The request is queued and processed
+   * Triggers a Git repository analysis with the provided configuration. The
+   * request is queued and processed
    * asynchronously to handle concurrent requests safely.
    *
    * @param request The analysis request containing configuration
-   * @return Response indicating the request was accepted (202) or an error occurred
+   * @return Response indicating the request was accepted (202) or an error
+   *         occurred
    */
   @POST
   @Path("/trigger")
@@ -75,7 +77,7 @@ public class AnalysisResource {
       if (request.isSendToRemote()) {
         exporter = grpcExporter;
       } else {
-        exporter = new JsonExporter(config.applicationName());
+        exporter = new JsonExporter(config.getRepositoryName(), config.applicationName());
       }
 
       // Submit to queue for async processing
