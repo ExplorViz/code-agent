@@ -4,6 +4,8 @@ const payloadPreview = document.getElementById("payload-preview");
 const submitButton = document.getElementById("run-analysis");
 const prefillButton = document.getElementById("prefill-demo");
 const clearButton = document.getElementById("clear-form");
+const remoteRepoFieldsNodes = document.querySelectorAll(".remote-repo-fields");
+const localRepoFieldsNodes = document.querySelectorAll(".local-repo-fields");
 
 const SAMPLE_VALUES = {
   repoRemoteUrl: "https://github.com/explorviz/code-agent.git",
@@ -22,7 +24,7 @@ const DEFAULT_STATUS = "Waiting for input…";
 function collectPayload(formData) {
   const payload = {};
   for (const [key, value] of formData.entries()) {
-    if (!value) {
+    if (!value || key === "repoType") {
       continue;
     }
     payload[key] = value.trim();
@@ -108,11 +110,30 @@ function applySample() {
 
 function resetForm() {
   form.reset();
+  updateRepoVisibility();
   updatePreview({});
   setStatus();
 }
 
+function updateRepoVisibility() {
+  const repoType = form.elements.repoType.value;
+  const isRemote = repoType === "remote";
+  
+  remoteRepoFieldsNodes.forEach(node => {
+    node.style.display = isRemote ? "grid" : "none";
+  });
+  localRepoFieldsNodes.forEach(node => {
+    node.style.display = isRemote ? "none" : "grid";
+  });
+}
+
 form.addEventListener("input", handleInput);
+form.addEventListener("change", (e) => {
+  if (e.target.name === "repoType") {
+    updateRepoVisibility();
+    handleInput();
+  }
+});
 form.addEventListener("submit", handleSubmit);
 prefillButton?.addEventListener("click", applySample);
 clearButton?.addEventListener("click", resetForm);
