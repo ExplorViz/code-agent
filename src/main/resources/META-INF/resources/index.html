@@ -1,141 +1,259 @@
 <!doctype html>
 <html lang="en">
-<head>
-  <meta charset="UTF-8"/>
-  <meta content="width=device-width, initial-scale=1.0" name="viewport"/>
-  <title>ExplorViz Code Agent</title>
-  <link href="styles.css" rel="stylesheet"/>
-</head>
-<body>
-<main>
-  <header>
-    <div>
-      <h1>ExplorViz Code Agent</h1>
-      <p class="subtitle">
-        Web interface to trigger code analysis via the REST API under
-        <code>/api/analysis/trigger</code>.
-      </p>
-    </div>
-  </header>
-
-  <form id="analysis-form">
-    <section class="card">
-      <h2>Repository</h2>
-
-      <div class="toggle-row" style="margin-bottom: 1.5rem;">
-        <label class="toggle">
-          <input checked name="repoType" type="radio" value="remote">
-          Remote Repository
-        </label>
-        <label class="toggle">
-          <input name="repoType" type="radio" value="local">
-          Local Repository
-        </label>
-      </div>
-
-      <div class="field-grid">
-        <div class="remote-repo-fields field-grid" style="grid-column: 1 / -1; display: grid;">
-          <label>
-            Remote Repository URL (required)
-            <input name="repoRemoteUrl" placeholder="https://github.com/org/project.git" type="url"/>
-          </label>
-          <label>
-            Clone Depth
-            <input min="1" name="cloneDepth" placeholder="unlimited" type="number" value="1"/>
-          </label>
+  <head>
+    <meta charset="UTF-8" />
+    <meta content="width=device-width, initial-scale=1.0" name="viewport" />
+    <title>ExplorViz Code Agent</title>
+    <link href="styles.css" rel="stylesheet" />
+  </head>
+  <body>
+    <main>
+      <header>
+        <div>
+          <h1>ExplorViz Code Agent</h1>
+          <p class="subtitle">
+            Web interface to trigger code analysis via the REST API under
+            <code>/api/analysis/trigger</code>.
+          </p>
         </div>
+      </header>
 
-        <div class="remote-repo-fields field-grid" style="grid-column: 1 / -1; display: grid;">
-          <label>
-            Username
-            <input autocomplete="username" name="username" type="text"/>
-          </label>
-          <label>
-            Password / Token
-            <input autocomplete="current-password" name="password" type="password"/>
-          </label>
-        </div>
+      <form id="analysis-form">
+        <section class="card">
+          <h2>Repository</h2>
 
-        <div class="local-repo-fields field-grid" style="grid-column: 1 / -1; display: none;">
-          <label>
-            Local Repository Path (required)
-            <input name="repoPath" placeholder="/absolute/path/to/repo" type="text"/>
-          </label>
-        </div>
+          <div class="toggle-row" style="margin-bottom: 1.5rem">
+            <label class="toggle">
+              <input checked name="repoType" type="radio" value="remote" />
+              <span class="label-header">
+                Remote Repository
+                <span class="tooltip-container">
+                  <span class="tooltip-icon">?</span>
+                  <span class="tooltip-text">Clone and analyze a repository from a remote URL.</span>
+                </span>
+              </span>
+            </label>
+            <label class="toggle">
+              <input name="repoType" type="radio" value="local" />
+              <span class="label-header">
+                Local Repository
+                <span class="tooltip-container">
+                  <span class="tooltip-icon">?</span>
+                  <span class="tooltip-text">Analyze a repository already present on the local file system.</span>
+                </span>
+              </span>
+            </label>
+          </div>
 
-        <label>
-          Branch
-          <input name="branch" placeholder="default" type="text"/>
-        </label>
-        <label>
-          Start Commit
-          <input name="startCommit" placeholder="5e1ce23..." type="text"/>
-        </label>
-        <label>
-          End Commit
-          <input name="endCommit" placeholder="3e1ce23..." type="text"/>
-        </label>
-      </div>
-    </section>
+          <div class="field-grid">
+            <div class="remote-repo-fields field-grid" style="grid-column: 1 / -1; display: grid">
+              <label>
+                <span class="label-header">
+                  Remote Repository URL (required)
+                  <span class="tooltip-container">
+                    <span class="tooltip-icon">?</span>
+                    <span class="tooltip-text">The URL of the Git repository to analyze (e.g., GitHub, GitLab).</span>
+                  </span>
+                </span>
+                <input name="repoRemoteUrl" placeholder="https://github.com/org/project.git" type="url" />
+              </label>
+              <label>
+                <span class="label-header">
+                  Clone Depth
+                  <span class="tooltip-container">
+                    <span class="tooltip-icon">?</span>
+                    <span class="tooltip-text"
+                      >Limits the number of commits to clone. Use 1 for fastest analysis of the latest head.</span
+                    >
+                  </span>
+                </span>
+                <input min="1" name="cloneDepth" placeholder="unlimited" type="number" value="1" />
+              </label>
+            </div>
 
-    <section class="card">
-      <h2>Filters</h2>
-      <div class="field-grid">
-        <label>
-          Source Directories
-          <input name="sourceDirectory" placeholder="**/src/main/java,**/src/test/java" type="text"/>
-        </label>
-        <label>
-          Restrict Analysis To Folders
-          <input name="restrictAnalysisToFolders" placeholder="**/src/main/java" type="text"/>
-        </label>
-        <label>
-          Exclude From Analysis
-          <input name="codeAnalysisExcludedFileExtensions" type="text" value=".min.js,.bundle.js,.chunk.js,.d.ts"/>
-        </label>
-      </div>
-    </section>
+            <div class="remote-repo-fields field-grid" style="grid-column: 1 / -1; display: grid">
+              <label>
+                <span class="label-header">
+                  Username
+                  <span class="tooltip-container">
+                    <span class="tooltip-icon">?</span>
+                    <span class="tooltip-text">Optional: Username for authenticating with the remote repository.</span>
+                  </span>
+                </span>
+                <input autocomplete="username" name="username" type="text" />
+              </label>
+              <label>
+                <span class="label-header">
+                  Password / Token
+                  <span class="tooltip-container">
+                    <span class="tooltip-icon">?</span>
+                    <span class="tooltip-text">Optional: Password or Personal Access Token for authentication.</span>
+                  </span>
+                </span>
+                <input autocomplete="current-password" name="password" type="password" />
+              </label>
+            </div>
 
-    <section class="card">
-      <h2>Analysis Configuration</h2>
-      <div class="field-grid">
-        <label>
-          Application Name
-          <input name="applicationName" placeholder="default-application-name" type="text"/>
-        </label>
-        <label>
-          Application Root
-          <input name="applicationRoot" placeholder="e.g. app/src" type="text"/>
-        </label>
-        <label>
-          Landscape Token
-          <input name="landscapeToken" placeholder="token for ExplorViz landscape" type="password"/>
-        </label>
-      </div>
-      <div class="toggle-row">
-        <label class="toggle">
-          <input checked name="calculateMetrics" type="checkbox"/>
-          Calculate Metrics
-        </label>
-        <label class="toggle">
-          <input checked name="sendToRemote" type="checkbox"/>
-          Send Results via gRPC
-        </label>
-      </div>
-    </section>
+            <div class="local-repo-fields field-grid" style="grid-column: 1 / -1; display: none">
+              <label>
+                <span class="label-header">
+                  Local Repository Path (required)
+                  <span class="tooltip-container">
+                    <span class="tooltip-icon">?</span>
+                    <span class="tooltip-text"
+                      >The absolute path to a local directory containing the Git repository.</span
+                    >
+                  </span>
+                </span>
+                <input name="repoPath" placeholder="/absolute/path/to/repo" type="text" />
+              </label>
+            </div>
 
-    <section class="card">
-      <details>
-        <summary>Payload Preview (read-only)</summary>
-        <pre aria-live="polite" class="status" id="payload-preview">{}</pre>
-      </details>
-    </section>
+            <label>
+              <span class="label-header">
+                Branch
+                <span class="tooltip-container">
+                  <span class="tooltip-icon">?</span>
+                  <span class="tooltip-text"
+                    >The branch to analyze. Uses default branch if none is given (usually 'main' or 'master').</span
+                  >
+                </span>
+              </span>
+              <input name="branch" placeholder="default" type="text" />
+            </label>
+            <label>
+              <span class="label-header">
+                Start Commit
+                <span class="tooltip-container">
+                  <span class="tooltip-icon">?</span>
+                  <span class="tooltip-text">Optional: The hash of the commit where the analysis should start.</span>
+                </span>
+              </span>
+              <input name="startCommit" placeholder="5e1ce23..." type="text" />
+            </label>
+            <label>
+              <span class="label-header">
+                End Commit
+                <span class="tooltip-container">
+                  <span class="tooltip-icon">?</span>
+                  <span class="tooltip-text">Optional: The hash of the commit where the analysis should end.</span>
+                </span>
+              </span>
+              <input name="endCommit" placeholder="3e1ce23..." type="text" />
+            </label>
+          </div>
+        </section>
 
-    <button class="primary" id="run-analysis" type="submit">Run Analysis</button>
+        <section class="card">
+          <h2>Filters</h2>
+          <div class="field-grid">
+            <label>
+              <span class="label-header">
+                Source Directories
+                <span class="tooltip-container">
+                  <span class="tooltip-icon">?</span>
+                  <span class="tooltip-text"
+                    >Comma-separated list of glob patterns for source files (e.g., **/src/main/java).</span
+                  >
+                </span>
+              </span>
+              <input name="sourceDirectory" placeholder="**/src/main/java,**/src/test/java" type="text" />
+            </label>
+            <label>
+              <span class="label-header">
+                Restrict Analysis To Folders
+                <span class="tooltip-container">
+                  <span class="tooltip-icon">?</span>
+                  <span class="tooltip-text">Limit the analysis to specific subdirectories within the repository.</span>
+                </span>
+              </span>
+              <input name="restrictAnalysisToFolders" placeholder="**/src/main/java" type="text" />
+            </label>
+            <label>
+              <span class="label-header">
+                Exclude From Analysis
+                <span class="tooltip-container">
+                  <span class="tooltip-icon">?</span>
+                  <span class="tooltip-text"
+                    >Comma-separated list of substrings that lead to exclusion of files from code analysis.</span
+                  >
+                </span>
+              </span>
+              <input name="codeAnalysisExcludedFileExtensions" type="text" value=".min.js,.bundle.js,.chunk.js,.d.ts" />
+            </label>
+          </div>
+        </section>
 
-    <div aria-live="polite" class="status" id="status" role="status">Waiting for input…</div>
-  </form>
-</main>
-<script defer src="main.js"></script>
-</body>
+        <section class="card">
+          <h2>Analysis Configuration</h2>
+          <div class="field-grid">
+            <label>
+              <span class="label-header">
+                Application Name
+                <span class="tooltip-container">
+                  <span class="tooltip-icon">?</span>
+                  <span class="tooltip-text">The name of the application analyzed application.</span>
+                </span>
+              </span>
+              <input name="applicationName" placeholder="default-application-name" type="text" />
+            </label>
+            <label>
+              <span class="label-header">
+                Application Root
+                <span class="tooltip-container">
+                  <span class="tooltip-icon">?</span>
+                  <span class="tooltip-text">Project root relative to repository root. Useful for monorepos.</span>
+                </span>
+              </span>
+              <input name="applicationRoot" placeholder="e.g. app/src" type="text" />
+            </label>
+            <label>
+              <span class="label-header">
+                Landscape Token
+                <span class="tooltip-container">
+                  <span class="tooltip-icon">?</span>
+                  <span class="tooltip-text">The landscape token for the ExplorViz.</span>
+                </span>
+              </span>
+              <input name="landscapeToken" placeholder="token for ExplorViz landscape" type="password" />
+            </label>
+          </div>
+          <div class="toggle-row">
+            <label class="toggle">
+              <input checked name="calculateMetrics" type="checkbox" />
+              <span class="label-header">
+                Calculate Metrics
+                <span class="tooltip-container">
+                  <span class="tooltip-icon">?</span>
+                  <span class="tooltip-text">Whether to calculate code metrics (e.g., lines of code).</span>
+                </span>
+              </span>
+            </label>
+            <label class="toggle">
+              <input checked name="sendToRemote" type="checkbox" />
+              <span class="label-header">
+                Send Results via gRPC
+                <span class="tooltip-container">
+                  <span class="tooltip-icon">?</span>
+                  <span class="tooltip-text">Whether to push the analysis results to the persistence-service.</span>
+                </span>
+              </span>
+            </label>
+          </div>
+        </section>
+
+        <section class="card">
+          <details>
+            <summary>Payload Preview (read-only)</summary>
+            <pre aria-live="polite" class="status" id="payload-preview">{}</pre>
+          </details>
+        </section>
+
+        <button class="primary" id="run-analysis" type="submit">Run Analysis</button>
+
+        <div aria-live="polite" class="status" id="status" role="status">Waiting for input…</div>
+      </form>
+    </main>
+    <script defer src="main.js"></script>
+  </body>
 </html>
