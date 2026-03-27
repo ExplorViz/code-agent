@@ -48,19 +48,19 @@ public class JavaFileDataListenerTest {
     Assertions.assertEquals(1, data.getClassesCount());
 
     // Verify class data
-    final ClassData clazz = findClass(data.getClassesList(), "com.easy.life.Nested");
-    Assertions.assertNotNull(clazz, "Class com.easy.life.Nested should exist");
+    final ClassData clazz = findClass(data.getClassesList(), "Nested");
+    Assertions.assertNotNull(clazz, "Class Nested should exist");
 
     // Verify methods exist
-    Assertions.assertTrue(containsFunction(clazz.getFunctionsList(), "com.easy.life.Nested.heavyNested#1"),
-        "Method heavyNested#1 should exist");
+    Assertions.assertTrue(containsFunction(clazz.getFunctionsList(), "heavyNested"),
+        "Method heavyNested should exist");
     Assertions.assertTrue(
-        containsFunction(clazz.getFunctionsList(), "com.easy.life.Nested.heavyNested2#1980e"),
-        "Method heavyNested2#1980e should exist");
+        containsFunction(clazz.getFunctionsList(), "heavyNested2"),
+        "Method heavyNested2 should exist");
 
     // Verify parameter type
     final FunctionData method = findFunction(clazz.getFunctionsList(),
-        "com.easy.life.Nested.heavyNested2#1980e");
+        "heavyNested2");
     Assertions.assertNotNull(method, "Method heavyNested2 should exist");
     Assertions.assertEquals(1, method.getParametersCount(), "Method should have 1 parameter");
     Assertions.assertTrue(method.getParameters(0).getType().contains("int"),
@@ -89,17 +89,17 @@ public class JavaFileDataListenerTest {
     Assertions.assertEquals(1, data.getClassesCount());
 
     // Verify class data
-    final ClassData clazz = findClass(data.getClassesList(), "com.easy.life.Happy");
-    Assertions.assertNotNull(clazz, "Class com.easy.life.Happy should exist");
+    final ClassData clazz = findClass(data.getClassesList(), "Happy");
+    Assertions.assertNotNull(clazz, "Class Happy should exist");
 
     // Verify method exists
     Assertions.assertTrue(
-        containsFunction(clazz.getFunctionsList(), "com.easy.life.Happy.fromArrayToList#146d5"),
+        containsFunction(clazz.getFunctionsList(), "fromArrayToList"),
         "Method fromArrayToList should exist");
 
     // Verify return type
     final FunctionData method = findFunction(clazz.getFunctionsList(),
-        "com.easy.life.Happy.fromArrayToList#146d5");
+        "fromArrayToList");
     Assertions.assertNotNull(method, "Method fromArrayToList should exist");
 
     // Note: The actual declared return type in the source is List<T>, not
@@ -129,7 +129,7 @@ public class JavaFileDataListenerTest {
     Assertions.assertEquals("net.sourceforge.plantuml", data.getPackageName());
 
     // Verify class data
-    final ClassData clazz = findClass(data.getClassesList(), "net.sourceforge.plantuml.ColorParam");
+    final ClassData clazz = findClass(data.getClassesList(), "ColorParam");
     Assertions.assertNotNull(clazz, "Enum ColorParam should exist");
 
     // Verify it's an enum
@@ -161,7 +161,7 @@ public class JavaFileDataListenerTest {
 
     // Verify class data
     final ClassData clazz = findClass(data.getClassesList(),
-        "org.springframework.samples.petclinic.jdbc.SimpleJdbcClinic");
+        "SimpleJdbcClinic");
     Assertions.assertNotNull(clazz, "SimpleJdbcClinic class should exist");
 
     // Check that a specific method exists
@@ -217,7 +217,7 @@ public class JavaFileDataListenerTest {
     Assertions.assertTrue(data.getImportNamesList().contains("java.util.ArrayList"));
 
     // Verify class
-    final ClassData clazz = findClass(data.getClassesList(), "com.test.TestClass");
+    final ClassData clazz = findClass(data.getClassesList(), "TestClass");
     Assertions.assertNotNull(clazz);
     Assertions.assertEquals(ClassType.CLASS, clazz.getType());
 
@@ -253,7 +253,7 @@ public class JavaFileDataListenerTest {
     Assertions.assertNotNull(fileDataHandler);
 
     final FileData data = fileDataHandler.getProtoBufObject();
-    final ClassData interfaceData = findClass(data.getClassesList(), "com.test.TestInterface");
+    final ClassData interfaceData = findClass(data.getClassesList(), "TestInterface");
 
     Assertions.assertNotNull(interfaceData);
     Assertions.assertEquals(ClassType.INTERFACE, interfaceData.getType());
@@ -284,7 +284,7 @@ public class JavaFileDataListenerTest {
     Assertions.assertNotNull(fileDataHandler);
 
     final FileData data = fileDataHandler.getProtoBufObject();
-    final ClassData enumData = findClass(data.getClassesList(), "com.test.Color");
+    final ClassData enumData = findClass(data.getClassesList(), "Color");
 
     Assertions.assertNotNull(enumData);
     Assertions.assertEquals(ClassType.ENUM, enumData.getType());
@@ -313,7 +313,7 @@ public class JavaFileDataListenerTest {
     Assertions.assertNotNull(fileDataHandler);
 
     final FileData data = fileDataHandler.getProtoBufObject();
-    final ClassData childClass = findClass(data.getClassesList(), "com.test.Child");
+    final ClassData childClass = findClass(data.getClassesList(), "Child");
 
     Assertions.assertNotNull(childClass);
 
@@ -383,12 +383,12 @@ public class JavaFileDataListenerTest {
         "Should have at least the outer class");
 
     // Outer class should exist
-    final ClassData outerClass = findClass(data.getClassesList(), "com.test.Outer");
+    final ClassData outerClass = findClass(data.getClassesList(), "Outer");
     Assertions.assertNotNull(outerClass, "Outer class should exist");
 
     // Inner class should be in the outer class's inner_classes list
     final boolean hasInnerClass = outerClass.getInnerClassesList().stream()
-        .anyMatch(c -> c.getName().equals("com.test.Outer.Inner"));
+        .anyMatch(c -> c.getName().equals("Inner"));
     Assertions.assertTrue(hasInnerClass, "Inner class should be tracked as a nested class");
   }
 

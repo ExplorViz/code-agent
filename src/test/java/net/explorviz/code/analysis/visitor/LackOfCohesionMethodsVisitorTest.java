@@ -35,12 +35,12 @@ public class LackOfCohesionMethodsVisitorTest {
     FileData data = fileDataHandler.getProtoBufObject();
     List<ClassData> classes = data.getClassesList();
 
-    Assertions.assertEquals(1.0, findClass(classes, "com.easy.life.LCOM4").getMetricsMap().get(LCOM4));
-    Assertions.assertEquals(1.0, findClass(classes, "com.easy.life.LCOM4Class2").getMetricsMap().get(LCOM4));
-    Assertions.assertEquals(1.0, findClass(classes, "com.easy.life.LCOM4Class3").getMetricsMap().get(LCOM4));
-    Assertions.assertEquals(0.0, findClass(classes, "com.easy.life.LCOM4Class4").getMetricsMap().get(LCOM4));
-    Assertions.assertEquals(1.0, findClass(classes, "com.easy.life.LCOM4Class5").getMetricsMap().get(LCOM4));
-    Assertions.assertEquals(6.0, findClass(classes, "com.easy.life.LCOM4Class6").getMetricsMap().get(LCOM4));
+    Assertions.assertEquals(1.0, findClass(classes, "LCOM4").getMetricsMap().get(LCOM4));
+    Assertions.assertEquals(1.0, findClass(classes, "LCOM4Class2").getMetricsMap().get(LCOM4));
+    Assertions.assertEquals(1.0, findClass(classes, "LCOM4Class3").getMetricsMap().get(LCOM4));
+    Assertions.assertEquals(0.0, findClass(classes, "LCOM4Class4").getMetricsMap().get(LCOM4));
+    Assertions.assertEquals(1.0, findClass(classes, "LCOM4Class5").getMetricsMap().get(LCOM4));
+    Assertions.assertEquals(6.0, findClass(classes, "LCOM4Class6").getMetricsMap().get(LCOM4));
   }
 
   private ClassData findClass(List<ClassData> classes, String name) {

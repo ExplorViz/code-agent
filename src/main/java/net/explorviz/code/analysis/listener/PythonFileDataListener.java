@@ -61,8 +61,9 @@ public class PythonFileDataListener extends PythonParserBaseListener implements 
     // Extract class name
     if (ctx.name() != null) {
       final String className = ctx.name().getText();
+      final String classFqn = fileDataHandler.getFileName() + ":" + className;
 
-      fileDataHandler.enterClass(className);
+      fileDataHandler.enterClass(className, classFqn);
 
       LOGGER.atTrace()
           .addArgument(className)
@@ -110,7 +111,7 @@ public class PythonFileDataListener extends PythonParserBaseListener implements 
       final String functionFqn = functionName + "#1"; // TODO: Add proper parameter hashing
 
       final var methodData = fileDataHandler.getCurrentClassData()
-          .addMethod(functionFqn, "None"); // Python default return is None
+          .addMethod(functionName, functionFqn, "None"); // Python default return is None
 
       LOGGER.atTrace()
           .addArgument(functionName)

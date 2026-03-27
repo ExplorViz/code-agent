@@ -27,34 +27,26 @@ public class JavaFileDataHandler extends AbstractFileDataHandler
     this.rootClasses = new ArrayList<>();
   }
 
-  public void enterClass(final String className) {
+  public void enterClass(final String name, final String fqn) {
     final ClassDataHandler handler = new ClassDataHandler();
-    handler.setName(className);
-    this.classDataMap.put(className, handler);
+    handler.setName(name);
+    this.classDataMap.put(fqn, handler);
 
     if (this.classStack.isEmpty()) {
-      this.rootClasses.add(className);
+      this.rootClasses.add(fqn);
     } else {
       final String parentClassName = this.classStack.peek();
       final ClassDataHandler parent = this.getClassData(parentClassName);
       if (parent != null) {
-        parent.addInnerClass(className, handler);
+        parent.addInnerClass(fqn, handler);
       }
     }
-    this.classStack.push(className);
+    this.classStack.push(fqn);
   }
 
-  public void enterAnonymousClass(final String anonymousClassName, final String parentFqn) {
-    String baseFqn = parentFqn + "." + anonymousClassName;
-    String fqn = baseFqn;
-    int idx = 0;
-    while (classDataMap.containsKey(fqn)) {
-      idx++;
-      fqn = String.format("%s#%d", baseFqn, idx);
-    }
-
+  public void enterAnonymousClass(final String name, final String fqn) {
     final ClassDataHandler classDataHandler = new ClassDataHandler();
-    classDataHandler.setName(fqn);
+    classDataHandler.setName(name);
     classDataHandler.setIsAnonymousClass();
     this.classDataMap.put(fqn, classDataHandler);
 

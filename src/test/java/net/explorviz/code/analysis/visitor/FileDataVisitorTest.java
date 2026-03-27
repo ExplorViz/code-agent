@@ -35,12 +35,12 @@ public class FileDataVisitorTest {
     Assertions.assertEquals("com.easy.life", data.getPackageName()); // NOCS
     Assertions.assertEquals(0, data.getImportNamesCount());
     Assertions.assertEquals(1, data.getClassesCount());
-    ClassData clazz = findClass(data.getClassesList(), "com.easy.life.Nested");
-    Assertions.assertTrue(containsFunction(clazz.getFunctionsList(), "com.easy.life.Nested.heavyNested#1"));
+    ClassData clazz = findClass(data.getClassesList(), "Nested");
+    Assertions.assertTrue(containsFunction(clazz.getFunctionsList(), "heavyNested"));
     Assertions.assertTrue(
-        containsFunction(clazz.getFunctionsList(), "com.easy.life.Nested.heavyNested2#1980e")); // NOCS
+        containsFunction(clazz.getFunctionsList(), "heavyNested2")); // NOCS
     Assertions.assertEquals("int",
-        findFunction(clazz.getFunctionsList(), "com.easy.life.Nested.heavyNested2#1980e").getParametersList()
+        findFunction(clazz.getFunctionsList(), "heavyNested2").getParametersList()
             .get(0).getType());
   }
 
@@ -55,11 +55,11 @@ public class FileDataVisitorTest {
     Assertions.assertEquals("com.easy.life", data.getPackageName());
     Assertions.assertEquals(4, data.getImportNamesCount()); // NOCS
     Assertions.assertEquals(1, data.getClassesCount());
-    ClassData clazz = findClass(data.getClassesList(), "com.easy.life.Happy");
+    ClassData clazz = findClass(data.getClassesList(), "Happy");
     Assertions.assertTrue(
-        containsFunction(clazz.getFunctionsList(), "com.easy.life.Happy.fromArrayToList#146d5")); // NOCS
+        containsFunction(clazz.getFunctionsList(), "fromArrayToList")); // NOCS
     Assertions.assertEquals("java.util.ArrayList<T>",
-        findFunction(clazz.getFunctionsList(), "com.easy.life.Happy.fromArrayToList#146d5").getReturnType());
+        findFunction(clazz.getFunctionsList(), "fromArrayToList").getReturnType());
   }
 
   @Test()
@@ -71,7 +71,7 @@ public class FileDataVisitorTest {
     visitor.visit(compilationUnit, fileDataHandler);
     FileData data = fileDataHandler.getProtoBufObject();
     Assertions.assertEquals("net.sourceforge.plantuml", data.getPackageName());
-    ClassData clazz = findClass(data.getClassesList(), "net.sourceforge.plantuml.ColorParam");
+    ClassData clazz = findClass(data.getClassesList(), "ColorParam");
     Assertions.assertSame(clazz.getType(), ClassType.ENUM);
     Assertions.assertTrue(contains(clazz.getFieldsList(), "isBackground"));
     Assertions.assertTrue(containsConstant(clazz.getEnumValuesList(), "classArrow"));
@@ -89,10 +89,10 @@ public class FileDataVisitorTest {
     visitor.visit(compilationUnit, fileDataHandler);
     FileData data = fileDataHandler.getProtoBufObject();
     ClassData clazz = findClass(data.getClassesList(),
-        "org.springframework.samples.petclinic.jdbc.SimpleJdbcClinic");
+        "SimpleJdbcClinic");
     Assertions.assertTrue(containsConstant(clazz.getAnnotationsList(), "Service"));
     FunctionData method = findFunction(clazz.getFunctionsList(),
-        "org.springframework.samples.petclinic.jdbc.SimpleJdbcClinic.init#c2aa38a4");
+        "init");
 
     Assertions.assertTrue(containsConstant(method.getAnnotationsList(), "Autowired"));
   }

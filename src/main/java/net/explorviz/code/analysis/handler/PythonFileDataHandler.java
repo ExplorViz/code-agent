@@ -24,22 +24,21 @@ public class PythonFileDataHandler extends AbstractFileDataHandler {
     builder.setLanguage(Language.PYTHON);
   }
 
-  public void enterClass(final String className) {
-    final String classFqn = fileName + ":" + className;
+  public void enterClass(final String name, final String fqn) {
     final ClassDataHandler handler = new ClassDataHandler();
-    handler.setName(className);
-    this.classDataMap.put(classFqn, handler);
+    handler.setName(name);
+    this.classDataMap.put(fqn, handler);
 
     if (this.classStack.isEmpty()) {
-      this.rootClasses.add(classFqn);
+      this.rootClasses.add(fqn);
     } else {
       final String parentClassFqn = this.classStack.peek();
       final ClassDataHandler parent = this.classDataMap.get(parentClassFqn);
       if (parent != null) {
-        parent.addInnerClass(className, handler);
+        parent.addInnerClass(fqn, handler);
       }
     }
-    this.classStack.push(classFqn);
+    this.classStack.push(fqn);
   }
 
   public void leaveClass() {

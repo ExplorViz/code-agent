@@ -87,7 +87,9 @@ public class FileDataVisitor extends VoidVisitorAdapter<JavaFileDataHandler> { /
 
   @Override
   public void visit(final EnumDeclaration n, final JavaFileDataHandler data) {
-    data.enterClass(n.getFullyQualifiedName().orElse(UNKNOWN));
+    final String name = n.getNameAsString();
+    final String fqn = n.getFullyQualifiedName().orElse(UNKNOWN);
+    data.enterClass(name, fqn);
     data.getCurrentClassData().addMetric(LOC, String.valueOf(getLoc(n)));
     data.getCurrentClassData().setIsEnum();
     for (final Modifier modifier : n.getModifiers()) {
@@ -116,7 +118,9 @@ public class FileDataVisitor extends VoidVisitorAdapter<JavaFileDataHandler> { /
   @Override // NOCS
   public void visit(final ClassOrInterfaceDeclaration n,
       final JavaFileDataHandler data) { // NOCS NOPMD
-    data.enterClass(n.getFullyQualifiedName().orElse(UNKNOWN));
+    final String name = n.getNameAsString();
+    final String classFqn = n.getFullyQualifiedName().orElse(UNKNOWN);
+    data.enterClass(name, classFqn);
     data.getCurrentClassData().addMetric(LOC, String.valueOf(getLoc(n)));
 
     if (n.isInterface()) {
@@ -154,7 +158,7 @@ public class FileDataVisitor extends VoidVisitorAdapter<JavaFileDataHandler> { /
       try {
         final String ann = annotation.resolve().getQualifiedName();
         data.getCurrentClassData().addAnnotation(ann);
-      } catch (UnsolvedSymbolException e) {
+      } catch (UnsolvedSymbolException | IllegalStateException e) {
         if (LOGGER.isWarnEnabled()) {
           LOGGER.warn("Annotation's FQN for class was not resolvable");
         }
@@ -175,7 +179,7 @@ public class FileDataVisitor extends VoidVisitorAdapter<JavaFileDataHandler> { /
     final String returnType = resolveFqn(n.getType(), data);
     // data.setLastAddedMethodFqn(methodsFullyQualifiedName);
     final MethodDataHandler method = data.getCurrentClassData()
-        .addMethod(methodsFullyQualifiedName, returnType);
+        .addMethod(n.getNameAsString(), methodsFullyQualifiedName, returnType);
     for (final Modifier modifier : n.getModifiers()) {
       method.addModifier(modifier.getKeyword().asString());
     }
@@ -188,7 +192,7 @@ public class FileDataVisitor extends VoidVisitorAdapter<JavaFileDataHandler> { /
       try {
         final String ann = annotation.resolve().getQualifiedName();
         method.addAnnotation(ann);
-      } catch (UnsolvedSymbolException e) {
+      } catch (UnsolvedSymbolException | IllegalStateException e) {
         if (LOGGER.isWarnEnabled()) {
           LOGGER.warn("Annotation's FQN for method was not resolvable");
         }
@@ -208,7 +212,7 @@ public class FileDataVisitor extends VoidVisitorAdapter<JavaFileDataHandler> { /
             n.getParameters());
     data.enterMethod(constructorsFullyQualifiedName);
     final MethodDataHandler constructor = data.getCurrentClassData()
-        .addConstructor(constructorsFullyQualifiedName);
+        .addConstructor(n.getNameAsString(), constructorsFullyQualifiedName);
     for (final Modifier modifier : n.getModifiers()) {
       constructor.addModifier(modifier.getKeyword().asString());
     }
@@ -248,7 +252,7 @@ public class FileDataVisitor extends VoidVisitorAdapter<JavaFileDataHandler> { /
   @Override
   public void visit(final ObjectCreationExpr n, final JavaFileDataHandler data) {
     if (n.getAnonymousClassBody().isPresent()) {
-      data.enterAnonymousClass(n.getTypeAsString(), data.getCurrentMethodFqn());
+      data.enterAnonymousClass(n.getTypeAsString(), data.getCurrentMethodFqn() + "$Anonymous");
       super.visit(n, data);
       data.leaveAnonymousClass();
     } else {

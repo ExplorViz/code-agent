@@ -95,7 +95,7 @@ public class JavaFileDataListener extends Java20ParserBaseListener implements Co
     final String className = ctx.typeIdentifier().getText();
     final String fqn = buildFqn(className);
 
-    fileDataHandler.enterClass(fqn);
+    fileDataHandler.enterClass(className, fqn);
 
     // Determine if abstract
     final boolean isAbstract = hasModifier(ctx.classModifier(), "abstract");
@@ -140,7 +140,7 @@ public class JavaFileDataListener extends Java20ParserBaseListener implements Co
     final String interfaceName = ctx.typeIdentifier().getText();
     final String fqn = buildFqn(interfaceName);
 
-    fileDataHandler.enterClass(fqn);
+    fileDataHandler.enterClass(interfaceName, fqn);
     fileDataHandler.getCurrentClassData().setIsInterface();
 
     // Add modifiers
@@ -170,7 +170,7 @@ public class JavaFileDataListener extends Java20ParserBaseListener implements Co
     final String enumName = ctx.typeIdentifier().getText();
     final String fqn = buildFqn(enumName);
 
-    fileDataHandler.enterClass(fqn);
+    fileDataHandler.enterClass(enumName, fqn);
     fileDataHandler.getCurrentClassData().setIsEnum();
 
     // Add modifiers
@@ -238,7 +238,7 @@ public class JavaFileDataListener extends Java20ParserBaseListener implements Co
     }
 
     final MethodDataHandler methodData = fileDataHandler.getCurrentClassData()
-        .addMethod(methodFqn, returnType);
+        .addMethod(methodName, methodFqn, returnType);
 
     // Add modifiers
     final List<String> modifiers = extractMethodModifiers(ctx);
@@ -289,7 +289,7 @@ public class JavaFileDataListener extends Java20ParserBaseListener implements Co
     }
 
     final MethodDataHandler methodData = fileDataHandler.getCurrentClassData()
-        .addMethod(methodFqn, returnType);
+        .addMethod(methodName, methodFqn, returnType);
 
     // Add modifiers
     final List<String> modifiers = extractInterfaceMethodModifiers(ctx);
@@ -327,7 +327,7 @@ public class JavaFileDataListener extends Java20ParserBaseListener implements Co
     fileDataHandler.enterMethod(constructorFqn);
 
     final MethodDataHandler constructor = fileDataHandler.getCurrentClassData()
-        .addConstructor(constructorFqn);
+        .addConstructor(constructorName, constructorFqn);
 
     // Add modifiers
     final List<String> modifiers = extractConstructorModifiers(ctx);

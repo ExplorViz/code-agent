@@ -65,7 +65,7 @@ public class TypeScriptFileDataListener extends TypeScriptParserBaseListener imp
       final String className = ctx.identifier().getText();
       final String fqn = className; // TODO: Build proper FQN with module/namespace
 
-      fileDataHandler.enterClass(fqn);
+      fileDataHandler.enterClass(className, fqn);
 
       LOGGER.atTrace()
           .addArgument(className)
@@ -99,7 +99,7 @@ public class TypeScriptFileDataListener extends TypeScriptParserBaseListener imp
       final String interfaceName = ctx.identifier().getText();
       final String fqn = interfaceName; // TODO: Build proper FQN
 
-      fileDataHandler.enterClass(fqn);
+      fileDataHandler.enterClass(interfaceName, fqn);
       final var classData = fileDataHandler.getCurrentClassData();
       if (classData != null) {
         classData.setIsInterface();
@@ -142,7 +142,7 @@ public class TypeScriptFileDataListener extends TypeScriptParserBaseListener imp
 
       final var classData = fileDataHandler.getCurrentClassData();
       if (classData != null) {
-        final var methodData = classData.addMethod(methodFqn, "void"); // TODO: Extract actual return type
+        final var methodData = classData.addMethod(methodName, methodFqn, "void"); // TODO: Extract actual return type
 
         // Set method location
         if (ctx.start != null && ctx.stop != null) {
@@ -168,7 +168,7 @@ public class TypeScriptFileDataListener extends TypeScriptParserBaseListener imp
       final var classData = fileDataHandler.getCurrentClassData();
       if (classData != null) {
         final String constructorFqn = "constructor#1"; // TODO: Add proper parameter hashing
-        final var methodData = classData.addConstructor(constructorFqn);
+        final var methodData = classData.addConstructor("constructor", constructorFqn);
 
         // Set constructor location
         if (ctx.start != null && ctx.stop != null) {
@@ -197,7 +197,7 @@ public class TypeScriptFileDataListener extends TypeScriptParserBaseListener imp
         final String functionFqn = functionName + "#1"; // TODO: Add proper parameter hashing
 
         final var methodData = fileDataHandler.getCurrentClassData()
-            .addMethod(functionFqn, "void"); // TODO: Extract actual return type
+            .addMethod(functionName, functionFqn, "void"); // TODO: Extract actual return type
 
         LOGGER.atTrace()
             .addArgument(functionName)
@@ -254,7 +254,7 @@ public class TypeScriptFileDataListener extends TypeScriptParserBaseListener imp
         final String functionFqn = functionName + "#1";
 
         final var methodData = fileDataHandler.getCurrentClassData()
-            .addMethod(functionFqn, "void");
+            .addMethod(functionName, functionFqn, "void");
 
         // Calculate method LOC
         final int methodLoc = calculateLoc(ctx);

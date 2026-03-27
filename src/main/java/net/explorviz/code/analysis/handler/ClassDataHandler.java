@@ -33,13 +33,14 @@ public class ClassDataHandler implements ProtoBufConvertable<ClassData> {
   /**
    * Adds a methodData object.
    *
-   * @param methodFqn  the method's fully qualified name
+   * @param name       the method's simple name
+   * @param fqn        the method's fully qualified name
    * @param returnType the return type of the method
    * @return the created methodData object
    */
-  public MethodDataHandler addMethod(final String methodFqn, final String returnType) {
-    this.methodDataMap.put(methodFqn, new MethodDataHandler(methodFqn, returnType));
-    return methodDataMap.get(methodFqn);
+  public MethodDataHandler addMethod(final String name, final String fqn, final String returnType) {
+    this.methodDataMap.put(fqn, new MethodDataHandler(name, returnType));
+    return methodDataMap.get(fqn);
   }
 
   public MethodDataHandler getMethod(final String methodFqn) {
@@ -52,9 +53,16 @@ public class ClassDataHandler implements ProtoBufConvertable<ClassData> {
     }
   }
 
-  public MethodDataHandler addConstructor(final String constructorFqn) {
-    this.methodDataMap.put(constructorFqn, new MethodDataHandler(constructorFqn));
-    return methodDataMap.get(constructorFqn);
+  /**
+   * Adds a constructor object.
+   *
+   * @param name the constructor's simple name
+   * @param fqn  the constructor's fully qualified name
+   * @return the created methodData object
+   */
+  public MethodDataHandler addConstructor(final String name, final String fqn) {
+    this.methodDataMap.put(fqn, new MethodDataHandler(name));
+    return methodDataMap.get(fqn);
   }
 
   public void addField(final String fieldName, final String fieldType,
@@ -71,8 +79,8 @@ public class ClassDataHandler implements ProtoBufConvertable<ClassData> {
     this.builder.addAnnotations(annotation);
   }
 
-  public void addInnerClass(final String name, final ClassDataHandler innerClassHandler) {
-    this.innerClassDataMap.put(name, innerClassHandler);
+  public void addInnerClass(final String fqn, final ClassDataHandler innerClassHandler) {
+    this.innerClassDataMap.put(fqn, innerClassHandler);
   }
 
   public void addEnumConstant(final String name) {
