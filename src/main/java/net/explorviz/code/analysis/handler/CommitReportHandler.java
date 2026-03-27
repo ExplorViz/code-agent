@@ -56,7 +56,7 @@ public class CommitReportHandler { // NOPMD
   }
 
   public void add(final FileDescriptor fileDescriptor) {
-    this.allFiles.put(fileDescriptor.relativePath, fileDescriptor);
+    this.allFiles.put(fileDescriptor.reportedPath, fileDescriptor);
   }
 
   /**
@@ -80,15 +80,15 @@ public class CommitReportHandler { // NOPMD
   }
 
   public void addModified(final FileDescriptor fileDescriptor) {
-    modifiedFiles.add(fileDescriptor.relativePath);
+    modifiedFiles.add(fileDescriptor.reportedPath);
   }
 
   public void addDeleted(final FileDescriptor fileDescriptor) {
-    deletedFiles.add(fileDescriptor.relativePath);
+    deletedFiles.add(fileDescriptor.reportedPath);
   }
 
   public void addAdded(final FileDescriptor fileDescriptor) {
-    addedFiles.add(fileDescriptor.relativePath);
+    addedFiles.add(fileDescriptor.reportedPath);
   }
 
   /**
@@ -120,7 +120,7 @@ public class CommitReportHandler { // NOPMD
   public CommitData getCommitData() {
     for (Map.Entry<String, FileDescriptor> entry : allFiles.entrySet()) {
       FileIdentifier fileId = FileIdentifier.newBuilder()
-          .setFilePath(entry.getValue().relativePath)
+          .setFilePath(entry.getValue().reportedPath)
           .setFileHash(getFileHash(entry.getValue()))
           .build();
 

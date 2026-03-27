@@ -12,6 +12,7 @@ public class FileDescriptor {
   public final ObjectId objectId; // NOCS
   public final String fileName;   // NOCS
   public final String relativePath; // NOCS
+  public String reportedPath; // NOCS
   public int modifiedLines; // NOCS
   public int addedLines; // NOCS
   public int removedLines; // NOCS
@@ -27,6 +28,7 @@ public class FileDescriptor {
     this.objectId = objectId;
     this.fileName = fileName;
     this.relativePath = relativePath;
+    this.reportedPath = relativePath;
   }
 
   /**
@@ -35,7 +37,7 @@ public class FileDescriptor {
    * @param objectId         the ObjectId of the File
    * @param fileName         the name of the File
    * @param relativePath     the relative path of the file starting from the repository's directory.
-   * @param modificationData a {@link Triple} containing the modification data of the file. left -> amount of modified
+   * @param modificationData a {@link Triple} containing {modification data of the file. left -> amount of modified
    *                         lines, middle -> amount of added lines, right -> amount of removed lines
    */
   public FileDescriptor(final ObjectId objectId, final String fileName, final String relativePath,

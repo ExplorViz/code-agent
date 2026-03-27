@@ -55,6 +55,9 @@ public class GitAnalysis { // NOPMD
   @ConfigProperty(name = "explorviz.gitanalysis.restrict-analysis-to-folders")
   /* default */ Optional<String> restrictAnalysisToFoldersProperty; // NOCS NOPMD
 
+  @ConfigProperty(name = "explorviz.gitanalysis.application-root")
+  /* default */ Optional<String> applicationRootProperty; // NOCS
+
   @ConfigProperty(name = "explorviz.gitanalysis.send-to-remote", defaultValue = "true")
   /* default */ boolean sendToRemoteProperty; // NOCS
 
@@ -96,6 +99,7 @@ public class GitAnalysis { // NOPMD
         .branch(repositoryBranchProperty)
         .sourceDirectory(sourceDirectoryProperty)
         .restrictAnalysisToFolders(restrictAnalysisToFoldersProperty)
+        .applicationRoot(applicationRootProperty)
         .calculateMetrics(calculateMetricsProperty)
         .startCommit(startCommitProperty)
         .endCommit(endCommitProperty)

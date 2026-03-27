@@ -24,6 +24,7 @@ public class AnalysisRequest {
   private Integer cloneDepth;
   private String landscapeToken = "mytokenvalue";
   private String applicationName = "";
+  private String applicationRoot;
   private String codeAnalysisExcludedFileExtensions;
 
   public AnalysisRequest() {
@@ -45,6 +46,30 @@ public class AnalysisRequest {
     this.repoRemoteUrl = repoRemoteUrl;
   }
 
+  public String getUsername() {
+    return username;
+  }
+
+  public void setUsername(final String username) {
+    this.username = username;
+  }
+
+  public String getPassword() {
+    return password;
+  }
+
+  public void setPassword(final String password) {
+    this.password = password;
+  }
+
+  public String getBranch() {
+    return branch;
+  }
+
+  public void setBranch(final String branch) {
+    this.branch = branch;
+  }
+
   public String getSourceDirectory() {
     return sourceDirectory;
   }
@@ -59,6 +84,14 @@ public class AnalysisRequest {
 
   public void setRestrictAnalysisToFolders(final String restrictAnalysisToFolders) {
     this.restrictAnalysisToFolders = restrictAnalysisToFolders;
+  }
+
+  public String getApplicationRoot() {
+    return applicationRoot;
+  }
+
+  public void setApplicationRoot(final String applicationRoot) {
+    this.applicationRoot = applicationRoot;
   }
 
   public boolean isSendToRemote() {
@@ -145,6 +178,7 @@ public class AnalysisRequest {
         .cloneDepth(Optional.ofNullable(cloneDepth))
         .landscapeToken((landscapeToken != null && !landscapeToken.isBlank()) ? landscapeToken : "mytokenvalue")
         .applicationName(applicationName != null ? applicationName : "")
+        .applicationRoot(Optional.ofNullable(applicationRoot))
         .codeAnalysisExcludedFileExtensions(codeAnalysisExcludedFileExtensions)
         .build();
   }

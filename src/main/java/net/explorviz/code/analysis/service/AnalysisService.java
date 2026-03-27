@@ -160,7 +160,7 @@ public class AnalysisService {
                   repository,
                   Optional.ofNullable(lastCheckedCommit),
                   commit,
-                  config.restrictAnalysisToFolders().orElse(""));
+                  config.applicationRoot().orElse(config.restrictAnalysisToFolders().orElse("")));
 
           final List<FileDescriptor> descriptorAddedList = descTriple.right(); // NOPMD
           final List<FileDescriptor> descriptorModifiedList = descTriple.left();
@@ -187,6 +187,8 @@ public class AnalysisService {
           final List<FileDescriptor> descriptorList = new ArrayList<FileDescriptor>(); // NOPMD
           descriptorList.addAll(descriptorAddedList);
           descriptorList.addAll(descriptorModifiedList);
+
+          applyPathTransformation(descriptorList, config.applicationRoot());
 
           commitAnalysis(config, repository, commit, lastCheckedCommit, descriptorList, exporter,
               branch, descTriple);
@@ -309,10 +311,10 @@ public class AnalysisService {
     for (final FileDescriptor fileDescriptor : descriptorList) {
       try {
         analysisStatusService.setCurrentAnalyzingFile(config.landscapeToken(),
-            fileDescriptor.relativePath);
+            fileDescriptor.reportedPath);
 
         LOGGER.atInfo()
-            .addArgument(fileDescriptor.relativePath)
+            .addArgument(fileDescriptor.reportedPath)
             .log("📄 Analyzing file: {}");
 
         final AbstractFileDataHandler fileDataHandler = fileAnalysis(config, repository, fileDescriptor,
@@ -363,12 +365,18 @@ public class AnalysisService {
         .setSeconds(commit.getCommitterIdent().getWhen().getTime() / 1000).build());
 
     final List<FileDescriptor> files = gitRepositoryHandler.listFilesInCommit(repository, commit,
-        config.restrictAnalysisToFolders().orElse(""));
-    commitReportHandler.add(files);
+        config.applicationRoot().orElse(config.restrictAnalysisToFolders().orElse("")));
 
     final List<FileDescriptor> modifiedFiles = descriptorTriple.left();
     final List<FileDescriptor> deletedFiles = descriptorTriple.middle();
     final List<FileDescriptor> addedFiles = descriptorTriple.right();
+
+    applyPathTransformation(files, config.applicationRoot());
+    applyPathTransformation(modifiedFiles, config.applicationRoot());
+    applyPathTransformation(deletedFiles, config.applicationRoot());
+    applyPathTransformation(addedFiles, config.applicationRoot());
+
+    commitReportHandler.add(files);
 
     for (final FileDescriptor modifiedFile : modifiedFiles) {
       commitReportHandler.addModified(modifiedFile);
@@ -477,7 +485,7 @@ public class AnalysisService {
             .addArgument(fileContent.length())
             .log("{} is excluded from code analysis. Doing shallow analysis only.");
 
-        final TextFileDataHandler shallowHandler = new TextFileDataHandler(file.relativePath,
+        final TextFileDataHandler shallowHandler = new TextFileDataHandler(file.reportedPath,
             Language.PLAINTEXT);
         shallowHandler.setFileHash(file.objectId.getName());
         shallowHandler.calculateMetrics(fileContent);
@@ -492,73 +500,76 @@ public class AnalysisService {
           || fileName.endsWith(".js") || fileName.endsWith(".jsx")) {
         // TypeScript/JavaScript file
         LOGGER.atInfo()
-            .addArgument(file.relativePath)
+            .addArgument(file.reportedPath)
             .addArgument(fileContent.length())
             .log("Parsing TypeScript/JavaScript file: {} (size: {} bytes)");
 
         fileDataHandler = tsParserService.parseFileContent(fileContent,
-            file.relativePath, file.objectId.getName());
+            file.reportedPath, file.objectId.getName());
 
         if (fileDataHandler != null) {
           // Add git metrics to the TypeScript/JavaScript file handler
           GitMetricCollector.addFileGitMetrics(fileDataHandler, file);
           LOGGER.atInfo()
-              .addArgument(file.relativePath)
+              .addArgument(file.reportedPath)
               .log("✅ Successfully parsed TypeScript/JavaScript file: {}");
         } else {
           LOGGER.atError()
-              .addArgument(file.relativePath)
+              .addArgument(file.reportedPath)
               .log("❌ TypeScript parser returned NULL for file: {}");
         }
       } else if (fileName.endsWith(".java")) {
         // Java file - using ANTLR parser
         LOGGER.atInfo()
-            .addArgument(file.relativePath)
+            .addArgument(file.reportedPath)
             .addArgument(fileContent.length())
             .log("Parsing Java file with ANTLR: {} (size: {} bytes)");
 
-        // Pass relativePath instead of fileName to preserve directory structure
-        fileDataHandler = antlrParserService.parseFileContent(fileContent, file.relativePath, file.objectId.getName());
+        // Pass reportedPath instead of fileName to preserve directory structure
+        fileDataHandler = antlrParserService.parseFileContent(fileContent, file.reportedPath,
+            file.objectId.getName());
 
         if (fileDataHandler != null) {
           // Add git metrics to the Java file handler
           GitMetricCollector.addFileGitMetrics(fileDataHandler, file);
           LOGGER.atInfo()
-              .addArgument(file.relativePath)
+              .addArgument(file.reportedPath)
               .log("✅ Successfully parsed Java file with ANTLR: {}");
         } else {
           LOGGER.atError()
-              .addArgument(file.relativePath)
+              .addArgument(file.reportedPath)
               .log("❌ ANTLR Java parser returned NULL for file: {}");
         }
       } else if (fileName.endsWith(".py")) {
         // Python file - using ANTLR parser
         LOGGER.atInfo()
-            .addArgument(file.relativePath)
+            .addArgument(file.reportedPath)
             .addArgument(fileContent.length())
             .log("Parsing Python file with ANTLR: {} (size: {} bytes)");
 
-        // Pass relativePath instead of fileName to preserve directory structure
-        fileDataHandler = pythonParserService.parseFileContent(fileContent, file.relativePath, file.objectId.getName());
+        // Pass reportedPath instead of fileName to preserve directory structure
+        fileDataHandler = pythonParserService.parseFileContent(fileContent, file.reportedPath,
+            file.objectId.getName());
 
         if (fileDataHandler != null) {
           // Add git metrics to the Python file handler
           GitMetricCollector.addFileGitMetrics(fileDataHandler, file);
           LOGGER.atInfo()
-              .addArgument(file.relativePath)
+              .addArgument(file.reportedPath)
               .log("✅ Successfully parsed Python file with ANTLR: {}");
         } else {
           LOGGER.atError()
-              .addArgument(file.relativePath)
+              .addArgument(file.reportedPath)
               .log("❌ ANTLR Python parser returned NULL for file: {}");
         }
       } else if (isTextFile(file)) {
         LOGGER.atInfo()
-            .addArgument(file.relativePath)
+            .addArgument(file.reportedPath)
             .addArgument(fileContent.length())
             .log("📄 Processing detected text file: {} (size: {} bytes)");
 
-        final TextFileDataHandler textHandler = new TextFileDataHandler(file.relativePath, Language.PLAINTEXT);
+        final TextFileDataHandler textHandler = new TextFileDataHandler(file.reportedPath,
+            Language.PLAINTEXT);
         textHandler.setFileHash(file.objectId.getName());
         textHandler.calculateMetrics(fileContent);
 
@@ -567,14 +578,14 @@ public class AnalysisService {
 
         fileDataHandler = textHandler;
         LOGGER.atInfo()
-            .addArgument(file.relativePath)
+            .addArgument(file.reportedPath)
             .log("✅ Successfully processed text file: {}");
       } else {
         LOGGER.atInfo()
-            .addArgument(file.relativePath)
+            .addArgument(file.reportedPath)
             .log("📄 Processing other file (size only): {}");
 
-        final TextFileDataHandler genericHandler = new TextFileDataHandler(file.relativePath,
+        final TextFileDataHandler genericHandler = new TextFileDataHandler(file.reportedPath,
             Language.LANGUAGE_UNSPECIFIED);
         genericHandler.setFileHash(file.objectId.getName());
 
@@ -598,6 +609,46 @@ public class AnalysisService {
       }
       return null;
     }
+  }
+
+  void applyPathTransformation(final List<FileDescriptor> descriptors,
+      final Optional<String> applicationRoot) {
+    if (applicationRoot.isEmpty()) {
+      return;
+    }
+    for (final FileDescriptor desc : descriptors) {
+      desc.reportedPath = transformPath(desc.relativePath, applicationRoot.get());
+    }
+  }
+
+  String transformPath(final String originalPath, final String applicationRoot) {
+    String root = applicationRoot;
+    // Normalize: remove trailing slashes
+    while (root.endsWith("/") || root.endsWith("\\")) {
+      root = root.substring(0, root.length() - 1);
+    }
+
+    // Check if the path is actually inside the root
+    if (!originalPath.startsWith(root)) {
+      return originalPath;
+    }
+
+    // Must be followed by a slash if not equal
+    if (!originalPath.equals(root) && !originalPath.startsWith(root + "/")
+        && !originalPath.startsWith(root + "\\")) {
+      return originalPath;
+    }
+
+    int lastSlash = root.lastIndexOf('/');
+    if (lastSlash == -1) {
+      lastSlash = root.lastIndexOf('\\');
+    }
+
+    if (lastSlash == -1) {
+      return originalPath;
+    }
+
+    return originalPath.substring(lastSlash + 1);
   }
 
 }

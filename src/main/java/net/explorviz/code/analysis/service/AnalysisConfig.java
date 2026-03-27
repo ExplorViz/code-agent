@@ -11,7 +11,8 @@ import java.util.stream.Stream;
  */
 public record AnalysisConfig(Optional<String> repoPath, Optional<String> repoRemoteUrl, Optional<String> gitUsername,
     Optional<String> gitPassword, Optional<String> branch, Optional<String> sourceDirectory,
-    Optional<String> restrictAnalysisToFolders, boolean calculateMetrics,
+    Optional<String> restrictAnalysisToFolders, Optional<String> applicationRoot,
+    boolean calculateMetrics,
     Optional<String> startCommit, Optional<String> endCommit, Optional<Integer> cloneDepth,
     String landscapeToken, String applicationName,
     Set<String> codeAnalysisExcludedFileExtensions) {
@@ -27,6 +28,7 @@ public record AnalysisConfig(Optional<String> repoPath, Optional<String> repoRem
     private Optional<String> branch = Optional.empty();
     private Optional<String> sourceDirectory = Optional.empty();
     private Optional<String> restrictAnalysisToFolders = Optional.empty();
+    private Optional<String> applicationRoot = Optional.empty();
     private boolean calculateMetrics = true;
     private Optional<String> startCommit = Optional.empty();
     private Optional<String> endCommit = Optional.empty();
@@ -67,6 +69,11 @@ public record AnalysisConfig(Optional<String> repoPath, Optional<String> repoRem
 
     public Builder restrictAnalysisToFolders(final Optional<String> restrictAnalysisToFolders) {
       this.restrictAnalysisToFolders = restrictAnalysisToFolders;
+      return this;
+    }
+
+    public Builder applicationRoot(final Optional<String> applicationRoot) {
+      this.applicationRoot = applicationRoot;
       return this;
     }
 
@@ -122,6 +129,7 @@ public record AnalysisConfig(Optional<String> repoPath, Optional<String> repoRem
           branch,
           sourceDirectory,
           restrictAnalysisToFolders,
+          applicationRoot,
           calculateMetrics,
           startCommit,
           endCommit,

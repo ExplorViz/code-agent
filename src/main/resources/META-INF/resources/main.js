@@ -13,6 +13,7 @@ const SAMPLE_VALUES = {
   sourceDirectory: "**/src/main/java",
   restrictAnalysisToFolders: "**/src/main/java",
   applicationName: "default-application-name",
+  applicationRoot: "",
   startCommit: "",
   endCommit: "",
   landscapeToken: "",
