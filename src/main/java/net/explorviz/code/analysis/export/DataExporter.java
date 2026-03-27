@@ -9,8 +9,8 @@ import net.explorviz.code.proto.StateData;
  */
 public interface DataExporter {
 
-  StateData getStateData(final String upstreamName, final String branchName, final String token,
-      final String applicationName);
+  StateData getStateData(final String repositoryName, final String branchName, final String token,
+      final String applicationName, final String applicationRoot);
 
   void persistFile(final FileData fileData);
 

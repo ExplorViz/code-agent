@@ -10,9 +10,9 @@ import net.explorviz.code.proto.StateData;
 public class VoidExporter implements DataExporter {
 
   @Override
-  public StateData getStateData(final String upstreamName, final String branchName,
+  public StateData getStateData(final String repositoryName, final String branchName,
       final String token,
-      final String applicationName) {
+      final String applicationName, final String applicationRoot) {
     return StateData.newBuilder().build();
   }
 

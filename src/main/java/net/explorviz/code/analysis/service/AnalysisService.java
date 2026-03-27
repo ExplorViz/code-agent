@@ -224,7 +224,8 @@ public class AnalysisService {
       final DataExporter exporter, final String branch) {
     final StateData remoteState = exporter.getStateData(
         config.getRepositoryName(), branch,
-        config.landscapeToken(), config.applicationName());
+        config.landscapeToken(), config.applicationName(),
+        config.applicationRoot().orElse(""));
     if (exporter.isRemote()) {
 
       if (remoteState.getCommitId().isEmpty() || remoteState.getCommitId().isBlank()) {

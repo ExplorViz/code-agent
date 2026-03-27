@@ -7,6 +7,7 @@ import java.nio.file.Paths;
 import net.explorviz.code.proto.CommitData;
 import net.explorviz.code.proto.FileData;
 import net.explorviz.code.proto.StateData;
+import net.explorviz.code.proto.StateDataRequest;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -63,22 +64,26 @@ public class JsonExporter implements DataExporter {
   }
 
   @Override
-  public StateData getStateData(final String upstreamName, final String branchName,
+  public StateData getStateData(final String repositoryName, final String branchName,
       final String token,
-      final String applicationName) {
+      final String applicationName, final String applicationRoot) {
     LOGGER.atInfo()
-        .addArgument(upstreamName)
+        .addArgument(repositoryName)
         .addArgument(branchName)
         .addArgument(applicationName)
         .log("📥 State data requested for {} on branch {} (application: {})");
 
     final StateData stateData = StateData.newBuilder().build();
     try {
+      final StateDataRequest request = StateDataRequest.newBuilder()
+          .setRepositoryName(repositoryName)
+          .setBranchName(branchName)
+          .setLandscapeToken(token)
+          .putApplicationPaths(applicationName, applicationRoot)
+          .build();
+
       final String resultJson = JsonFormat.printer().print(stateData);
-      final String requestJson = String.format(
-          "{\n  \"upstreamName\": \"%s\",\n  \"branchName\": \"%s\",\n  \"landscapeToken\": \"%s\","
-              + "\n  \"applicationName\": \"%s\"\n}",
-          upstreamName, branchName, token, applicationName);
+      final String requestJson = JsonFormat.printer().print(request);
 
       final String stateFileName = "StateData_" + applicationName + JSON_FILE_EXTENSION;
       final String requestFileName = "StateRequest_" + applicationName + JSON_FILE_EXTENSION;
