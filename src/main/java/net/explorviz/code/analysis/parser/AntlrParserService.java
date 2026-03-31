@@ -70,7 +70,7 @@ public class AntlrParserService {
 
     // Create and execute the listener
     final JavaFileDataListener listener = new JavaFileDataListener(fileDataHandler,
-        wildcardImportProperty);
+        wildcardImportProperty, tokens);
     final ParseTreeWalker walker = new ParseTreeWalker();
     walker.walk(listener, compilationUnit);
 

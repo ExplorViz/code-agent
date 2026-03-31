@@ -29,13 +29,16 @@ public class JavaFileDataListener extends Java20ParserBaseListener implements Co
   private int wildcardImportCount;
   private String wildcardImport;
   private String currentPackage = "";
+  private final org.antlr.v4.runtime.CommonTokenStream tokens;
 
   public JavaFileDataListener(final JavaFileDataHandler fileDataHandler,
-      final boolean wildcardImportProperty) {
+      final boolean wildcardImportProperty,
+      final org.antlr.v4.runtime.CommonTokenStream tokens) {
     this.fileDataHandler = fileDataHandler;
     this.wildcardImportProperty = wildcardImportProperty;
     this.wildcardImportCount = 0;
     this.wildcardImport = null;
+    this.tokens = tokens;
   }
 
   @Override
@@ -249,6 +252,10 @@ public class JavaFileDataListener extends Java20ParserBaseListener implements Co
     // Add parameters
     addParameters(methodData, declarator);
 
+    if (ctx.start != null && ctx.stop != null) {
+      methodData.setLines(ctx.start.getLine(), ctx.stop.getLine());
+    }
+
     // Add LOC
     methodData.addMetric(LOC, String.valueOf(getLoc(ctx)));
   }
@@ -300,6 +307,10 @@ public class JavaFileDataListener extends Java20ParserBaseListener implements Co
     // Add parameters
     addParameters(methodData, declarator);
 
+    if (ctx.start != null && ctx.stop != null) {
+      methodData.setLines(ctx.start.getLine(), ctx.stop.getLine());
+    }
+
     // Add LOC
     methodData.addMetric(LOC, String.valueOf(getLoc(ctx)));
   }
@@ -337,6 +348,10 @@ public class JavaFileDataListener extends Java20ParserBaseListener implements Co
 
     // Add parameters
     addConstructorParameters(constructor, ctx.constructorDeclarator());
+
+    if (ctx.start != null && ctx.stop != null) {
+      constructor.setLines(ctx.start.getLine(), ctx.stop.getLine());
+    }
 
     // Add LOC
     constructor.addMetric(LOC, String.valueOf(getLoc(ctx)));
@@ -626,8 +641,28 @@ public class JavaFileDataListener extends Java20ParserBaseListener implements Co
   }
 
   private int getCloc(final ParserRuleContext ctx) {
-    // Simplified comment counting
-    // In a full implementation, you'd need to access the token stream
-    return 0; // TODO: Implement proper comment counting
+    if (ctx == null || tokens == null) {
+      return 0;
+    }
+
+    int commentLines = 0;
+
+    for (int i = 0; i < tokens.size(); i++) {
+      final org.antlr.v4.runtime.Token token = tokens.get(i);
+
+      if (token.getChannel() != 0) {
+        final String tokenText = token.getText();
+        if (tokenText != null) {
+          if (tokenText.trim().startsWith("//")) {
+            commentLines++;
+          } else if (tokenText.trim().startsWith("/*")) {
+            final long newlines = tokenText.chars().filter(ch -> ch == '\n').count();
+            commentLines += (int) newlines + 1;
+          }
+        }
+      }
+    }
+
+    return commentLines;
   }
 }

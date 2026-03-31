@@ -339,7 +339,7 @@ public class TypeScriptFileDataListener extends TypeScriptParserBaseListener imp
 
       // Comments are typically on channel 1 (hidden channel)
       // Channel 0 is the default channel for regular tokens
-      if (token.getChannel() == 1) {
+      if (token.getChannel() != 0) {
         final String tokenText = token.getText();
 
         if (tokenText != null) {

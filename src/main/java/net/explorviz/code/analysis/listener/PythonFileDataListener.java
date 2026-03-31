@@ -33,7 +33,7 @@ public class PythonFileDataListener extends PythonParserBaseListener implements 
   public void enterFile_input(final PythonParser.File_inputContext ctx) {
     // Calculate LOC and CLOC
     final int loc = getLoc(ctx);
-    final int cloc = 0; // TODO: Implement proper comment counting
+    final int cloc = getCloc(ctx);
 
     fileDataHandler.addMetric(LOC, String.valueOf(loc));
     fileDataHandler.addMetric(CLOC, String.valueOf(cloc));
@@ -177,5 +177,31 @@ public class PythonFileDataListener extends PythonParserBaseListener implements 
           .addArgument(functionName)
           .log("Global function: {}");
     }
+  }
+
+  private int getCloc(final org.antlr.v4.runtime.ParserRuleContext ctx) {
+    if (ctx == null || tokens == null) {
+      return 0;
+    }
+
+    int commentLines = 0;
+
+    for (int i = 0; i < tokens.size(); i++) {
+      final Token token = tokens.get(i);
+
+      if (token.getChannel() != 0) {
+        final String tokenText = token.getText();
+        if (tokenText != null) {
+          if (tokenText.trim().startsWith("#")) {
+            commentLines++;
+          } else if (tokenText.trim().startsWith("/*")) {
+            final long newlines = tokenText.chars().filter(ch -> ch == '\n').count();
+            commentLines += (int) newlines + 1;
+          }
+        }
+      }
+    }
+
+    return commentLines;
   }
 }
