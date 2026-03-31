@@ -162,17 +162,30 @@ public class GitRepositoryHandler { // NOPMD
     final Map.Entry<Boolean, String> checkedRepositoryUrl = convertSshToHttps(
         remoteRepositoryObject.getUrl());
 
+    final String urlValue = checkedRepositoryUrl.getValue();
+    String repoName = "repository";
+    final int lastSlashIndex = urlValue.lastIndexOf('/');
+    if (lastSlashIndex != -1 && lastSlashIndex < urlValue.length() - 1) {
+      repoName = urlValue.substring(lastSlashIndex + 1);
+      if (repoName.endsWith(".git")) {
+        repoName = repoName.substring(0, repoName.length() - 4);
+      }
+    }
+
     String repoPath = remoteRepositoryObject.getStoragePath();
     if (remoteRepositoryObject.getStoragePath().isBlank()) {
       repoPath = Files.createTempDirectory("TemporaryRepository").toAbsolutePath().toString();
+      repoPath = Paths.get(repoPath, repoName).toString();
       LOGGER.atInfo().addArgument(repoPath)
           .log("No path given, repository will be cloned to: {}");
     } else if (new File(repoPath).isAbsolute()) {
+      repoPath = Paths.get(repoPath, repoName).toString();
       LOGGER.atInfo().addArgument(repoPath)
           .log("Repository will be cloned to: {}");
     } else {
       LOGGER.atInfo().log("Found local path for remote repository.");
       repoPath = GitRepositoryHandler.convertRelativeToAbsolutePath(repoPath);
+      repoPath = Paths.get(repoPath, repoName).toString();
     }
 
     try {

@@ -107,7 +107,7 @@ public class GitRepositoryHandlerTest {
     }
     // checking the same folder and reopen the repository
     try (Repository repository = this.gitRepositoryHandler.getGitRepository(
-        tempGitLocation.getAbsolutePath(), new RemoteRepositoryObject())) {
+        tempGitLocation.getAbsolutePath() + "/busydoingnothing", new RemoteRepositoryObject())) {
       Assertions.assertEquals(GitRepositoryHandler.getRemoteOriginUrl(repository), httpsUrl);
     }
 
