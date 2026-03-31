@@ -708,9 +708,47 @@ public class CppFileDataListener extends CPP14ParserBaseListener implements Comm
             paramName = "";
           }
         }
-        methodData.addParameter(paramName, paramType, new ArrayList<>());
+        final List<String> modifiers = extractParameterModifiers(param);
+        methodData.addParameter(paramName, paramType, modifiers);
       }
     }
+  }
+
+  /**
+   * Extract const and volatile modifiers from a parameter declaration.
+   */
+  private List<String> extractParameterModifiers(final CPP14Parser.ParameterDeclarationContext param) {
+    final List<String> modifiers = new ArrayList<>();
+
+    // Check declSpecifierSeq for const/volatile
+    if (param.declSpecifierSeq() != null) {
+      for (final CPP14Parser.DeclSpecifierContext declSpec : param.declSpecifierSeq().declSpecifier()) {
+        if (declSpec.typeSpecifier() != null) {
+          if (declSpec.typeSpecifier().trailingTypeSpecifier() != null) {
+            final var trailing = declSpec.typeSpecifier().trailingTypeSpecifier();
+            if (trailing.cvQualifier() != null) {
+              modifiers.add(trailing.cvQualifier().getText());
+            }
+          }
+        }
+      }
+    }
+
+    // Check pointer asterisks for cvQualifiers (e.g. int * const p)
+    if (param.declarator() != null && param.declarator().pointerDeclarator() != null) {
+      final var ptrDecl = param.declarator().pointerDeclarator();
+      if (ptrDecl.pointerOperator() != null) {
+        for (final CPP14Parser.PointerOperatorContext ptrOp : ptrDecl.pointerOperator()) {
+          if (ptrOp.cvQualifierSeq() != null && ptrOp.cvQualifierSeq().cvQualifier() != null) {
+            for (final CPP14Parser.CvQualifierContext cvQual : ptrOp.cvQualifierSeq().cvQualifier()) {
+              modifiers.add(cvQual.getText());
+            }
+          }
+        }
+      }
+    }
+
+    return modifiers;
   }
 
   /**
