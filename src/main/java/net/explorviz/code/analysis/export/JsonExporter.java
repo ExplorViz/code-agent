@@ -19,7 +19,8 @@ public class JsonExporter implements DataExporter {
   private static final Logger LOGGER = LoggerFactory.getLogger(JsonExporter.class);
   private static final String JSON_FILE_EXTENSION = ".json";
   private static final String[] SOURCE_FILE_EXTENSIONS = {
-      ".java", ".ts", ".tsx", ".js", ".jsx", ".py"
+      ".java", ".ts", ".tsx", ".js", ".jsx", ".py",
+      ".c", ".cpp", ".cxx", ".cc", ".h", ".hpp", ".hxx"
   };
 
   private final String storageDirectory;
@@ -82,8 +83,8 @@ public class JsonExporter implements DataExporter {
           .putApplicationPaths(applicationName, applicationRoot)
           .build();
 
-      final String resultJson = JsonFormat.printer().print(stateData);
-      final String requestJson = JsonFormat.printer().print(request);
+      final String resultJson = unescapeHtml(JsonFormat.printer().print(stateData));
+      final String requestJson = unescapeHtml(JsonFormat.printer().print(request));
 
       final String stateFileName = "StateData_" + applicationName + JSON_FILE_EXTENSION;
       final String requestFileName = "StateRequest_" + applicationName + JSON_FILE_EXTENSION;
@@ -111,7 +112,7 @@ public class JsonExporter implements DataExporter {
           .addArgument(fileData.getLanguage())
           .log("📤 Exporting file data: {} (language: {})");
 
-      final String json = JsonFormat.printer().print(fileData);
+      final String json = unescapeHtml(JsonFormat.printer().print(fileData));
 
       // Remove file extension from filename
       String filePath = fileData.getFilePath();
@@ -150,7 +151,7 @@ public class JsonExporter implements DataExporter {
   @Override
   public void persistCommit(final CommitData commitData) {
     try {
-      final String json = JsonFormat.printer().print(commitData);
+      final String json = unescapeHtml(JsonFormat.printer().print(commitData));
       final String fileName = "CommitReport_" + commitData.getCommitId() + "_" + commitCount
           + JSON_FILE_EXTENSION;
       Files.write(Paths.get(storageDirectory, fileName), json.getBytes());
@@ -168,5 +169,17 @@ public class JsonExporter implements DataExporter {
   @Override
   public boolean isInvalidCommitHash(final String hash) {
     return false;
+  }
+
+  /**
+   * Protobuf's JsonFormat uses Gson which HTML-escapes certain characters.
+   * Since our JSON is written to files and not embedded in HTML, we undo this.
+   */
+  private static String unescapeHtml(final String json) {
+    return json.replace("\\u003c", "<")
+        .replace("\\u003e", ">")
+        .replace("\\u0026", "&")
+        .replace("\\u003d", "=")
+        .replace("\\u0027", "'");
   }
 }

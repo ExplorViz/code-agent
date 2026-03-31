@@ -17,6 +17,7 @@ enum Language {
   TYPESCRIPT = 3;
   PYTHON = 4;
   PLAINTEXT = 5;
+  CPP = 6;
 }
 
 enum ClassType {
@@ -26,6 +27,7 @@ enum ClassType {
   ENUM = 3;
   ABSTRACT_CLASS = 4;
   ANONYMOUS_CLASS = 5;
+  STRUCT = 6;
 }
 
 message ParameterData {

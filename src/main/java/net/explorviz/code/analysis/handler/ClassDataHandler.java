@@ -140,6 +140,14 @@ public class ClassDataHandler implements ProtoBufConvertable<ClassData> {
     return this.builder.getType() == ClassType.ANONYMOUS_CLASS;
   }
 
+  public void setIsStruct() {
+    this.builder.setType(ClassType.STRUCT);
+  }
+
+  public boolean isStruct() {
+    return this.builder.getType() == ClassType.STRUCT;
+  }
+
   /**
    * Adds a new metric entry to the ClassData, returns the old value of the metric if it existed, null otherwise.
    *

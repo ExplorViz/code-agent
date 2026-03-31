@@ -24,6 +24,7 @@ import net.explorviz.code.analysis.git.GitRepositoryHandler;
 import net.explorviz.code.analysis.handler.AbstractFileDataHandler;
 import net.explorviz.code.analysis.handler.CommitReportHandler;
 import net.explorviz.code.analysis.handler.TextFileDataHandler;
+import net.explorviz.code.analysis.parser.AntlrCppParserService;
 import net.explorviz.code.analysis.parser.AntlrParserService;
 import net.explorviz.code.analysis.parser.AntlrPythonParserService;
 import net.explorviz.code.analysis.parser.AntlrTypeScriptParserService;
@@ -88,6 +89,8 @@ public class AnalysisService {
   /* package */ AntlrTypeScriptParserService tsParserService;
   @Inject
   /* package */ AntlrPythonParserService pythonParserService;
+  @Inject
+  /* package */ AntlrCppParserService cppParserService;
   @Inject
   /* package */ CommitReportHandler commitReportHandler;
   @Inject
@@ -562,6 +565,29 @@ public class AnalysisService {
           LOGGER.atError()
               .addArgument(file.reportedPath)
               .log("❌ ANTLR Python parser returned NULL for file: {}");
+        }
+      } else if (fileName.endsWith(".c") || fileName.endsWith(".cpp")
+          || fileName.endsWith(".cxx") || fileName.endsWith(".cc")
+          || fileName.endsWith(".h") || fileName.endsWith(".hpp")
+          || fileName.endsWith(".hxx")) {
+        // C/C++ file - using ANTLR CPP14 parser
+        LOGGER.atInfo()
+            .addArgument(file.reportedPath)
+            .addArgument(fileContent.length())
+            .log("Parsing C/C++ file with ANTLR: {} (size: {} bytes)");
+
+        fileDataHandler = cppParserService.parseFileContent(fileContent, file.reportedPath,
+            file.objectId.getName());
+
+        if (fileDataHandler != null) {
+          GitMetricCollector.addFileGitMetrics(fileDataHandler, file);
+          LOGGER.atInfo()
+              .addArgument(file.reportedPath)
+              .log("✅ Successfully parsed C/C++ file with ANTLR: {}");
+        } else {
+          LOGGER.atError()
+              .addArgument(file.reportedPath)
+              .log("❌ ANTLR C/C++ parser returned NULL for file: {}");
         }
       } else if (isTextFile(file)) {
         LOGGER.atInfo()
