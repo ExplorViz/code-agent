@@ -89,14 +89,13 @@ public class GitRepositoryHandler { // NOPMD
    * @return a Tuple containing a flag if the returned url should be used and the url itself
    */
   public static Map.Entry<Boolean, String> convertSshToHttps(final String url) {
-    if (url.matches("^git@\\S+.\\S+:\\w+(/[\\S&&[^/]]+)+[.git]?$")) {
+    if (url.matches("^git@\\S+\\.\\S+:\\w+(/[\\S&&[^/]]+)+(\\.git)?$")) {
       final String convertedUrl = url.replace(":", "/").replace("git@", "https://");
-      if (LOGGER.isWarnEnabled()) {
-        LOGGER.warn("The URL seems to be a SSH url, currently"
-            + " only HTTPS is supported, converted url now is: " + convertedUrl);
+      if (LOGGER.isInfoEnabled()) {
+        LOGGER.info("SSH URL detected, converting to HTTPS: " + convertedUrl);
       }
       return Map.entry(true, convertedUrl);
-    } else if (url.matches("^https?://\\S+(/[\\S&&[^/]]+)+[.git]?")) {
+    } else if (url.matches("^https?://\\S+(/[\\S&&[^/]]+)+(\\.git)?$")) {
       // it should not matter if it is http or https here, the user should know
       return Map.entry(true, url);
     } else {

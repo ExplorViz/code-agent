@@ -180,6 +180,16 @@ public class GitRepositoryHandlerTest {
     Assertions.assertEquals(Map.entry(true, httpsUrl),
         GitRepositoryHandler.convertSshToHttps(sshUrl));
 
+    // GitHub SSH URL with .git suffix
+    Assertions.assertEquals(
+        Map.entry(true, "https://github.com/ExplorViz/code-agent.git"),
+        GitRepositoryHandler.convertSshToHttps("git@github.com:ExplorViz/code-agent.git"));
+
+    // GitHub SSH URL without .git suffix
+    Assertions.assertEquals(
+        Map.entry(true, "https://github.com/ExplorViz/code-agent"),
+        GitRepositoryHandler.convertSshToHttps("git@github.com:ExplorViz/code-agent"));
+
     // if the url looks off, assume the user wants it that way
     final String urlUnderTest2 = "abc.xyz";
     Assertions.assertEquals(Map.entry(false, urlUnderTest2),
