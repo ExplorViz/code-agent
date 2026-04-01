@@ -13,7 +13,8 @@ public record AnalysisConfig(Optional<String> repoPath, Optional<String> repoRem
     Optional<String> gitPassword, Optional<String> branch, Optional<String> sourceDirectory,
     Optional<String> restrictAnalysisToFolders, Optional<String> applicationRoot,
     boolean calculateMetrics,
-    Optional<String> startCommit, Optional<String> endCommit, Optional<Integer> cloneDepth,
+    Optional<String> startCommit, Optional<String> endCommit,
+    Optional<Integer> commitAnalysisLimit,
     String landscapeToken, String applicationName,
     Set<String> codeAnalysisExcludedFileExtensions) {
 
@@ -32,7 +33,7 @@ public record AnalysisConfig(Optional<String> repoPath, Optional<String> repoRem
     private boolean calculateMetrics = true;
     private Optional<String> startCommit = Optional.empty();
     private Optional<String> endCommit = Optional.empty();
-    private Optional<Integer> cloneDepth = Optional.empty();
+    private Optional<Integer> commitAnalysisLimit = Optional.empty();
     private String landscapeToken = "";
     private String applicationName = "";
     private Set<String> codeAnalysisExcludedFileExtensions = Collections.emptySet();
@@ -92,8 +93,9 @@ public record AnalysisConfig(Optional<String> repoPath, Optional<String> repoRem
       return this;
     }
 
-    public Builder cloneDepth(final Optional<Integer> cloneDepth) {
-      this.cloneDepth = cloneDepth;
+
+    public Builder commitAnalysisLimit(final Optional<Integer> commitAnalysisLimit) {
+      this.commitAnalysisLimit = commitAnalysisLimit;
       return this;
     }
 
@@ -133,7 +135,7 @@ public record AnalysisConfig(Optional<String> repoPath, Optional<String> repoRem
           calculateMetrics,
           startCommit,
           endCommit,
-          cloneDepth,
+          commitAnalysisLimit,
           landscapeToken,
           applicationName,
           codeAnalysisExcludedFileExtensions);

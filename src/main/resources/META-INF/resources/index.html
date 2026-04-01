@@ -52,22 +52,30 @@
                   Remote Repository URL (required)
                   <span class="tooltip-container">
                     <span class="tooltip-icon">?</span>
-                    <span class="tooltip-text">The URL of the Git repository to analyze. Supports HTTPS and SSH formats (e.g., git@github.com:org/project.git).</span>
-                  </span>
-                </span>
-                <input name="repoRemoteUrl" placeholder="https://github.com/org/project.git or git@github.com:org/project.git" type="text" />
-              </label>
-              <label>
-                <span class="label-header">
-                  Clone Depth
-                  <span class="tooltip-container">
-                    <span class="tooltip-icon">?</span>
                     <span class="tooltip-text"
-                      >Limits the number of commits to clone. Use 1 for fastest analysis of the latest head.</span
+                      >The URL of the Git repository to analyze. Supports HTTPS and SSH formats (e.g.,
+                      git@github.com:org/project.git).</span
                     >
                   </span>
                 </span>
-                <input min="1" name="cloneDepth" placeholder="unlimited" type="number" value="1" />
+                <input
+                  name="repoRemoteUrl"
+                  placeholder="https://github.com/org/project.git or git@github.com:org/project.git"
+                  type="text"
+                />
+              </label>
+              <label>
+                <span class="label-header">
+                  Analyze Commit Count
+                  <span class="tooltip-container">
+                    <span class="tooltip-icon">?</span>
+                    <span class="tooltip-text"
+                      >Determines how many of the newest commits should be analyzed. If set, we will automatically clone
+                      with depth+1 to ensure correct analysis of the oldest requested commit.</span
+                    >
+                  </span>
+                </span>
+                <input min="1" name="commitAnalysisLimit" placeholder="all" type="number" value="1" />
               </label>
             </div>
 

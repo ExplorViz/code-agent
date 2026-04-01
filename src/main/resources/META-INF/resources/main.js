@@ -17,7 +17,6 @@ const SAMPLE_VALUES = {
   startCommit: "",
   endCommit: "",
   landscapeToken: "",
-  cloneDepth: "",
 };
 
 const DEFAULT_STATUS = "Waiting for input…";
@@ -34,8 +33,9 @@ function collectPayload(formData) {
   payload.calculateMetrics = formData.get("calculateMetrics") !== null;
   payload.sendToRemote = formData.get("sendToRemote") !== null;
 
-  if (payload.cloneDepth) {
-    payload.cloneDepth = parseInt(payload.cloneDepth, 10);
+
+  if (payload.commitAnalysisLimit) {
+    payload.commitAnalysisLimit = parseInt(payload.commitAnalysisLimit);
   }
 
   return payload;
@@ -119,11 +119,11 @@ function resetForm() {
 function updateRepoVisibility() {
   const repoType = form.elements.repoType.value;
   const isRemote = repoType === "remote";
-  
-  remoteRepoFieldsNodes.forEach(node => {
+
+  remoteRepoFieldsNodes.forEach((node) => {
     node.style.display = isRemote ? "grid" : "none";
   });
-  localRepoFieldsNodes.forEach(node => {
+  localRepoFieldsNodes.forEach((node) => {
     node.style.display = isRemote ? "none" : "grid";
   });
 }

@@ -80,13 +80,17 @@ public class GitRepositoryHandler { // NOPMD
   }
 
   /**
-   * Converts a git ssh url to a https url and returns it as well as if the conversion is usable. If the given url is
-   * already in https format, it will be returned as-is and the flag is set to true. If the given url is in ssh format,
-   * it will be converted to https and returned and the flag is set to true. If it is neither, a warning will be printed
+   * Converts a git ssh url to a https url and returns it as well as if the
+   * conversion is usable. If the given url is
+   * already in https format, it will be returned as-is and the flag is set to
+   * true. If the given url is in ssh format,
+   * it will be converted to https and returned and the flag is set to true. If it
+   * is neither, a warning will be printed
    * the url will get returned but the flag is set to false.
    *
    * @param url the original git url
-   * @return a Tuple containing a flag if the returned url should be used and the url itself
+   * @return a Tuple containing a flag if the returned url should be used and the
+   *         url itself
    */
   public static Map.Entry<Boolean, String> convertSshToHttps(final String url) {
     if (url.matches("^git@\\S+\\.\\S+:\\w+(/[\\S&&[^/]]+)+(\\.git)?$")) {
@@ -117,7 +121,8 @@ public class GitRepositoryHandler { // NOPMD
   }
 
   /**
-   * Returns the string content for a file path that was modified in a commit for a given repo.
+   * Returns the string content for a file path that was modified in a commit for
+   * a given repo.
    *
    * @param blobId The {@link ObjectId}.
    * @param repo   The {@link Repository}.
@@ -150,9 +155,11 @@ public class GitRepositoryHandler { // NOPMD
   }
 
   /**
-   * Tries to download the Git {@link Repository} based on a given Url to the given.
+   * Tries to download the Git {@link Repository} based on a given Url to the
+   * given.
    *
-   * @param remoteRepositoryObject the {@link RemoteRepositoryObject} object containing the path and url
+   * @param remoteRepositoryObject the {@link RemoteRepositoryObject} object
+   *                               containing the path and url
    * @return returns an opened git repository
    * @throws GitAPIException gets thrown if the git api encounters an error
    */
@@ -280,14 +287,19 @@ public class GitRepositoryHandler { // NOPMD
   }
 
   /**
-   * Returns a Git {@link Repository} object by opening the repository found at {@code localRepositoryPath}. <br> If
-   * {@code localRepositoryPath} is empty, the repository gets cloned based on data defined in
+   * Returns a Git {@link Repository} object by opening the repository found at
+   * {@code localRepositoryPath}. <br>
+   * If
+   * {@code localRepositoryPath} is empty, the repository gets cloned based on
+   * data defined in
    * {@code remoteRepositoryObject} and the opened repository gets returned.
    *
    * @param localRepositoryPath    the system path of the local Repository
-   * @param remoteRepositoryObject the {@link RemoteRepositoryObject} object containing the path and url
+   * @param remoteRepositoryObject the {@link RemoteRepositoryObject} object
+   *                               containing the path and url
    * @return returns an opened Git {@link Repository}
-   * @throws IOException     gets thrown if the path is not accessible or does not point to a folder
+   * @throws IOException     gets thrown if the path is not accessible or does not
+   *                         point to a folder
    * @throws GitAPIException gets thrown if the git api encounters an error
    */
   public Repository getGitRepository(final String localRepositoryPath,
@@ -305,20 +317,30 @@ public class GitRepositoryHandler { // NOPMD
   }
 
   /**
-   * Returns a Git {@link Repository} object by using the parameters set in the application.properties.<br> The local
-   * repository defined in {@code  explorviz.gitanalysis.local.storage-path} will be used.
+   * Returns a Git {@link Repository} object by using the parameters set in the
+   * application.properties.<br>
+   * The local
+   * repository defined in {@code  explorviz.gitanalysis.local.storage-path} will
+   * be used.
    * <br>
-   * If {@code  explorviz.gitanalysis.local.storage-path} is empty, the repository defined in
+   * If {@code  explorviz.gitanalysis.local.storage-path} is empty, the repository
+   * defined in
    * {@code  explorviz.gitanalysis.remote.url} will be cloned to the location
-   * {@code explorviz.gitanalysis.remote.storage-path}.<br> If no storage path is given, a temporary directory will be
-   * created. <br> The branch given in {@code explorviz.gitanalysis.branch} will be used if present, otherwise the
+   * {@code explorviz.gitanalysis.remote.storage-path}.<br>
+   * If no storage path is given, a temporary directory will be
+   * created. <br>
+   * The branch given in {@code explorviz.gitanalysis.branch} will be used if
+   * present, otherwise the
    * default (remote) or current (local) will be used.
    *
    * @param config the analysis config
    * @return an opened Git {@link Repository}
-   * @throws PropertyNotDefinedException gets thrown if a needed property is not present
-   * @throws GitAPIException             gets thrown if the git api encounters an error
-   * @throws IOException                 gets thrown if JGit cannot open the Git repository.
+   * @throws PropertyNotDefinedException gets thrown if a needed property is not
+   *                                     present
+   * @throws GitAPIException             gets thrown if the git api encounters an
+   *                                     error
+   * @throws IOException                 gets thrown if JGit cannot open the Git
+   *                                     repository.
    */
   public Repository getGitRepository(AnalysisConfig config)
       throws PropertyNotDefinedException, GitAPIException, IOException {
@@ -335,19 +357,23 @@ public class GitRepositoryHandler { // NOPMD
           config.gitPassword().get());
     }
 
+    final Integer depth = config.commitAnalysisLimit().isPresent() ? config.commitAnalysisLimit().get() + 1 : null;
+
     return getGitRepository(config.repoPath().orElse(""),
         new RemoteRepositoryObject(config.repoRemoteUrl().orElse(""),
             repoLocalStoragePathProperty.orElse(""), credentialsProvider,
-            config.branch().orElse(""), config.cloneDepth().orElse(null)));
+            config.branch().orElse(""), depth));
   }
 
   /**
    * Returns the changed filenames between two given commits.
    *
    * @param repository       the current repository
-   * @param oldCommit        the old commit, as a baseline for the difference calculation
+   * @param oldCommit        the old commit, as a baseline for the difference
+   *                         calculation
    * @param newCommit        the new commit, gets checked against the old commit
-   * @param pathRestrictions comma sep. list of search strings specifying the folders to analyze
+   * @param pathRestrictions comma sep. list of search strings specifying the
+   *                         folders to analyze
    * @return triple of FileDescriptor specifying modified, delete and added files
    * @throws GitAPIException   thrown if git encounters an exception
    * @throws IOException       thrown if files are not available
@@ -366,7 +392,8 @@ public class GitRepositoryHandler { // NOPMD
    * Returns the changed filenames between two given commits.
    *
    * @param repository the current repository
-   * @param oldCommit  the old commit, as a baseline for the difference calculation
+   * @param oldCommit  the old commit, as a baseline for the difference
+   *                   calculation
    * @param newCommit  the new commit, gets checked against the old commit
    * @return triple of FileDescriptor specifying modified, delete and added files
    * @throws GitAPIException thrown if git encounters an exception
@@ -464,9 +491,11 @@ public class GitRepositoryHandler { // NOPMD
    *
    * @param repository       the current repository
    * @param commit           the commit to get the list of files for
-   * @param pathRestrictions a list of search strings specifying the folders to analyze, if omitted, the entire
+   * @param pathRestrictions a list of search strings specifying the folders to
+   *                         analyze, if omitted, the entire
    *                         repository will be searched
-   * @return returns a list of FileDescriptors of all java files within the specified folders
+   * @return returns a list of FileDescriptors of all java files within the
+   *         specified folders
    * @throws IOException       thrown if files are not available
    * @throws NotFoundException thrown if the restrictionPath was not found
    */
@@ -477,13 +506,16 @@ public class GitRepositoryHandler { // NOPMD
   }
 
   /**
-   * Returns a list of all supported source files in the repository (Java, TypeScript, JavaScript).
+   * Returns a list of all supported source files in the repository (Java,
+   * TypeScript, JavaScript).
    *
    * @param repository       the current repository
    * @param commit           the commit to get the list of files for
-   * @param pathRestrictions a comma separated list of search strings specifying the folders to analyze, if omitted, the
+   * @param pathRestrictions a comma separated list of search strings specifying
+   *                         the folders to analyze, if omitted, the
    *                         entire repository will be searched
-   * @return returns a list of FileDescriptors of all supported source files within the specified folders
+   * @return returns a list of FileDescriptors of all supported source files
+   *         within the specified folders
    * @throws IOException       thrown if files are not available
    * @throws NotFoundException thrown if the restrictionPath was not found
    */
@@ -536,7 +568,8 @@ public class GitRepositoryHandler { // NOPMD
   }
 
   /**
-   * Checks if the given commit is unreachable by the given branch (is not part of the branch).
+   * Checks if the given commit is unreachable by the given branch (is not part of
+   * the branch).
    *
    * @param commitId the full SHA-1 id of the commit
    * @param branch   the branch name
@@ -547,7 +580,8 @@ public class GitRepositoryHandler { // NOPMD
   }
 
   /**
-   * Checks if the given commit is reachable by the given branch (is part of the branch).
+   * Checks if the given commit is reachable by the given branch (is part of the
+   * branch).
    *
    * @param commitId the full SHA-1 id of the commit
    * @param branch   the branch name

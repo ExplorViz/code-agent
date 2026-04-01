@@ -21,7 +21,7 @@ public class AnalysisRequest {
   private boolean calculateMetrics = true;
   private String startCommit;
   private String endCommit;
-  private Integer cloneDepth;
+  private Integer commitAnalysisLimit;
   private String landscapeToken = "mytokenvalue";
   private String applicationName = "";
   private String applicationRoot;
@@ -142,12 +142,13 @@ public class AnalysisRequest {
     this.applicationName = applicationName;
   }
 
-  public Integer getCloneDepth() {
-    return cloneDepth;
+
+  public Integer getCommitAnalysisLimit() {
+    return commitAnalysisLimit;
   }
 
-  public void setCloneDepth(final Integer cloneDepth) {
-    this.cloneDepth = cloneDepth;
+  public void setCommitAnalysisLimit(final Integer commitAnalysisLimit) {
+    this.commitAnalysisLimit = commitAnalysisLimit;
   }
 
   public String getCodeAnalysisExcludedFileExtensions() {
@@ -175,7 +176,7 @@ public class AnalysisRequest {
         .calculateMetrics(calculateMetrics)
         .startCommit(Optional.ofNullable(startCommit))
         .endCommit(Optional.ofNullable(endCommit))
-        .cloneDepth(Optional.ofNullable(cloneDepth))
+        .commitAnalysisLimit(Optional.ofNullable(commitAnalysisLimit))
         .landscapeToken((landscapeToken != null && !landscapeToken.isBlank()) ? landscapeToken : "mytokenvalue")
         .applicationName(applicationName != null ? applicationName : "")
         .applicationRoot(Optional.ofNullable(applicationRoot))

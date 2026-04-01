@@ -70,6 +70,9 @@ public class GitAnalysis { // NOPMD
   @ConfigProperty(name = "explorviz.gitanalysis.end-commit-sha1")
   /* default */ Optional<String> endCommitProperty; // NOCS
 
+  @ConfigProperty(name = "explorviz.gitanalysis.commit-analysis-limit")
+  /* default */ Optional<Integer> commitAnalysisLimitProperty; // NOCS
+
   @ConfigProperty(name = "explorviz.landscape.token", defaultValue = "mytokenvalue")
   /* default */ String landscapeTokenProperty; // NOCS
 
@@ -103,6 +106,7 @@ public class GitAnalysis { // NOPMD
         .calculateMetrics(calculateMetricsProperty)
         .startCommit(startCommitProperty)
         .endCommit(endCommitProperty)
+        .commitAnalysisLimit(commitAnalysisLimitProperty)
         .landscapeToken(landscapeTokenProperty)
         .applicationName(applicationNameProperty)
         .codeAnalysisExcludedFileExtensions(codeAnalysisExcludedFileExtensionsProperty.orElse(""))

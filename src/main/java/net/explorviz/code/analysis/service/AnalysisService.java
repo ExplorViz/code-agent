@@ -128,7 +128,8 @@ public class AnalysisService {
 
       checkIfCommitsAreReachable(startCommit, endCommit, fullBranch);
 
-      final int totalCommits = countCommitsInRange(repository, fullBranch, startCommit, endCommit, exporter.isRemote());
+      final int totalCommits = countCommitsInRange(repository, fullBranch, startCommit, endCommit,
+          exporter.isRemote(), config.commitAnalysisLimit());
       LOGGER.info("Total commits to analyze: {}", totalCommits);
       analysisStatusService.markRunning(config.landscapeToken(), totalCommits, 0);
 
@@ -138,6 +139,7 @@ public class AnalysisService {
         int commitCount = 0;
         RevCommit lastCheckedCommit = null;
         boolean inAnalysisRange = startCommit.isEmpty() || "".equals(startCommit.get());
+        boolean skippedFirstForContext = false;
 
         for (final RevCommit commit : revWalk) {
 
@@ -154,6 +156,16 @@ public class AnalysisService {
               }
               continue;
             }
+          }
+
+          if (config.commitAnalysisLimit().isPresent() && !skippedFirstForContext && lastCheckedCommit == null) {
+            lastCheckedCommit = commit;
+            skippedFirstForContext = true;
+            continue;
+          }
+
+          if (config.commitAnalysisLimit().isPresent() && commitCount >= config.commitAnalysisLimit().get()) {
+            break;
           }
 
           LOGGER.atDebug().addArgument(commit.getName()).log("Analyzing commit: {}");
@@ -251,12 +263,13 @@ public class AnalysisService {
 
   private int countCommitsInRange(final Repository repository, final String fullBranch,
       final Optional<String> startCommit, final Optional<String> endCommit,
-      final boolean remoteExport) throws IOException {
+      final boolean remoteExport, final Optional<Integer> commitAnalysisLimit) throws IOException {
     try (RevWalk revWalk = new RevWalk(repository)) {
       prepareRevWalk(repository, revWalk, fullBranch);
 
       int totalCommits = 0;
       boolean inAnalysisRange = startCommit.isEmpty() || "".equals(startCommit.get());
+      boolean skippedFirstForContext = false;
 
       for (final RevCommit commit : revWalk) {
         if (!inAnalysisRange) {
@@ -270,7 +283,15 @@ public class AnalysisService {
           }
         }
 
+        if (commitAnalysisLimit.isPresent() && !skippedFirstForContext && startCommit.isEmpty()) {
+          skippedFirstForContext = true;
+          continue;
+        }
+
         totalCommits++;
+        if (commitAnalysisLimit.isPresent() && totalCommits >= commitAnalysisLimit.get()) {
+          break;
+        }
         if (endCommit.isPresent() && commit.name().equals(endCommit.get())) {
           break;
         }
