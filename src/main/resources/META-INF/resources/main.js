@@ -8,15 +8,15 @@ const remoteRepoFieldsNodes = document.querySelectorAll(".remote-repo-fields");
 const localRepoFieldsNodes = document.querySelectorAll(".local-repo-fields");
 
 const SAMPLE_VALUES = {
-  repoRemoteUrl: "https://github.com/explorviz/code-agent.git",
+  repoRemoteUrl: "",
   branch: "main",
-  sourceDirectory: "**/src/main/java",
-  restrictAnalysisToFolders: "**/src/main/java",
+  includeInAnalysisExpressions: "src/main/java/**",
+  excludeFromAnalysisExpressions: "",
   applicationName: "default-application-name",
   applicationRoot: "",
   startCommit: "",
   endCommit: "",
-  landscapeToken: "",
+  landscapeToken: "mytokenvalue",
 };
 
 const DEFAULT_STATUS = "Waiting for input…";
@@ -32,7 +32,6 @@ function collectPayload(formData) {
 
   payload.calculateMetrics = formData.get("calculateMetrics") !== null;
   payload.sendToRemote = formData.get("sendToRemote") !== null;
-
 
   if (payload.commitAnalysisLimit) {
     payload.commitAnalysisLimit = parseInt(payload.commitAnalysisLimit);

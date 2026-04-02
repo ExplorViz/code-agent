@@ -536,6 +536,7 @@ public class GitRepositoryHandler { // NOPMD
         objectIdList.add(new FileDescriptor(treeWalk.getObjectId(0), treeWalk.getNameString(),
             treeWalk.getPathString()));
       }
+      LOGGER.atDebug().addArgument(objectIdList.size()).log("Discovered {} files in commit tree");
     }
     return objectIdList;
 
@@ -545,8 +546,10 @@ public class GitRepositoryHandler { // NOPMD
       throws NotFoundException {
     if (pathRestrictions.isEmpty() || pathRestrictions.size() == 1 && pathRestrictions.get(0)
         .isBlank()) {
+      LOGGER.atInfo().log("No path restrictions provided. Analyzing all files.");
       return TreeFilter.ALL;
     } else {
+      LOGGER.atInfo().addArgument(pathRestrictions).log("Applying path restrictions: {}");
       final List<String> pathList = DirectoryFinder.getRelativeDirectory(pathRestrictions,
           getCurrentRepositoryPath());
       final List<String> newPathList = new ArrayList<>();

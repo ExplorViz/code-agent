@@ -156,11 +156,11 @@ textarea {
 
 button.primary {
   border: none;
-  border-radius: 999px;
+  border-radius: 0.65rem;
   padding: 0.95rem 1.75rem;
   font-size: 1rem;
   font-weight: 600;
-  background: linear-gradient(135deg, var(--accent), #4e9eff);
+  background: var(--accent);
   color: #fff;
   cursor: pointer;
   transition:
@@ -303,4 +303,47 @@ body.dark .tooltip-text::after {
 .label-header {
   display: flex;
   align-items: center;
+}
+
+.examples-table-container {
+  margin-top: 1.5rem;
+  overflow-x: auto;
+  border-radius: 0.75rem;
+  border: 1px solid var(--border);
+  background: var(--surface);
+}
+
+.examples-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.85rem;
+  text-align: left;
+}
+
+.examples-table th,
+.examples-table td {
+  padding: 0.75rem 1rem;
+  border-bottom: 1px solid var(--border);
+}
+
+.examples-table th {
+  background: rgba(0, 0, 0, 0.03);
+  font-weight: 600;
+  color: var(--accent);
+}
+
+body.dark .examples-table th {
+  background: rgba(255, 255, 255, 0.03);
+}
+
+.examples-table tr:last-child td {
+  border-bottom: none;
+}
+
+.examples-table code {
+  color: var(--accent);
+  background: rgba(11, 95, 255, 0.1);
+  padding: 0.15rem 0.35rem;
+  border-radius: 0.35rem;
+  font-family: ui-monospace, monospace;
 }

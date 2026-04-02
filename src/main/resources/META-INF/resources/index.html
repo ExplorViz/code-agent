@@ -70,8 +70,7 @@
                   <span class="tooltip-container">
                     <span class="tooltip-icon">?</span>
                     <span class="tooltip-text"
-                      >Determines how many of the newest commits should be analyzed. If set, we will automatically clone
-                      with depth+1 to ensure correct analysis of the oldest requested commit.</span
+                      >Determines how many of the newest commits should be analyzed.</span
                     >
                   </span>
                 </span>
@@ -137,7 +136,7 @@
                   <span class="tooltip-text">Optional: The hash of the commit where the analysis should start.</span>
                 </span>
               </span>
-              <input name="startCommit" placeholder="5e1ce23..." type="text" />
+              <input name="startCommit" placeholder="Oldest Commit" type="text" />
             </label>
             <label>
               <span class="label-header">
@@ -147,7 +146,7 @@
                   <span class="tooltip-text">Optional: The hash of the commit where the analysis should end.</span>
                 </span>
               </span>
-              <input name="endCommit" placeholder="3e1ce23..." type="text" />
+              <input name="endCommit" placeholder="Newest Commit" type="text" />
             </label>
           </div>
         </section>
@@ -157,38 +156,68 @@
           <div class="field-grid">
             <label>
               <span class="label-header">
-                Source Directories
+                Inclusion Search Expressions
                 <span class="tooltip-container">
                   <span class="tooltip-icon">?</span>
                   <span class="tooltip-text"
-                    >Comma-separated list of glob patterns for source files (e.g., **/src/main/java).</span
+                    >Limit the analysis to specific subdirectories or files within the repository using a
+                    comma-separated list of search expressions relative to the repository root. If empty, all files will
+                    be included.</span
                   >
                 </span>
               </span>
-              <input name="sourceDirectory" placeholder="**/src/main/java,**/src/test/java" type="text" />
+              <input name="includeInAnalysisExpressions" placeholder="Include all" type="text" />
             </label>
             <label>
               <span class="label-header">
-                Restrict Analysis To Folders
-                <span class="tooltip-container">
-                  <span class="tooltip-icon">?</span>
-                  <span class="tooltip-text">Limit the analysis to specific subdirectories within the repository.</span>
-                </span>
-              </span>
-              <input name="restrictAnalysisToFolders" placeholder="**/src/main/java" type="text" />
-            </label>
-            <label>
-              <span class="label-header">
-                Exclude From Analysis
+                Exclusion Search Expressions
                 <span class="tooltip-container">
                   <span class="tooltip-icon">?</span>
                   <span class="tooltip-text"
-                    >Comma-separated list of substrings that lead to exclusion of files from code analysis.</span
+                    >Exclude specific subdirectories or files from the analysis using a comma-separated list of search
+                    expressions relative to the repository root. If empty, no files will be excluded.</span
                   >
                 </span>
               </span>
-              <input name="codeAnalysisExcludedFileExtensions" type="text" value=".min.js,.bundle.js,.chunk.js,.d.ts" />
+              <input name="excludeFromAnalysisExpressions" placeholder="Exclude none" type="text" />
             </label>
+          </div>
+          <div class="examples-table-container">
+            <table class="examples-table">
+              <thead>
+                <tr>
+                  <th>Example Expression</th>
+                  <th>Description</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td><code>src/main/java/**</code></td>
+                  <td>Matches all files and subdirectories under <code>src/main/java</code>.</td>
+                </tr>
+                <tr>
+                  <td><code>**/*.java,**/*.kt</code></td>
+                  <td>Matches every <code>.java</code> or <code>.kt</code> file.</td>
+                </tr>
+                <tr>
+                  <td><code>some/*/*/path/**</code></td>
+                  <td>
+                    Matches files in paths with exactly 2 directory levels between <code>some</code> and
+                    <code>path</code>.
+                  </td>
+                </tr>
+                <tr>
+                  <td><code>**/target/**</code></td>
+                  <td>Matches any <code>target</code> folder and its contents (may be useful for exclusion).</td>
+                </tr>
+                <tr>
+                  <td><code>regex:.*Test\.java</code></td>
+                  <td>
+                    Regluar expression that matches all Java test files (ending in <code>Test.java</code>) anywhere.
+                  </td>
+                </tr>
+              </tbody>
+            </table>
           </div>
         </section>
 
@@ -200,7 +229,7 @@
                 Application Name
                 <span class="tooltip-container">
                   <span class="tooltip-icon">?</span>
-                  <span class="tooltip-text">The name of the application analyzed application.</span>
+                  <span class="tooltip-text">The name of analyzed application.</span>
                 </span>
               </span>
               <input name="applicationName" placeholder="default-application-name" type="text" />
@@ -223,7 +252,7 @@
                   <span class="tooltip-text">The landscape token for the ExplorViz.</span>
                 </span>
               </span>
-              <input name="landscapeToken" placeholder="token for ExplorViz landscape" type="password" />
+              <input name="landscapeToken" placeholder="mytokenvalue" type="password" />
             </label>
           </div>
           <div class="toggle-row">

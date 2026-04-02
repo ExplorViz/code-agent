@@ -139,7 +139,12 @@ public class AnalysisService {
         int commitCount = 0;
         RevCommit lastCheckedCommit = null;
         boolean inAnalysisRange = startCommit.isEmpty() || "".equals(startCommit.get());
-        boolean skippedFirstForContext = false;
+
+        // Pre-compile patterns
+        final List<java.nio.file.PathMatcher> restrictMatchers = compileMatchers(
+            config.includeInAnalysisExpressions());
+        final List<java.nio.file.PathMatcher> excludeMatchers = compileMatchers(
+            config.excludeFromAnalysisExpressions());
 
         for (final RevCommit commit : revWalk) {
 
@@ -157,13 +162,6 @@ public class AnalysisService {
               continue;
             }
           }
-
-          if (config.commitAnalysisLimit().isPresent() && !skippedFirstForContext && lastCheckedCommit == null) {
-            lastCheckedCommit = commit;
-            skippedFirstForContext = true;
-            continue;
-          }
-
           if (config.commitAnalysisLimit().isPresent() && commitCount >= config.commitAnalysisLimit().get()) {
             break;
           }
@@ -175,10 +173,15 @@ public class AnalysisService {
                   repository,
                   Optional.ofNullable(lastCheckedCommit),
                   commit,
-                  config.applicationRoot().orElse(config.restrictAnalysisToFolders().orElse("")));
+                  config.applicationRoot().orElse(config.includeInAnalysisExpressions().orElse("")));
 
           final List<FileDescriptor> descriptorAddedList = descTriple.right(); // NOPMD
           final List<FileDescriptor> descriptorModifiedList = descTriple.left();
+          final List<FileDescriptor> descriptorDeletedList = descTriple.middle();
+
+          applyGlobFiltering(descriptorAddedList, restrictMatchers, excludeMatchers);
+          applyGlobFiltering(descriptorModifiedList, restrictMatchers, excludeMatchers);
+          applyGlobFiltering(descriptorDeletedList, restrictMatchers, excludeMatchers);
 
           LOGGER.atDebug().addArgument(descriptorAddedList.size())
               .addArgument(descriptorModifiedList.size())
@@ -188,7 +191,8 @@ public class AnalysisService {
               descriptorAddedList.size() + descriptorModifiedList.size());
 
           if (descriptorAddedList.isEmpty() && descriptorModifiedList.isEmpty()) {
-            createCommitReport(config, repository, commit, lastCheckedCommit, exporter, branch, descTriple);
+            createCommitReport(config, repository, commit, lastCheckedCommit, exporter, branch, descTriple,
+                restrictMatchers, excludeMatchers);
 
             commitCount++;
             analysisStatusService.incrementAnalyzedCommit(config.landscapeToken());
@@ -206,7 +210,7 @@ public class AnalysisService {
           applyPathTransformation(descriptorList, config.applicationRoot());
 
           commitAnalysis(config, repository, commit, lastCheckedCommit, descriptorList, exporter,
-              branch, descTriple);
+              branch, descTriple, restrictMatchers, excludeMatchers);
 
           commitCount++;
           analysisStatusService.incrementAnalyzedCommit(config.landscapeToken());
@@ -269,7 +273,6 @@ public class AnalysisService {
 
       int totalCommits = 0;
       boolean inAnalysisRange = startCommit.isEmpty() || "".equals(startCommit.get());
-      boolean skippedFirstForContext = false;
 
       for (final RevCommit commit : revWalk) {
         if (!inAnalysisRange) {
@@ -282,12 +285,6 @@ public class AnalysisService {
             continue;
           }
         }
-
-        if (commitAnalysisLimit.isPresent() && !skippedFirstForContext && startCommit.isEmpty()) {
-          skippedFirstForContext = true;
-          continue;
-        }
-
         totalCommits++;
         if (commitAnalysisLimit.isPresent() && totalCommits >= commitAnalysisLimit.get()) {
           break;
@@ -321,12 +318,14 @@ public class AnalysisService {
   private void commitAnalysis(final AnalysisConfig config, final Repository repository,
       final RevCommit commit, final RevCommit lastCommit, final List<FileDescriptor> descriptorList,
       final DataExporter exporter, final String branchName,
-      final Triple<List<FileDescriptor>, List<FileDescriptor>, List<FileDescriptor>> descriptorTriple)
+      final Triple<List<FileDescriptor>, List<FileDescriptor>, List<FileDescriptor>> descriptorTriple,
+      final List<java.nio.file.PathMatcher> restrictMatchers,
+      final List<java.nio.file.PathMatcher> excludeMatchers)
       throws GitAPIException, NotFoundException, IOException {
-    DirectoryFinder.resetDirectory(config.sourceDirectory().orElse(""));
 
     Git.wrap(repository).checkout().setName(commit.getName()).call();
-    createCommitReport(config, repository, commit, lastCommit, exporter, branchName, descriptorTriple);
+    createCommitReport(config, repository, commit, lastCommit, exporter, branchName, descriptorTriple,
+        restrictMatchers, excludeMatchers);
 
     antlrParserService.reset();
     GitMetricCollector.resetAuthor();
@@ -376,7 +375,9 @@ public class AnalysisService {
   private void createCommitReport(final AnalysisConfig config, final Repository repository,
       final RevCommit commit, final RevCommit lastCommit, final DataExporter exporter,
       final String branchName,
-      final Triple<List<FileDescriptor>, List<FileDescriptor>, List<FileDescriptor>> descriptorTriple)
+      final Triple<List<FileDescriptor>, List<FileDescriptor>, List<FileDescriptor>> descriptorTriple,
+      final List<java.nio.file.PathMatcher> restrictMatchers,
+      final List<java.nio.file.PathMatcher> excludeMatchers)
       throws NotFoundException, IOException, GitAPIException {
     if (lastCommit == null) {
       commitReportHandler.init(commit.getId().getName(), null, branchName);
@@ -390,7 +391,9 @@ public class AnalysisService {
         .setSeconds(commit.getCommitterIdent().getWhen().getTime() / 1000).build());
 
     final List<FileDescriptor> files = gitRepositoryHandler.listFilesInCommit(repository, commit,
-        config.applicationRoot().orElse(config.restrictAnalysisToFolders().orElse("")));
+        config.applicationRoot().orElse(config.includeInAnalysisExpressions().orElse("")));
+
+    applyGlobFiltering(files, restrictMatchers, excludeMatchers);
 
     final List<FileDescriptor> modifiedFiles = descriptorTriple.left();
     final List<FileDescriptor> deletedFiles = descriptorTriple.middle();
@@ -463,18 +466,6 @@ public class AnalysisService {
     return false;
   }
 
-  private boolean isCodeAnalysisExcludedFile(final String fileName, final Set<String> extensions) {
-    if (extensions == null || extensions.isEmpty()) {
-      return false;
-    }
-    for (final String ext : extensions) {
-      if (fileName.endsWith(ext)) {
-        return true;
-      }
-    }
-    return false;
-  }
-
   /**
    * Analyzes a file and returns the appropriate handler based on file extension.
    * Routes code files to parsers and text
@@ -502,23 +493,6 @@ public class AnalysisService {
 
     try {
       AbstractFileDataHandler fileDataHandler = null;
-
-      // check if the file is excluded from code analysis
-      if (isCodeAnalysisExcludedFile(fileName, config.codeAnalysisExcludedFileExtensions())) {
-        LOGGER.atInfo()
-            .addArgument(file.relativePath)
-            .addArgument(fileContent.length())
-            .log("{} is excluded from code analysis. Doing shallow analysis only.");
-
-        final TextFileDataHandler shallowHandler = new TextFileDataHandler(file.reportedPath,
-            Language.PLAINTEXT);
-        shallowHandler.setFileHash(file.objectId.getName());
-        shallowHandler.calculateMetrics(fileContent);
-
-        GitMetricCollector.addFileGitMetrics(shallowHandler, file);
-
-        return shallowHandler;
-      }
 
       // Route to appropriate parser based on file extension
       if (fileName.endsWith(".ts") || fileName.endsWith(".tsx")
@@ -697,6 +671,67 @@ public class AnalysisService {
     }
 
     return originalPath.substring(lastSlash + 1);
+  }
+
+  void applyGlobFiltering(final List<FileDescriptor> descriptors,
+      final List<java.nio.file.PathMatcher> restrictMatchers,
+      final List<java.nio.file.PathMatcher> excludeMatchers) {
+    if (descriptors == null || descriptors.isEmpty()) {
+      return;
+    }
+
+    descriptors.removeIf(desc -> {
+      final java.nio.file.Path path = java.nio.file.Paths.get(desc.relativePath);
+
+      // Restriction (Inclusion) - if specified, it must match one of them
+      if (restrictMatchers != null && !restrictMatchers.isEmpty()) {
+        boolean matchesRestrict = false;
+        for (final java.nio.file.PathMatcher matcher : restrictMatchers) {
+          if (matcher.matches(path)) {
+            matchesRestrict = true;
+            break;
+          }
+        }
+        if (!matchesRestrict) {
+          LOGGER.atDebug().addArgument(desc.relativePath).log("File {} does not match any restrict pattern. Skipping.");
+          return true; // remove because it doesn't match restriction
+        }
+      }
+
+      // Exclusion - if it matches any, remove it
+      if (excludeMatchers != null && !excludeMatchers.isEmpty()) {
+        for (final java.nio.file.PathMatcher matcher : excludeMatchers) {
+          if (matcher.matches(path)) {
+            LOGGER.atDebug().addArgument(desc.relativePath).log("File {} matches an exclude pattern. Skipping.");
+            return true; // remove because it matches exclusion
+          }
+        }
+      }
+
+      return false; // keep it
+    });
+  }
+
+  private List<java.nio.file.PathMatcher> compileMatchers(final Optional<String> patternsString) {
+    if (patternsString.isEmpty() || patternsString.get().isBlank()) {
+      return new java.util.ArrayList<>();
+    }
+    final String[] globs = patternsString.get().split(",");
+    final List<java.nio.file.PathMatcher> matchers = new java.util.ArrayList<>();
+    for (final String glob : globs) {
+      if (!glob.trim().isEmpty()) {
+        try {
+          String pattern = glob.trim();
+          if (!pattern.startsWith("glob:") && !pattern.startsWith("regex:")) {
+            pattern = "glob:" + pattern;
+          }
+          matchers.add(java.nio.file.FileSystems.getDefault().getPathMatcher(pattern));
+        } catch (final Exception e) {
+          LOGGER.atError().addArgument(glob).log("Malformed glob/regex expression: {}");
+        }
+      }
+    }
+    return matchers;
   }
 
 }

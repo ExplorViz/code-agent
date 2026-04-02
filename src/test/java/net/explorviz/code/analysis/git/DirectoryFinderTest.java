@@ -47,14 +47,13 @@ public class DirectoryFinderTest {
       walk.sorted(Comparator.reverseOrder()).map(Path::toFile)
           .forEach(File::delete);
     }
-    DirectoryFinder.reset();
   }
 
 
   @Test()
   void testRelativePathWithWildcard() {
     List<String> searchPaths = new ArrayList<>();
-    searchPaths.add("**main/java");
+    searchPaths.add("**/main/java");
     try {
       List<String> absolutePaths = DirectoryFinder.getDirectories(tempLocation.getAbsolutePath(),
           searchPaths);
@@ -72,7 +71,7 @@ public class DirectoryFinderTest {
   @Test()
   void testLeadingWildcardPath() {
     List<String> searchPaths = new ArrayList<>();
-    searchPaths.add("**src/main/java");
+    searchPaths.add("src/main/java");
     try {
       List<String> absolutePaths = DirectoryFinder.getDirectories(tempLocation.getAbsolutePath(),
           searchPaths);
@@ -89,8 +88,8 @@ public class DirectoryFinderTest {
   @Test()
   void testForNoDuplicates() {
     List<String> searchPaths = new ArrayList<>();
-    searchPaths.add("**src/main/java");
-    searchPaths.add("**main/java");
+    searchPaths.add("src/main/java");
+    searchPaths.add("**/main/java");
     searchPaths.add("src/main/java");
     try {
       List<String> absolutePaths = DirectoryFinder.getDirectories(tempLocation.getAbsolutePath(),
@@ -162,5 +161,14 @@ public class DirectoryFinderTest {
     List<String> result = DirectoryFinder.getDirectories(tempLocation.getAbsolutePath(),
         searchPaths);
     Assertions.assertEquals(0, result.size());
+  }
+
+  @Test()
+  void testRegexMatching() throws NotFoundException {
+    List<String> searchPaths = new ArrayList<>();
+    searchPaths.add("src/main/**");
+    List<String> absolutePaths = DirectoryFinder.getDirectories(tempLocation.getAbsolutePath(),
+        searchPaths);
+    Assertions.assertEquals(1, absolutePaths.size());
   }
 }

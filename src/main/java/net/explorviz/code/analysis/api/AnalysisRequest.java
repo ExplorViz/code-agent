@@ -14,8 +14,8 @@ public class AnalysisRequest {
   private String username;
   private String password;
   private String branch;
-  private String sourceDirectory;
-  private String restrictAnalysisToFolders;
+  private String includeInAnalysisExpressions;
+  private String excludeFromAnalysisExpressions;
 
   private boolean sendToRemote = true;
   private boolean calculateMetrics = true;
@@ -25,7 +25,6 @@ public class AnalysisRequest {
   private String landscapeToken = "mytokenvalue";
   private String applicationName = "";
   private String applicationRoot;
-  private String codeAnalysisExcludedFileExtensions;
 
   public AnalysisRequest() {
   }
@@ -70,20 +69,20 @@ public class AnalysisRequest {
     this.branch = branch;
   }
 
-  public String getSourceDirectory() {
-    return sourceDirectory;
+  public String getIncludeInAnalysisExpressions() {
+    return includeInAnalysisExpressions;
   }
 
-  public void setSourceDirectory(final String sourceDirectory) {
-    this.sourceDirectory = sourceDirectory;
+  public void setIncludeInAnalysisExpressions(final String includeInAnalysisExpressions) {
+    this.includeInAnalysisExpressions = includeInAnalysisExpressions;
   }
 
-  public String getRestrictAnalysisToFolders() {
-    return restrictAnalysisToFolders;
+  public String getExcludeFromAnalysisExpressions() {
+    return excludeFromAnalysisExpressions;
   }
 
-  public void setRestrictAnalysisToFolders(final String restrictAnalysisToFolders) {
-    this.restrictAnalysisToFolders = restrictAnalysisToFolders;
+  public void setExcludeFromAnalysisExpressions(final String excludeFromAnalysisExpressions) {
+    this.excludeFromAnalysisExpressions = excludeFromAnalysisExpressions;
   }
 
   public String getApplicationRoot() {
@@ -142,21 +141,12 @@ public class AnalysisRequest {
     this.applicationName = applicationName;
   }
 
-
   public Integer getCommitAnalysisLimit() {
     return commitAnalysisLimit;
   }
 
   public void setCommitAnalysisLimit(final Integer commitAnalysisLimit) {
     this.commitAnalysisLimit = commitAnalysisLimit;
-  }
-
-  public String getCodeAnalysisExcludedFileExtensions() {
-    return codeAnalysisExcludedFileExtensions;
-  }
-
-  public void setCodeAnalysisExcludedFileExtensions(final String codeAnalysisExcludedFileExtensions) {
-    this.codeAnalysisExcludedFileExtensions = codeAnalysisExcludedFileExtensions;
   }
 
   /**
@@ -171,8 +161,8 @@ public class AnalysisRequest {
         .gitUsername(Optional.ofNullable(username))
         .gitPassword(Optional.ofNullable(password))
         .branch(Optional.ofNullable(branch))
-        .sourceDirectory(Optional.ofNullable(sourceDirectory))
-        .restrictAnalysisToFolders(Optional.ofNullable(restrictAnalysisToFolders))
+        .includeInAnalysisExpressions(Optional.ofNullable(includeInAnalysisExpressions))
+        .excludeFromAnalysisExpressions(Optional.ofNullable(excludeFromAnalysisExpressions))
         .calculateMetrics(calculateMetrics)
         .startCommit(Optional.ofNullable(startCommit))
         .endCommit(Optional.ofNullable(endCommit))
@@ -180,7 +170,6 @@ public class AnalysisRequest {
         .landscapeToken((landscapeToken != null && !landscapeToken.isBlank()) ? landscapeToken : "mytokenvalue")
         .applicationName(applicationName != null ? applicationName : "")
         .applicationRoot(Optional.ofNullable(applicationRoot))
-        .codeAnalysisExcludedFileExtensions(codeAnalysisExcludedFileExtensions)
         .build();
   }
 }

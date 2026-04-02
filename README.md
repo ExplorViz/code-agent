@@ -13,7 +13,7 @@ The property `explorviz.gitanalysis.run-mode` determines if the code-agent runs 
     ./gradlew quarkusDev
     ```
 2. Visit [http://localhost:8078/](http://localhost:8078/). The new single-page UI is served directly from `src/main/resources/META-INF/resources/index.html`.
-3. Fill in either a local repository path or a remote URL (plus any optional parameters such as branch, source directories, credentials, metrics toggles, etc.).
+3. Fill in either a local repository path or a remote URL (plus any optional parameters such as branch,filters, credentials, metrics toggles, etc.).
 4. Hit **Run Analysis**. The page calls the existing REST endpoint at `/api/analysis/trigger` and streams the textual response back into the UI.
 
 The form mirrors the fields of `AnalysisRequest`, so anything you can configure via JSON can now be triggered from the browser.
@@ -121,21 +121,19 @@ Type: Boolean or Empty (defaults to false)
 If a remote storage is used and this is set to true, the analysis data will be sent to the remote endpoint, if set to false, the analysis data will be stored as json on disc.
 The storage location will be printed on startup and is relative to the java working directory.
 
-### explorviz.gitanalysis.source-directory
+### explorviz.gitanalysis.include-in-analysis-expressions
 
 Type: String or empty
 
-To detect java types successfully, the source directory should be specified.
-Source files are expected to be somewhere inside the given folders.
-Provide one or multiple [search expressions](#search-expressions).
+Only files contained in the folders matching one of the search expressions are analyzed.
+Provide one or multiple search expressions.
 
-### explorviz.gitanalysis.restrict-analysis-to-folders
+### explorviz.gitanalysis.exclude-from-analysis-expressions
 
 Type: String or empty
 
-Only java files contained in the reachable folders from this search expression are analyzed.
-Type detection is not affected by this setting, any files reachable by the [source directory setting](#explorvizgitanalysissource-directory) are used to detect the correct type.
-Provide one or multiple [search expressions](#search-expressions).
+Only files with a filename matching one of the search expressions are analyzed.
+Provide one or multiple search expressions.
 
 ### explorviz.gitanalysis.start-commit-sha1
 
@@ -182,29 +180,10 @@ If the folder location changes over the course of the development, it is possibl
 
 Leading Wildcard:
 
-E.g. the folder location `*/src/main/java` is searched in the repository everywhere, until some folder hierarchy matches `src/main/java` for example the path `project/javasources/src/main/java`.
+E.g. the folder location `**/src/main/java/**` is searched in the repository everywhere, until some folder hierarchy matches `src/main/java` for example the path `project/javasources/src/main/java`.
 The first match is used, if there are multiple matches, try to specify the path even more.
 Keep in mind to not use a line separator in front of or after the wildcard.
 
 Infix Wildcards:
 
-E.g. the folder location `/src/*/java` is searched in the repository starting with `src` and must end with `java`.
-The path `src/main/java` would match as well as `/src/some/deep/hierarchy/to/search/java`.
-If both folder structures would exist, one of these could be returned as the folders are not searched in a specific order.
-Make sure the folder is unambiguous.
-
-Single wildcards do not guarantee a deeper folder level, the search string `/some/*/path` will match the folder `some/path` even if `some/other/path/` exists and might be the wanted.
-
-Multiple consecutive wildcards e.g. `/some/*/*/path` enforce a depth of _number of wildcards - 1_.
-This search string matches `/some/other/path/`, `/some/deeper/other/path/` or even deeper but not `/some/path/`.
-
-**WARNING: paths ending with wildcards are not allowed!**
-
-<!-- The following can produce syntax errors
-#### Optional Paths
-
-If a folder, like the test folder, is not present from the first commit onwards, it is possible to define these type of
-folders as optional. Optional folders are considered if they are found and ignored if not present.
-
-To define a search expression as optional, simply put it in brackets: ``[\src\test\java]``. Wildcards are supported in
-optional search expressions. -->
+Multiple consecutive wildcards e.g. `/some/*/*/path` enforce a certain depth of the directories.

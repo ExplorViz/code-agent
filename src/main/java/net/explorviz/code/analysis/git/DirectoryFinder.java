@@ -1,21 +1,16 @@
 package net.explorviz.code.analysis.git;
 
 import java.io.IOException;
-import java.nio.file.FileSystems;
 import java.nio.file.FileVisitResult;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.nio.file.PathMatcher;
 import java.nio.file.Paths;
 import java.nio.file.SimpleFileVisitor;
 import java.nio.file.attribute.BasicFileAttributes;
 import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
-import java.util.Map;
 import java.util.Set;
-import net.explorviz.code.analysis.exceptions.MalformedPathException;
 import net.explorviz.code.analysis.exceptions.NotFoundException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -26,26 +21,8 @@ import org.slf4j.LoggerFactory;
 public final class DirectoryFinder {
 
   private static final Logger LOGGER = LoggerFactory.getLogger(DirectoryFinder.class);
-  private static final Map<String, List<String>> PATHS = new HashMap<>();
 
   private DirectoryFinder() {
-
-  }
-
-  /**
-   * Resets the given path entry, the saved value will be removed.
-   *
-   * @param path the search string for the path used to create it
-   */
-  public static void resetDirectory(final String path) {
-    PATHS.remove(path);
-  }
-
-  /**
-   * Resets the internal path storage.
-   */
-  public static void reset() {
-    PATHS.clear();
   }
 
   /**
@@ -86,10 +63,15 @@ public final class DirectoryFinder {
         public FileVisitResult preVisitDirectory(Path dir, BasicFileAttributes attrs)
             throws IOException {
           for (String searchPath : searchPaths) {
-            PathMatcher matcher = FileSystems.getDefault().getPathMatcher("glob:" + searchPath);
+            String glob = searchPath;
+            if (!glob.startsWith("glob:") && !glob.startsWith("regex:")) {
+              glob = "glob:" + glob;
+            }
+            java.nio.file.PathMatcher matcher = java.nio.file.FileSystems.getDefault().getPathMatcher(glob);
             if (matcher.matches(startPath.relativize(dir))) {
               pathSet.add(dir.toAbsolutePath().normalize()
                   .toString());  // Normalize the path and add to the set
+              LOGGER.atTrace().addArgument(dir).log("Directory matched glob and was added to set: {}");
             }
           }
           return FileVisitResult.CONTINUE;

@@ -113,20 +113,3 @@ test {
     useJUnitPlatform()
     testLogging.showStandardStreams = true
 }
-
-def registerGitHook = { taskName, hookFile, targetHook ->
-  tasks.register(taskName, Copy) {
-    from("code-analysis/${hookFile}")
-    into(".git/hooks")
-    rename { targetHook }
-  }
-}
-
-registerGitHook("registerPreCommitHook", "pre-commit", "pre-commit")
-registerGitHook("registerPreMergeCommitHook", "pre-commit", "pre-merge-commit")
-
-tasks.named("quarkusGenerateCode") {
-  dependsOn("registerPreCommitHook")
-  dependsOn("registerPreMergeCommitHook")
-}
-

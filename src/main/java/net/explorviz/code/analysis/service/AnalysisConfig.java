@@ -10,13 +10,13 @@ import java.util.stream.Stream;
  * Configuration object for Git analysis operations.
  */
 public record AnalysisConfig(Optional<String> repoPath, Optional<String> repoRemoteUrl, Optional<String> gitUsername,
-    Optional<String> gitPassword, Optional<String> branch, Optional<String> sourceDirectory,
-    Optional<String> restrictAnalysisToFolders, Optional<String> applicationRoot,
+    Optional<String> gitPassword, Optional<String> branch,
+    Optional<String> includeInAnalysisExpressions,
+    Optional<String> excludeFromAnalysisExpressions, Optional<String> applicationRoot,
     boolean calculateMetrics,
     Optional<String> startCommit, Optional<String> endCommit,
     Optional<Integer> commitAnalysisLimit,
-    String landscapeToken, String applicationName,
-    Set<String> codeAnalysisExcludedFileExtensions) {
+    String landscapeToken, String applicationName) {
 
   /**
    * Builder for AnalysisConfig.
@@ -27,8 +27,9 @@ public record AnalysisConfig(Optional<String> repoPath, Optional<String> repoRem
     private Optional<String> gitUsername = Optional.empty();
     private Optional<String> gitPassword = Optional.empty();
     private Optional<String> branch = Optional.empty();
-    private Optional<String> sourceDirectory = Optional.empty();
-    private Optional<String> restrictAnalysisToFolders = Optional.empty();
+
+    private Optional<String> includeInAnalysisExpressions = Optional.empty();
+    private Optional<String> excludeFromAnalysisExpressions = Optional.empty();
     private Optional<String> applicationRoot = Optional.empty();
     private boolean calculateMetrics = true;
     private Optional<String> startCommit = Optional.empty();
@@ -36,7 +37,6 @@ public record AnalysisConfig(Optional<String> repoPath, Optional<String> repoRem
     private Optional<Integer> commitAnalysisLimit = Optional.empty();
     private String landscapeToken = "";
     private String applicationName = "";
-    private Set<String> codeAnalysisExcludedFileExtensions = Collections.emptySet();
 
     public Builder repoPath(final Optional<String> repoPath) {
       this.repoPath = repoPath;
@@ -63,13 +63,13 @@ public record AnalysisConfig(Optional<String> repoPath, Optional<String> repoRem
       return this;
     }
 
-    public Builder sourceDirectory(final Optional<String> sourceDirectory) {
-      this.sourceDirectory = sourceDirectory;
+    public Builder includeInAnalysisExpressions(final Optional<String> includeInAnalysisExpressions) {
+      this.includeInAnalysisExpressions = includeInAnalysisExpressions;
       return this;
     }
 
-    public Builder restrictAnalysisToFolders(final Optional<String> restrictAnalysisToFolders) {
-      this.restrictAnalysisToFolders = restrictAnalysisToFolders;
+    public Builder excludeFromAnalysisExpressions(final Optional<String> excludeFromAnalysisExpressions) {
+      this.excludeFromAnalysisExpressions = excludeFromAnalysisExpressions;
       return this;
     }
 
@@ -93,7 +93,6 @@ public record AnalysisConfig(Optional<String> repoPath, Optional<String> repoRem
       return this;
     }
 
-
     public Builder commitAnalysisLimit(final Optional<Integer> commitAnalysisLimit) {
       this.commitAnalysisLimit = commitAnalysisLimit;
       return this;
@@ -109,19 +108,6 @@ public record AnalysisConfig(Optional<String> repoPath, Optional<String> repoRem
       return this;
     }
 
-    public Builder codeAnalysisExcludedFileExtensions(final String extensions) {
-      if (extensions == null || extensions.isBlank()) {
-        this.codeAnalysisExcludedFileExtensions = Collections.emptySet();
-      } else {
-        this.codeAnalysisExcludedFileExtensions = Stream.of(extensions.split(","))
-            .map(String::trim)
-            .filter(s -> !s.isEmpty())
-            .map(String::toLowerCase)
-            .collect(Collectors.toUnmodifiableSet());
-      }
-      return this;
-    }
-
     public AnalysisConfig build() {
       return new AnalysisConfig(
           repoPath,
@@ -129,16 +115,15 @@ public record AnalysisConfig(Optional<String> repoPath, Optional<String> repoRem
           gitUsername,
           gitPassword,
           branch,
-          sourceDirectory,
-          restrictAnalysisToFolders,
+          includeInAnalysisExpressions,
+          excludeFromAnalysisExpressions,
           applicationRoot,
           calculateMetrics,
           startCommit,
           endCommit,
           commitAnalysisLimit,
           landscapeToken,
-          applicationName,
-          codeAnalysisExcludedFileExtensions);
+          applicationName);
     }
   }
 

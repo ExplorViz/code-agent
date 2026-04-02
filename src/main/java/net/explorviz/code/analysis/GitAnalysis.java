@@ -49,11 +49,11 @@ public class GitAnalysis { // NOPMD
   @ConfigProperty(name = "explorviz.gitanalysis.branch")
   /* default */ Optional<String> repositoryBranchProperty; // NOCS
 
-  @ConfigProperty(name = "explorviz.gitanalysis.source-directory")
-  /* default */ Optional<String> sourceDirectoryProperty; // NOCS
+  @ConfigProperty(name = "explorviz.gitanalysis.include-in-analysis-expressions")
+  /* default */ Optional<String> includeInAnalysisExpressionsProperty; // NOCS NOPMD
 
-  @ConfigProperty(name = "explorviz.gitanalysis.restrict-analysis-to-folders")
-  /* default */ Optional<String> restrictAnalysisToFoldersProperty; // NOCS NOPMD
+  @ConfigProperty(name = "explorviz.gitanalysis.exclude-from-analysis-expressions")
+  /* default */ Optional<String> excludeFromAnalysisExpressionsProperty; // NOCS NOPMD
 
   @ConfigProperty(name = "explorviz.gitanalysis.application-root")
   /* default */ Optional<String> applicationRootProperty; // NOCS
@@ -79,9 +79,6 @@ public class GitAnalysis { // NOPMD
   @ConfigProperty(name = "explorviz.gitanalysis.application-name")
   /* default */ String applicationNameProperty; // NOCS
 
-  @ConfigProperty(name = "explorviz.gitanalysis.code-analysis-excluded-file-extensions", defaultValue = "")
-  /* default */ Optional<String> codeAnalysisExcludedFileExtensionsProperty; // NOCS
-
   @Inject
   /* package */ GrpcExporter grpcExporter; // NOCS
 
@@ -100,8 +97,8 @@ public class GitAnalysis { // NOPMD
         .gitUsername(usernameProperty)
         .gitPassword(passwordProperty)
         .branch(repositoryBranchProperty)
-        .sourceDirectory(sourceDirectoryProperty)
-        .restrictAnalysisToFolders(restrictAnalysisToFoldersProperty)
+        .includeInAnalysisExpressions(includeInAnalysisExpressionsProperty)
+        .excludeFromAnalysisExpressions(excludeFromAnalysisExpressionsProperty)
         .applicationRoot(applicationRootProperty)
         .calculateMetrics(calculateMetricsProperty)
         .startCommit(startCommitProperty)
@@ -109,7 +106,6 @@ public class GitAnalysis { // NOPMD
         .commitAnalysisLimit(commitAnalysisLimitProperty)
         .landscapeToken(landscapeTokenProperty)
         .applicationName(applicationNameProperty)
-        .codeAnalysisExcludedFileExtensions(codeAnalysisExcludedFileExtensionsProperty.orElse(""))
         .build();
   }
 
