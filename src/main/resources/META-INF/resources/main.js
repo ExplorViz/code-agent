@@ -10,7 +10,7 @@ const localRepoFieldsNodes = document.querySelectorAll(".local-repo-fields");
 const SAMPLE_VALUES = {
   repoRemoteUrl: "",
   branch: "main",
-  includeInAnalysisExpressions: "src/main/java/**",
+  includeInAnalysisExpressions: "",
   excludeFromAnalysisExpressions: "",
   applicationName: "default-application-name",
   applicationRoot: "",

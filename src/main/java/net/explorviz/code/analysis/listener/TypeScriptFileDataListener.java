@@ -9,19 +9,18 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 /**
- * ANTLR Listener for extracting file data from TypeScript/JavaScript source code.
+ * ANTLR Listener for extracting file data from TypeScript/JavaScript source
+ * code.
  */
 public class TypeScriptFileDataListener extends TypeScriptParserBaseListener implements CommonFileDataListener {
-
-  public static final String FILE_SIZE = "size";
-  public static final String LOC = "loc";
-  public static final String CLOC = "cloc";
 
   private static final Logger LOGGER = LoggerFactory.getLogger(TypeScriptFileDataListener.class);
 
   private final TypeScriptFileDataHandler fileDataHandler;
   private final String fileExtension;
   private final CommonTokenStream tokens;
+  private int functionCount = 0;
+  private int variableCount = 0;
 
   public TypeScriptFileDataListener(final TypeScriptFileDataHandler fileDataHandler,
       final String fileExtension, final CommonTokenStream tokens) {
@@ -32,17 +31,23 @@ public class TypeScriptFileDataListener extends TypeScriptParserBaseListener imp
 
   @Override
   public void enterProgram(final TypeScriptParser.ProgramContext ctx) {
-    // Calculate LOC and CLOC
-    final int loc = getLoc(ctx);
+    // Calculate total source SLOC and CLOC
+    final int sloc = getSloc(tokens);
     final int cloc = getCloc(ctx);
 
-    fileDataHandler.addMetric(LOC, String.valueOf(loc));
+    fileDataHandler.addMetric(SLOC, String.valueOf(sloc));
     fileDataHandler.addMetric(CLOC, String.valueOf(cloc));
 
     LOGGER.atTrace()
         .addArgument(fileDataHandler.getFileName())
-        .addArgument(loc)
-        .log("{} - LOC: {}");
+        .addArgument(sloc)
+        .log("{} - SLOC: {}");
+  }
+
+  @Override
+  public void exitProgram(final TypeScriptParser.ProgramContext ctx) {
+    fileDataHandler.addMetric(FUNCTION_COUNT, String.valueOf(functionCount));
+    fileDataHandler.addMetric(VARIABLE_COUNT, String.valueOf(variableCount));
   }
 
   @Override
@@ -71,10 +76,11 @@ public class TypeScriptFileDataListener extends TypeScriptParserBaseListener imp
           .addArgument(className)
           .log("Class: {}");
 
-      // Calculate class LOC
+      // Calculate class SLOC and LOC
       final int classLoc = calculateLoc(ctx);
       final var classData = fileDataHandler.getCurrentClassData();
       if (classData != null) {
+        classData.addMetric(SLOC, String.valueOf(getSloc(ctx, tokens)));
         classData.addMetric(LOC, String.valueOf(classLoc));
 
         if (ctx.classHeritage() != null && ctx.classHeritage().classExtendsClause() != null) {
@@ -104,8 +110,9 @@ public class TypeScriptFileDataListener extends TypeScriptParserBaseListener imp
       if (classData != null) {
         classData.setIsInterface();
 
-        // Calculate interface LOC
+        // Calculate interface SLOC and LOC
         final int interfaceLoc = calculateLoc(ctx);
+        classData.addMetric(SLOC, String.valueOf(getSloc(ctx, tokens)));
         classData.addMetric(LOC, String.valueOf(interfaceLoc));
 
         if (ctx.interfaceExtendsClause() != null) {
@@ -137,6 +144,7 @@ public class TypeScriptFileDataListener extends TypeScriptParserBaseListener imp
     // Handle class methods: methodName() { ... }
     // This catches methods defined inside classes using the shorthand syntax
     if (ctx.propertyName() != null && fileDataHandler.isInClassContext()) {
+      functionCount++;
       final String methodName = ctx.propertyName().getText();
       final String methodFqn = methodName + "#1"; // TODO: Add proper parameter hashing
 
@@ -149,8 +157,9 @@ public class TypeScriptFileDataListener extends TypeScriptParserBaseListener imp
           methodData.setLines(ctx.start.getLine(), ctx.stop.getLine());
         }
 
-        // Calculate method LOC
+        // Calculate method SLOC and LOC
         final int methodLoc = calculateLoc(ctx);
+        methodData.addMetric(SLOC, String.valueOf(getSloc(ctx, tokens)));
         methodData.addMetric(LOC, String.valueOf(methodLoc));
 
         LOGGER.atTrace()
@@ -165,6 +174,7 @@ public class TypeScriptFileDataListener extends TypeScriptParserBaseListener imp
       final TypeScriptParser.ConstructorDeclarationContext ctx) {
     // Handle class constructors
     if (fileDataHandler.isInClassContext()) {
+      functionCount++;
       final var classData = fileDataHandler.getCurrentClassData();
       if (classData != null) {
         final String constructorFqn = "constructor#1"; // TODO: Add proper parameter hashing
@@ -175,8 +185,9 @@ public class TypeScriptFileDataListener extends TypeScriptParserBaseListener imp
           methodData.setLines(ctx.start.getLine(), ctx.stop.getLine());
         }
 
-        // Calculate constructor LOC
+        // Calculate constructor SLOC and LOC
         final int constructorLoc = calculateLoc(ctx);
+        methodData.addMetric(SLOC, String.valueOf(getSloc(ctx, tokens)));
         methodData.addMetric(LOC, String.valueOf(constructorLoc));
 
         LOGGER.atTrace()
@@ -189,6 +200,7 @@ public class TypeScriptFileDataListener extends TypeScriptParserBaseListener imp
   public void enterFunctionDeclaration(final TypeScriptParser.FunctionDeclarationContext ctx) {
     // Extract function name
     if (ctx.identifier() != null) {
+      functionCount++;
       final String functionName = ctx.identifier().getText();
 
       // Check if we're inside a class or this is a global function
@@ -203,8 +215,9 @@ public class TypeScriptFileDataListener extends TypeScriptParserBaseListener imp
             .addArgument(functionName)
             .log("Function inside class: {}");
 
-        // Calculate function LOC
+        // Calculate function SLOC and LOC
         final int functionLoc = calculateLoc(ctx);
+        methodData.addMetric(SLOC, String.valueOf(getSloc(ctx, tokens)));
         methodData.addMetric(LOC, String.valueOf(functionLoc));
       } else {
         // Global function - track it separately!
@@ -218,8 +231,9 @@ public class TypeScriptFileDataListener extends TypeScriptParserBaseListener imp
           methodHandler.setLines(ctx.start.getLine(), ctx.stop.getLine());
         }
 
-        // Calculate LOC
+        // Calculate LOC and SLOC
         final int functionLoc = calculateLoc(ctx);
+        methodHandler.addMetric(SLOC, String.valueOf(getSloc(ctx, tokens)));
         methodHandler.addMetric(LOC, String.valueOf(functionLoc));
 
         // Check for async
@@ -249,6 +263,7 @@ public class TypeScriptFileDataListener extends TypeScriptParserBaseListener imp
     String functionName = extractArrowFunctionName(ctx);
 
     if (functionName != null) {
+      functionCount++;
       if (fileDataHandler.isInClassContext()) {
         // Arrow function inside a class (e.g., class field)
         final String functionFqn = functionName + "#1";
@@ -256,8 +271,9 @@ public class TypeScriptFileDataListener extends TypeScriptParserBaseListener imp
         final var methodData = fileDataHandler.getCurrentClassData()
             .addMethod(functionName, functionFqn, "void");
 
-        // Calculate method LOC
+        // Calculate method SLOC and LOC
         final int methodLoc = calculateLoc(ctx);
+        methodData.addMetric(SLOC, String.valueOf(getSloc(ctx, tokens)));
         methodData.addMetric(LOC, String.valueOf(methodLoc));
 
         LOGGER.atTrace()
@@ -274,8 +290,9 @@ public class TypeScriptFileDataListener extends TypeScriptParserBaseListener imp
           methodHandler.setLines(ctx.start.getLine(), ctx.stop.getLine());
         }
 
-        // Calculate LOC
+        // Calculate SLOC and LOC
         final int functionLoc = calculateLoc(ctx);
+        methodHandler.addMetric(SLOC, String.valueOf(getSloc(ctx, tokens)));
         methodHandler.addMetric(LOC, String.valueOf(functionLoc));
 
         LOGGER.atTrace()
@@ -289,10 +306,7 @@ public class TypeScriptFileDataListener extends TypeScriptParserBaseListener imp
   }
 
   /**
-   * Extract the name of an arrow function from its parent context. Arrow functions are often assigned to variables:
-   * const foo = () => {}
-   *
-   * <p>For now, we use a simple heuristic: try to extract text from nearby identifiers
+   * Extract the name of an arrow function from its parent context.
    */
   private String extractArrowFunctionName(
       final TypeScriptParser.ArrowFunctionDeclarationContext ctx) {
@@ -322,9 +336,14 @@ public class TypeScriptFileDataListener extends TypeScriptParserBaseListener imp
     return null; // Anonymous arrow function
   }
 
+  @Override
+  public void enterVariableDeclaration(final TypeScriptParser.VariableDeclarationContext ctx) {
+    variableCount++;
+  }
+
   /**
-   * Get comment lines of code by counting tokens on the hidden channel. ANTLR places comments on a hidden channel, so
-   * we need to extract them from there.
+   * Get comment lines of code by counting tokens on the hidden channel. ANTLR
+   * places comments on a hidden channel, so we need to extract them from there.
    */
   private int getCloc(final ParserRuleContext ctx) {
     if (ctx == null || tokens == null) {
@@ -338,7 +357,6 @@ public class TypeScriptFileDataListener extends TypeScriptParserBaseListener imp
       final var token = tokens.get(i);
 
       // Comments are typically on channel 1 (hidden channel)
-      // Channel 0 is the default channel for regular tokens
       if (token.getChannel() != 0) {
         final String tokenText = token.getText();
 

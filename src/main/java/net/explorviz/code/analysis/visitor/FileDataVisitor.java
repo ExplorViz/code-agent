@@ -33,6 +33,7 @@ import java.util.Optional;
 import java.util.stream.Collectors;
 import net.explorviz.code.analysis.handler.JavaFileDataHandler;
 import net.explorviz.code.analysis.handler.MethodDataHandler;
+import net.explorviz.code.analysis.listener.CommonFileDataListener;
 import net.explorviz.code.analysis.types.Verification;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -43,9 +44,6 @@ import org.slf4j.LoggerFactory;
  */
 public class FileDataVisitor extends VoidVisitorAdapter<JavaFileDataHandler> { // NOPMD
 
-  public static final String FILE_SIZE = "size";
-  public static final String LOC = "loc"; // Lines of Code
-  public static final String CLOC = "cloc"; // Comment Lines of Code
   private static final Logger LOGGER = LoggerFactory.getLogger(FileDataVisitor.class);
   private static final String UNKNOWN = "UNKNOWN";
 
@@ -53,6 +51,8 @@ public class FileDataVisitor extends VoidVisitorAdapter<JavaFileDataHandler> { /
   private final boolean wildcardImportProperty;
   private int wildcardImportCount;
   private String wildcardImport;
+  private int functionCount = 0;
+  private int variableCount = 0;
 
   /**
    * Create a FileDataVisitor.
@@ -90,7 +90,8 @@ public class FileDataVisitor extends VoidVisitorAdapter<JavaFileDataHandler> { /
     final String name = n.getNameAsString();
     final String fqn = n.getFullyQualifiedName().orElse(UNKNOWN);
     data.enterClass(name, fqn);
-    data.getCurrentClassData().addMetric(LOC, String.valueOf(getLoc(n)));
+    data.getCurrentClassData().addMetric(CommonFileDataListener.SLOC, String.valueOf(getLoc(n) - getCloc(n)));
+    data.getCurrentClassData().addMetric(CommonFileDataListener.LOC, String.valueOf(getLoc(n)));
     data.getCurrentClassData().setIsEnum();
     for (final Modifier modifier : n.getModifiers()) {
       data.getCurrentClassData().addModifier(modifier.getKeyword().asString());
@@ -115,13 +116,20 @@ public class FileDataVisitor extends VoidVisitorAdapter<JavaFileDataHandler> { /
     data.leaveMethod();
   }
 
+  @Override
+  public void visit(final VariableDeclarator n, final JavaFileDataHandler data) {
+    variableCount++;
+    super.visit(n, data);
+  }
+
   @Override // NOCS
   public void visit(final ClassOrInterfaceDeclaration n,
       final JavaFileDataHandler data) { // NOCS NOPMD
     final String name = n.getNameAsString();
     final String classFqn = n.getFullyQualifiedName().orElse(UNKNOWN);
     data.enterClass(name, classFqn);
-    data.getCurrentClassData().addMetric(LOC, String.valueOf(getLoc(n)));
+    data.getCurrentClassData().addMetric(CommonFileDataListener.SLOC, String.valueOf(getLoc(n) - getCloc(n)));
+    data.getCurrentClassData().addMetric(CommonFileDataListener.LOC, String.valueOf(getLoc(n)));
 
     if (n.isInterface()) {
       data.getCurrentClassData().setIsInterface();
@@ -199,7 +207,9 @@ public class FileDataVisitor extends VoidVisitorAdapter<JavaFileDataHandler> { /
         method.addAnnotation(annotation.getNameAsString());
       }
     }
-    method.addMetric(LOC, String.valueOf(getLoc(n)));
+    method.addMetric(CommonFileDataListener.SLOC, String.valueOf(getLoc(n) - getCloc(n)));
+    method.addMetric(CommonFileDataListener.LOC, String.valueOf(getLoc(n)));
+    functionCount++;
     super.visit(n, data);
     data.leaveMethod();
   }
@@ -220,7 +230,9 @@ public class FileDataVisitor extends VoidVisitorAdapter<JavaFileDataHandler> { /
       constructor.addParameter(parameter.getNameAsString(), resolveFqn(parameter.getType(), data),
           parameter.getModifiers());
     }
-    constructor.addMetric(LOC, String.valueOf(getLoc(n)));
+    constructor.addMetric(CommonFileDataListener.SLOC, String.valueOf(getLoc(n) - getCloc(n)));
+    constructor.addMetric(CommonFileDataListener.LOC, String.valueOf(getLoc(n)));
+    functionCount++;
     super.visit(n, data);
     data.leaveMethod();
   }
@@ -233,13 +245,20 @@ public class FileDataVisitor extends VoidVisitorAdapter<JavaFileDataHandler> { /
 
   @Override
   public void visit(final CompilationUnit n, final JavaFileDataHandler data) {
-    final String locValue = String.valueOf(getLoc(n));
+    final int loc = getLoc(n);
+    final int sloc = loc - getCloc(n);
+    final String locValue = String.valueOf(loc);
+    final String slocValue = String.valueOf(sloc);
     final String clocValue = String.valueOf(getCloc(n));
-    data.addMetric(LOC, locValue);
-    data.addMetric(CLOC, clocValue);
+    data.addMetric(CommonFileDataListener.LOC, locValue);
+    data.addMetric(CommonFileDataListener.SLOC, slocValue);
+    data.addMetric(CommonFileDataListener.CLOC, clocValue);
     LOGGER.atTrace().addArgument(data.getFileName()).addArgument(locValue).log("{} - LOC: {}");
+    LOGGER.atTrace().addArgument(data.getFileName()).addArgument(slocValue).log("{} - SLOC: {}");
     LOGGER.atTrace().addArgument(data.getFileName()).addArgument(clocValue).log("{} - CLOC: {}");
     super.visit(n, data);
+    data.addMetric(CommonFileDataListener.FUNCTION_COUNT, String.valueOf(functionCount));
+    data.addMetric(CommonFileDataListener.VARIABLE_COUNT, String.valueOf(variableCount));
   }
 
   // If FieldAccessExpr, then tight coupling

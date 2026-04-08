@@ -27,7 +27,7 @@ public class TextFileDataHandler extends AbstractFileDataHandler {
       return;
     }
 
-    final int loc = content.split("\r\n|\r|\n").length;
+    final long loc = content.lines().count();
     addMetric("loc", String.valueOf(loc));
 
     // Add file size in bytes

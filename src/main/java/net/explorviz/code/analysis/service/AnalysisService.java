@@ -24,6 +24,7 @@ import net.explorviz.code.analysis.git.GitRepositoryHandler;
 import net.explorviz.code.analysis.handler.AbstractFileDataHandler;
 import net.explorviz.code.analysis.handler.CommitReportHandler;
 import net.explorviz.code.analysis.handler.TextFileDataHandler;
+import net.explorviz.code.analysis.listener.CommonFileDataListener;
 import net.explorviz.code.analysis.parser.AntlrCppParserService;
 import net.explorviz.code.analysis.parser.AntlrParserService;
 import net.explorviz.code.analysis.parser.AntlrPythonParserService;
@@ -191,10 +192,13 @@ public class AnalysisService {
 
           LOGGER.atDebug().addArgument(commit.getName()).log("Analyzing commit: {}");
 
+          final boolean isFirstAnalyzedCommit = commitCount == 0;
+          final RevCommit baseCommit = (isFirstAnalyzedCommit && !exporter.isRemote()) ? null : lastCheckedCommit;
+
           final var descTriple = gitRepositoryHandler
               .listDiff(
                   repository,
-                  Optional.ofNullable(lastCheckedCommit),
+                  Optional.ofNullable(baseCommit),
                   commit,
                   config.applicationRoot().orElse(config.includeInAnalysisExpressions().orElse("")));
 
@@ -214,7 +218,7 @@ public class AnalysisService {
               descriptorAddedList.size() + descriptorModifiedList.size());
 
           if (descriptorAddedList.isEmpty() && descriptorModifiedList.isEmpty()) {
-            createCommitReport(config, repository, commit, lastCheckedCommit, exporter, branch, descTriple,
+            createCommitReport(config, repository, commit, baseCommit, exporter, branch, descTriple,
                 restrictMatchers, excludeMatchers);
 
             commitCount++;
@@ -230,7 +234,7 @@ public class AnalysisService {
           descriptorList.addAll(descriptorAddedList);
           descriptorList.addAll(descriptorModifiedList);
 
-          commitAnalysis(config, repository, commit, lastCheckedCommit, descriptorList, exporter,
+          commitAnalysis(config, repository, commit, baseCommit, descriptorList, exporter,
               branch, descTriple, restrictMatchers, excludeMatchers);
 
           commitCount++;
@@ -373,7 +377,7 @@ public class AnalysisService {
           try {
             File file = new File(GitRepositoryHandler.getCurrentRepositoryPath() + "/"
                 + fileDescriptor.relativePath);
-            fileDataHandler.addMetric(FileDataVisitor.FILE_SIZE, String.valueOf(file.length()));
+            fileDataHandler.addMetric(CommonFileDataListener.FILE_SIZE, String.valueOf(file.length()));
           } catch (NullPointerException e) {
             LOGGER.error("File size of file " + fileDescriptor.relativePath
                 + " could not be analyzed." + e.getMessage());
@@ -635,7 +639,11 @@ public class AnalysisService {
           DebugFileWriter.saveDebugFile("/logs/crashedfiles/", fileContent,
               file.fileName);
         }
+      } else {
+        final long loc = fileContent.lines().count();
+        fileDataHandler.addMetric(CommonFileDataListener.LOC, String.valueOf(loc));
       }
+
       return fileDataHandler;
 
     } catch (NoSuchElementException | NoSuchFieldError e) {

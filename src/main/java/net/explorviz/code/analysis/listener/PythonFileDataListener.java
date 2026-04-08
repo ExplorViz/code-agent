@@ -14,14 +14,12 @@ import org.slf4j.LoggerFactory;
  */
 public class PythonFileDataListener extends PythonParserBaseListener implements CommonFileDataListener {
 
-  public static final String FILE_SIZE = "size";
-  public static final String LOC = "loc";
-  public static final String CLOC = "cloc";
-
   private static final Logger LOGGER = LoggerFactory.getLogger(PythonFileDataListener.class);
 
   private final PythonFileDataHandler fileDataHandler;
   private final CommonTokenStream tokens;
+  private int functionCount = 0;
+  private int variableCount = 0;
 
   public PythonFileDataListener(final PythonFileDataHandler fileDataHandler,
       final CommonTokenStream tokens) {
@@ -31,17 +29,23 @@ public class PythonFileDataListener extends PythonParserBaseListener implements 
 
   @Override
   public void enterFile_input(final PythonParser.File_inputContext ctx) {
-    // Calculate LOC and CLOC
-    final int loc = getLoc(ctx);
+    // Calculate total source SLOC and CLOC
+    final int sloc = getSloc(tokens);
     final int cloc = getCloc(ctx);
 
-    fileDataHandler.addMetric(LOC, String.valueOf(loc));
+    fileDataHandler.addMetric(SLOC, String.valueOf(sloc));
     fileDataHandler.addMetric(CLOC, String.valueOf(cloc));
 
     LOGGER.atTrace()
         .addArgument(fileDataHandler.getFileName())
-        .addArgument(loc)
-        .log("{} - LOC: {}");
+        .addArgument(sloc)
+        .log("{} - SLOC: {}");
+  }
+
+  @Override
+  public void exitFile_input(final PythonParser.File_inputContext ctx) {
+    fileDataHandler.addMetric(FUNCTION_COUNT, String.valueOf(functionCount));
+    fileDataHandler.addMetric(VARIABLE_COUNT, String.valueOf(variableCount));
   }
 
   @Override
@@ -69,10 +73,11 @@ public class PythonFileDataListener extends PythonParserBaseListener implements 
           .addArgument(className)
           .log("Class: {}");
 
-      // Calculate class LOC
+      // Calculate class SLOC and LOC
       final int classLoc = calculateLoc(ctx);
       final var classData = fileDataHandler.getCurrentClassData();
       if (classData != null) {
+        classData.addMetric(SLOC, String.valueOf(getSloc(ctx, tokens)));
         classData.addMetric(LOC, String.valueOf(classLoc));
 
         // Extract superclasses
@@ -102,6 +107,7 @@ public class PythonFileDataListener extends PythonParserBaseListener implements 
       return;
     }
 
+    functionCount++;
     // Extract function name
     final String functionName = ctx.name().getText();
 
@@ -117,8 +123,9 @@ public class PythonFileDataListener extends PythonParserBaseListener implements 
           .addArgument(functionName)
           .log("Method: {}");
 
-      // Calculate function LOC
+      // Calculate function SLOC and LOC
       final int functionLoc = calculateLoc(ctx);
+      methodData.addMetric(SLOC, String.valueOf(getSloc(ctx, tokens)));
       methodData.addMetric(LOC, String.valueOf(functionLoc));
 
       // Check for async - commented out for now
@@ -169,13 +176,26 @@ public class PythonFileDataListener extends PythonParserBaseListener implements 
 
       funcBuilder.setLines(startLine, endLine);
 
-      // Calculate LOC using actual start and end lines
+      // Calculate function SLOC and LOC using actual start and end lines
       final int functionLoc = (endLine >= startLine) ? (endLine - startLine + 1) : 0;
+      funcBuilder.addMetric(SLOC, String.valueOf(getSloc(ctx, tokens)));
       funcBuilder.addMetric(LOC, String.valueOf(functionLoc));
 
       LOGGER.atTrace()
           .addArgument(functionName)
           .log("Global function: {}");
+    }
+  }
+
+  @Override
+  public void enterExpr_stmt(final PythonParser.Expr_stmtContext ctx) {
+    // Increment variable count for assignments
+    if (ctx.assign_part() != null) {
+      if (ctx.assign_part().ASSIGN() != null && !ctx.assign_part().ASSIGN().isEmpty()) {
+        variableCount += ctx.assign_part().ASSIGN().size();
+      } else if (ctx.assign_part().COLON() != null) {
+        variableCount++;
+      }
     }
   }
 

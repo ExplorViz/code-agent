@@ -17,13 +17,12 @@ import org.slf4j.LoggerFactory;
  */
 public class CppFileDataListener extends CPP14ParserBaseListener implements CommonFileDataListener {
 
-  public static final String LOC = "loc";
-  public static final String CLOC = "cloc";
-
   private static final Logger LOGGER = LoggerFactory.getLogger(CppFileDataListener.class);
 
   private final CppFileDataHandler fileDataHandler;
   private final CommonTokenStream tokens;
+  private int functionCount = 0;
+  private int variableCount = 0;
 
   public CppFileDataListener(final CppFileDataHandler fileDataHandler,
       final CommonTokenStream tokens) {
@@ -33,11 +32,11 @@ public class CppFileDataListener extends CPP14ParserBaseListener implements Comm
 
   @Override
   public void enterTranslationUnit(final CPP14Parser.TranslationUnitContext ctx) {
-    // Calculate LOC and CLOC for the entire file
-    final int loc = getLoc(ctx);
+    // Calculate total source SLOC and CLOC for the entire file
+    final int sloc = getSloc(tokens);
     final int cloc = getCloc(ctx);
 
-    fileDataHandler.addMetric(LOC, String.valueOf(loc));
+    fileDataHandler.addMetric(SLOC, String.valueOf(sloc));
     fileDataHandler.addMetric(CLOC, String.valueOf(cloc));
 
     // Extract #include directives
@@ -45,8 +44,14 @@ public class CppFileDataListener extends CPP14ParserBaseListener implements Comm
 
     LOGGER.atTrace()
         .addArgument(fileDataHandler.getFileName())
-        .addArgument(loc)
-        .log("{} - LOC: {}");
+        .addArgument(sloc)
+        .log("{} - SLOC: {}");
+  }
+
+  @Override
+  public void exitTranslationUnit(final CPP14Parser.TranslationUnitContext ctx) {
+    fileDataHandler.addMetric(FUNCTION_COUNT, String.valueOf(functionCount));
+    fileDataHandler.addMetric(VARIABLE_COUNT, String.valueOf(variableCount));
   }
 
   /**
@@ -162,8 +167,9 @@ public class CppFileDataListener extends CPP14ParserBaseListener implements Comm
         classData.setIsClass();
       }
 
-      // Calculate class LOC
+      // Calculate class SLOC and LOC
       final int classLoc = calculateLoc(ctx);
+      classData.addMetric(SLOC, String.valueOf(getSloc(ctx, tokens)));
       classData.addMetric(LOC, String.valueOf(classLoc));
 
       // Handle base classes
@@ -205,6 +211,7 @@ public class CppFileDataListener extends CPP14ParserBaseListener implements Comm
       final var classData = fileDataHandler.getCurrentClassData();
       if (classData != null) {
         classData.setIsEnum();
+        classData.addMetric(SLOC, String.valueOf(getSloc(ctx, tokens)));
         classData.addMetric(LOC, String.valueOf(calculateLoc(ctx)));
       }
 
@@ -240,6 +247,8 @@ public class CppFileDataListener extends CPP14ParserBaseListener implements Comm
     if (ctx.declarator() == null) {
       return;
     }
+
+    functionCount++;
 
     final String functionName = extractFunctionName(ctx.declarator());
     if (functionName == null) {
@@ -293,6 +302,7 @@ public class CppFileDataListener extends CPP14ParserBaseListener implements Comm
           methodData.setLines(ctx.start.getLine(), ctx.stop.getLine());
         }
 
+        methodData.addMetric(SLOC, String.valueOf(getSloc(ctx, tokens)));
         methodData.addMetric(LOC, String.valueOf(functionLoc));
 
         LOGGER.atTrace()
@@ -312,6 +322,7 @@ public class CppFileDataListener extends CPP14ParserBaseListener implements Comm
         if (ctx.start != null && ctx.stop != null) {
           methodHandler.setLines(ctx.start.getLine(), ctx.stop.getLine());
         }
+        methodHandler.addMetric(SLOC, String.valueOf(getSloc(ctx, tokens)));
         methodHandler.addMetric(LOC, String.valueOf(functionLoc));
 
         addFunctionParameters(methodHandler, ctx.declarator());
@@ -325,6 +336,7 @@ public class CppFileDataListener extends CPP14ParserBaseListener implements Comm
         if (ctx.start != null && ctx.stop != null) {
           methodHandler.setLines(ctx.start.getLine(), ctx.stop.getLine());
         }
+        methodHandler.addMetric(SLOC, String.valueOf(getSloc(ctx, tokens)));
         methodHandler.addMetric(LOC, String.valueOf(functionLoc));
 
         addFunctionParameters(methodHandler, ctx.declarator());
@@ -822,6 +834,13 @@ public class CppFileDataListener extends CPP14ParserBaseListener implements Comm
   /**
    * Get comment lines of code by counting tokens on the hidden channel.
    */
+  @Override
+  public void enterSimpleDeclaration(final CPP14Parser.SimpleDeclarationContext ctx) {
+    if (ctx.initDeclaratorList() != null) {
+      variableCount += ctx.initDeclaratorList().initDeclarator().size();
+    }
+  }
+
   private int getCloc(final ParserRuleContext ctx) {
     if (ctx == null || tokens == null) {
       return 0;

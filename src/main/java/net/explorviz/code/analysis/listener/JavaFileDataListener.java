@@ -18,10 +18,6 @@ import org.slf4j.LoggerFactory;
  */
 public class JavaFileDataListener extends Java20ParserBaseListener implements CommonFileDataListener {
 
-  public static final String FILE_SIZE = "size";
-  public static final String LOC = "loc";
-  public static final String CLOC = "cloc";
-
   private static final Logger LOGGER = LoggerFactory.getLogger(JavaFileDataListener.class);
 
   private final JavaFileDataHandler fileDataHandler;
@@ -30,6 +26,8 @@ public class JavaFileDataListener extends Java20ParserBaseListener implements Co
   private String wildcardImport;
   private String currentPackage = "";
   private final org.antlr.v4.runtime.CommonTokenStream tokens;
+  private int functionCount = 0;
+  private int variableCount = 0;
 
   public JavaFileDataListener(final JavaFileDataHandler fileDataHandler,
       final boolean wildcardImportProperty,
@@ -43,17 +41,23 @@ public class JavaFileDataListener extends Java20ParserBaseListener implements Co
 
   @Override
   public void enterCompilationUnit(final Java20Parser.CompilationUnitContext ctx) {
-    // Calculate LOC and CLOC
-    final int loc = getLoc(ctx);
+    // Calculate total source SLOC and CLOC
+    final int sloc = getSloc(tokens);
     final int cloc = getCloc(ctx);
 
-    fileDataHandler.addMetric(LOC, String.valueOf(loc));
+    fileDataHandler.addMetric(SLOC, String.valueOf(sloc));
     fileDataHandler.addMetric(CLOC, String.valueOf(cloc));
 
     LOGGER.atTrace()
         .addArgument(fileDataHandler.getFileName())
-        .addArgument(loc)
-        .log("{} - LOC: {}");
+        .addArgument(sloc)
+        .log("{} - SLOC: {}");
+  }
+
+  @Override
+  public void exitCompilationUnit(final Java20Parser.CompilationUnitContext ctx) {
+    fileDataHandler.addMetric(FUNCTION_COUNT, String.valueOf(functionCount));
+    fileDataHandler.addMetric(VARIABLE_COUNT, String.valueOf(variableCount));
   }
 
   @Override
@@ -111,7 +115,8 @@ public class JavaFileDataListener extends Java20ParserBaseListener implements Co
     // Add modifiers
     addModifiers(ctx.classModifier());
 
-    // Add LOC
+    // Add SLOC and LOC
+    fileDataHandler.getCurrentClassData().addMetric(SLOC, String.valueOf(getSloc(ctx, tokens)));
     fileDataHandler.getCurrentClassData().addMetric(LOC, String.valueOf(getLoc(ctx)));
 
     // Handle extends
@@ -149,7 +154,8 @@ public class JavaFileDataListener extends Java20ParserBaseListener implements Co
     // Add modifiers
     addModifiers(ctx.interfaceModifier());
 
-    // Add LOC
+    // Add SLOC and LOC
+    fileDataHandler.getCurrentClassData().addMetric(SLOC, String.valueOf(getSloc(ctx, tokens)));
     fileDataHandler.getCurrentClassData().addMetric(LOC, String.valueOf(getLoc(ctx)));
 
     // Handle extends
@@ -179,7 +185,8 @@ public class JavaFileDataListener extends Java20ParserBaseListener implements Co
     // Add modifiers
     addModifiers(ctx.classModifier());
 
-    // Add LOC
+    // Add SLOC and LOC
+    fileDataHandler.getCurrentClassData().addMetric(SLOC, String.valueOf(getSloc(ctx, tokens)));
     fileDataHandler.getCurrentClassData().addMetric(LOC, String.valueOf(getLoc(ctx)));
   }
 
@@ -207,6 +214,7 @@ public class JavaFileDataListener extends Java20ParserBaseListener implements Co
         fileDataHandler.enterMethod(fieldFqn);
         fileDataHandler.getCurrentClassData().addField(fieldName, fieldType, modifiers);
         fileDataHandler.leaveMethod();
+        variableCount++;
       }
     }
   }
@@ -231,6 +239,7 @@ public class JavaFileDataListener extends Java20ParserBaseListener implements Co
         + "#" + parameterHash;
 
     fileDataHandler.enterMethod(methodFqn);
+    functionCount++;
 
     // Get return type
     String returnType = "void";
@@ -256,7 +265,8 @@ public class JavaFileDataListener extends Java20ParserBaseListener implements Co
       methodData.setLines(ctx.start.getLine(), ctx.stop.getLine());
     }
 
-    // Add LOC
+    // Add SLOC and LOC
+    methodData.addMetric(SLOC, String.valueOf(getSloc(ctx, tokens)));
     methodData.addMetric(LOC, String.valueOf(getLoc(ctx)));
   }
 
@@ -286,6 +296,7 @@ public class JavaFileDataListener extends Java20ParserBaseListener implements Co
         + "#" + parameterHash;
 
     fileDataHandler.enterMethod(methodFqn);
+    functionCount++;
 
     // Get return type
     String returnType = "void";
@@ -311,7 +322,8 @@ public class JavaFileDataListener extends Java20ParserBaseListener implements Co
       methodData.setLines(ctx.start.getLine(), ctx.stop.getLine());
     }
 
-    // Add LOC
+    // Add SLOC and LOC
+    methodData.addMetric(SLOC, String.valueOf(getSloc(ctx, tokens)));
     methodData.addMetric(LOC, String.valueOf(getLoc(ctx)));
   }
 
@@ -336,6 +348,7 @@ public class JavaFileDataListener extends Java20ParserBaseListener implements Co
         + "#" + parameterHash;
 
     fileDataHandler.enterMethod(constructorFqn);
+    functionCount++;
 
     final MethodDataHandler constructor = fileDataHandler.getCurrentClassData()
         .addConstructor(constructorName, constructorFqn);
@@ -353,7 +366,8 @@ public class JavaFileDataListener extends Java20ParserBaseListener implements Co
       constructor.setLines(ctx.start.getLine(), ctx.stop.getLine());
     }
 
-    // Add LOC
+    // Add SLOC and LOC
+    constructor.addMetric(SLOC, String.valueOf(getSloc(ctx, tokens)));
     constructor.addMetric(LOC, String.valueOf(getLoc(ctx)));
   }
 
@@ -633,6 +647,13 @@ public class JavaFileDataListener extends Java20ParserBaseListener implements Co
     }
 
     return typeName;
+  }
+
+  @Override
+  public void enterLocalVariableDeclaration(final Java20Parser.LocalVariableDeclarationContext ctx) {
+    if (ctx.variableDeclaratorList() != null) {
+      variableCount += ctx.variableDeclaratorList().variableDeclarator().size();
+    }
   }
 
   private boolean isPrimitiveType(final String type) {
