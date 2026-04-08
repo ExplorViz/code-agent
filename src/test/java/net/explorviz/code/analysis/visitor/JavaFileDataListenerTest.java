@@ -327,7 +327,7 @@ public class JavaFileDataListenerTest {
   }
 
   @Test
-  void testLOCMetric() throws IOException {
+  void testSLOCMetric() throws IOException {
     final String javaCode = """
         package com.test;
         
@@ -338,21 +338,21 @@ public class JavaFileDataListenerTest {
             }
         }
         """;
-
+    
     final JavaFileDataHandler fileDataHandler = antlrParserService.parseFileContent(
         javaCode, "SimpleClass.java", "test-commit");
-
+    
     Assertions.assertNotNull(fileDataHandler);
-
+    
     final FileData data = fileDataHandler.getProtoBufObject();
-
-    // Verify LOC metric exists
-    Assertions.assertTrue(data.containsMetrics("loc"), "LOC metric should exist");
-    final Double locValue = data.getMetricsMap().get("loc");
-    Assertions.assertNotNull(locValue);
-
-    // LOC should be greater than 0
-    Assertions.assertTrue(locValue > 0.0, "LOC should be greater than 0");
+    
+    // Verify SLOC metric exists
+    Assertions.assertTrue(data.containsMetrics("sloc"), "SLOC metric should exist");
+    final Double slocValue = data.getMetricsMap().get("sloc");
+    Assertions.assertNotNull(slocValue);
+    
+    // SLOC should be greater than 0
+    Assertions.assertTrue(slocValue > 0.0, "SLOC should be greater than 0");
   }
 
   @Test

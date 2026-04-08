@@ -54,9 +54,9 @@ public class TypeScriptFileDataListenerTest {
     // We should have 2 "classes": Person (interface) and Greeter (class)
     Assertions.assertTrue(data.getClassesCount() >= 1, "Should have at least 1 class/interface");
 
-    // Check LOC metric exists
-    Assertions.assertTrue(data.containsMetrics("loc"), "Should have LOC metric");
-    LOGGER.info("LOC: {}", data.getMetricsMap().get("loc"));
+    // Check SLOC metric exists
+    Assertions.assertTrue(data.containsMetrics("sloc"), "Should have SLOC metric");
+    LOGGER.info("SLOC: {}", data.getMetricsMap().get("sloc"));
   }
 
   @Test
@@ -95,9 +95,9 @@ public class TypeScriptFileDataListenerTest {
     // We should have 1 class: Calculator
     Assertions.assertTrue(data.getClassesCount() >= 1, "Should have at least 1 class");
 
-    // Check LOC metric exists
-    Assertions.assertTrue(data.containsMetrics("loc"), "Should have LOC metric");
-    LOGGER.info("LOC: {}", data.getMetricsMap().get("loc"));
+    // Check SLOC metric exists
+    Assertions.assertTrue(data.containsMetrics("sloc"), "Should have SLOC metric");
+    LOGGER.info("SLOC: {}", data.getMetricsMap().get("sloc"));
   }
 
   @Test
@@ -160,9 +160,9 @@ public class TypeScriptFileDataListenerTest {
     final FileData data = fileDataHandler.getProtoBufObject();
 
     LOGGER.info("JavaScript functions parsed");
-    LOGGER.info("LOC: {}", data.getMetricsMap().get("loc"));
-
-    // Check LOC metric exists
-    Assertions.assertTrue(data.containsMetrics("loc"), "Should have LOC metric");
+    LOGGER.info("SLOC: {}", data.getMetricsMap().get("sloc"));
+    
+    // Check SLOC metric exists
+    Assertions.assertTrue(data.containsMetrics("sloc"), "Should have SLOC metric");
   }
 }

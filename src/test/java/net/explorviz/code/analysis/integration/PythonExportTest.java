@@ -59,7 +59,7 @@ public class PythonExportTest {
     // Verify basic file data
     Assertions.assertEquals("calculator.py", fileData.getFilePath());
     Assertions.assertEquals(Language.PYTHON, fileData.getLanguage());
-    Assertions.assertTrue(fileData.containsMetrics("loc"));
+    Assertions.assertTrue(fileData.containsMetrics("sloc"));
 
     // Verify class was detected with correct FQN format (filePath:ClassName)
     final String expectedCalculatorFqn = "Calculator";
