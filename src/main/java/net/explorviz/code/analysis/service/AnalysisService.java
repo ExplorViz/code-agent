@@ -128,15 +128,32 @@ public class AnalysisService {
 
       checkIfCommitsAreReachable(startCommit, endCommit, fullBranch);
 
-      final int totalCommits = countCommitsInRange(repository, fullBranch, startCommit, endCommit,
-          exporter.isRemote(), config.commitAnalysisLimit());
-      LOGGER.info("Total commits to analyze: {}", totalCommits);
-      analysisStatusService.markRunning(config.landscapeToken(), totalCommits, 0);
+      final int totalCommitsInRange = countCommitsInRange(repository, fullBranch, startCommit, endCommit,
+          exporter.isRemote());
+
+      int commitsToAnalyze = totalCommitsInRange;
+
+      // If cloneDepth has been applied, the first commit has no parent and should be
+      // skipped.
+      if (!exporter.isRemote() && totalCommitsInRange > 0) {
+        commitsToAnalyze = Math.max(0, totalCommitsInRange - 1);
+      }
+
+      // Apply limit if present
+      if (config.commitAnalysisLimit().isPresent() && config.commitAnalysisLimit().get() < commitsToAnalyze) {
+        commitsToAnalyze = config.commitAnalysisLimit().get();
+      }
+
+      LOGGER.info("Total commits to analyze: {}", commitsToAnalyze);
+      analysisStatusService.markRunning(config.landscapeToken(), commitsToAnalyze, 0);
 
       try (RevWalk revWalk = new RevWalk(repository)) {
         prepareRevWalk(repository, revWalk, fullBranch);
 
         int commitCount = 0;
+        int skippedInPreAnalysis = 0;
+        final int commitsToSkipBeforeAnalyzing = totalCommitsInRange - commitsToAnalyze;
+
         RevCommit lastCheckedCommit = null;
         boolean inAnalysisRange = startCommit.isEmpty() || "".equals(startCommit.get());
 
@@ -162,7 +179,13 @@ public class AnalysisService {
               continue;
             }
           }
-          if (config.commitAnalysisLimit().isPresent() && commitCount >= config.commitAnalysisLimit().get()) {
+          if (skippedInPreAnalysis < commitsToSkipBeforeAnalyzing) {
+            skippedInPreAnalysis++;
+            lastCheckedCommit = commit;
+            continue;
+          }
+
+          if (commitCount >= commitsToAnalyze) {
             break;
           }
 
@@ -265,7 +288,7 @@ public class AnalysisService {
 
   private int countCommitsInRange(final Repository repository, final String fullBranch,
       final Optional<String> startCommit, final Optional<String> endCommit,
-      final boolean remoteExport, final Optional<Integer> commitAnalysisLimit) throws IOException {
+      final boolean remoteExport) throws IOException {
     try (RevWalk revWalk = new RevWalk(repository)) {
       prepareRevWalk(repository, revWalk, fullBranch);
 
@@ -284,9 +307,6 @@ public class AnalysisService {
           }
         }
         totalCommits++;
-        if (commitAnalysisLimit.isPresent() && totalCommits >= commitAnalysisLimit.get()) {
-          break;
-        }
         if (endCommit.isPresent() && commit.name().equals(endCommit.get())) {
           break;
         }
