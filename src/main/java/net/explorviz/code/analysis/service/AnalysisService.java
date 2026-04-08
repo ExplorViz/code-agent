@@ -207,8 +207,6 @@ public class AnalysisService {
           descriptorList.addAll(descriptorAddedList);
           descriptorList.addAll(descriptorModifiedList);
 
-          applyPathTransformation(descriptorList, config.applicationRoot());
-
           commitAnalysis(config, repository, commit, lastCheckedCommit, descriptorList, exporter,
               branch, descTriple, restrictMatchers, excludeMatchers);
 
@@ -398,11 +396,6 @@ public class AnalysisService {
     final List<FileDescriptor> modifiedFiles = descriptorTriple.left();
     final List<FileDescriptor> deletedFiles = descriptorTriple.middle();
     final List<FileDescriptor> addedFiles = descriptorTriple.right();
-
-    applyPathTransformation(files, config.applicationRoot());
-    applyPathTransformation(modifiedFiles, config.applicationRoot());
-    applyPathTransformation(deletedFiles, config.applicationRoot());
-    applyPathTransformation(addedFiles, config.applicationRoot());
 
     commitReportHandler.add(files);
 
@@ -631,46 +624,6 @@ public class AnalysisService {
       }
       return null;
     }
-  }
-
-  void applyPathTransformation(final List<FileDescriptor> descriptors,
-      final Optional<String> applicationRoot) {
-    if (applicationRoot.isEmpty()) {
-      return;
-    }
-    for (final FileDescriptor desc : descriptors) {
-      desc.reportedPath = transformPath(desc.relativePath, applicationRoot.get());
-    }
-  }
-
-  String transformPath(final String originalPath, final String applicationRoot) {
-    String root = applicationRoot;
-    // Normalize: remove trailing slashes
-    while (root.endsWith("/") || root.endsWith("\\")) {
-      root = root.substring(0, root.length() - 1);
-    }
-
-    // Check if the path is actually inside the root
-    if (!originalPath.startsWith(root)) {
-      return originalPath;
-    }
-
-    // Must be followed by a slash if not equal
-    if (!originalPath.equals(root) && !originalPath.startsWith(root + "/")
-        && !originalPath.startsWith(root + "\\")) {
-      return originalPath;
-    }
-
-    int lastSlash = root.lastIndexOf('/');
-    if (lastSlash == -1) {
-      lastSlash = root.lastIndexOf('\\');
-    }
-
-    if (lastSlash == -1) {
-      return originalPath;
-    }
-
-    return originalPath.substring(lastSlash + 1);
   }
 
   void applyGlobFiltering(final List<FileDescriptor> descriptors,
