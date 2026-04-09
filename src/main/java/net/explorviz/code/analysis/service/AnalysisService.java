@@ -193,7 +193,8 @@ public class AnalysisService {
           LOGGER.atDebug().addArgument(commit.getName()).log("Analyzing commit: {}");
 
           final boolean isFirstAnalyzedCommit = commitCount == 0;
-          final RevCommit baseCommit = (isFirstAnalyzedCommit && !exporter.isRemote()) ? null : lastCheckedCommit;
+          final RevCommit baseCommit = (isFirstAnalyzedCommit && (!exporter.isRemote()
+              || startCommit.isEmpty())) ? null : lastCheckedCommit;
 
           final var descTriple = gitRepositoryHandler
               .listDiff(
