@@ -130,8 +130,6 @@ public class CommitReportHandler { // NOPMD
         builder.addModifiedFiles(fileId);
       } else if (deletedFiles.contains(entry.getKey())) {
         builder.addDeletedFiles(fileId);
-      } else {
-        builder.addUnchangedFiles(fileId);
       }
     }
     return builder.build();
