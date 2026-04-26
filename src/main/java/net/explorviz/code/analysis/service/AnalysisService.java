@@ -449,9 +449,9 @@ public class AnalysisService {
     commitReportHandler.setRepositoryName(config.getRepositoryName());
 
     ContributorData contributorData = GitMetricCollector.createContributorData(
-      commit, 
-      config.landscapeToken(),
-      config.getRepositoryName()
+        commit, 
+        config.landscapeToken(),
+        config.getRepositoryName()
     );
 
     exporter.persistCommit(commitReportHandler.getCommitData());

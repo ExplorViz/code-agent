@@ -64,27 +64,27 @@ public final class GitMetricCollector {
 
   /** 
    * Creates a ContributorData object based on the given commit, landscape token and repository name.
+   *
    * @param commit the commit to extract contributor information from
    * @param landscapeToken the landscape token to set in the ContributorData
    * @param repositoryName the repository name to set in the ContributorData
    * @return a ContributorData object containing the contributor information
-   * TODO: handle differntiation between author and committer
    */
   public static ContributorData createContributorData(
         final RevCommit commit,
         final String landscapeToken,
         final String repositoryName
       
-  ){
-      String name = commit.getAuthorIdent().getName();
-      String email = commit.getAuthorIdent().getEmailAddress();
+  ) {
+    String name = commit.getAuthorIdent().getName();
+    String email = commit.getAuthorIdent().getEmailAddress();
 
-      Builder builder = ContributorData.newBuilder()
+    Builder builder = ContributorData.newBuilder()
         .setName(name)
         .setEmail(email)
         .setLandscapeToken(landscapeToken)
         .setRepositoryName(repositoryName);
 
-      return builder.build();
+    return builder.build();
   }
 }
