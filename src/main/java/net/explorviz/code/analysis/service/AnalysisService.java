@@ -32,6 +32,7 @@ import net.explorviz.code.analysis.parser.AntlrTypeScriptParserService;
 import net.explorviz.code.analysis.types.FileDescriptor;
 import net.explorviz.code.analysis.types.Triple;
 import net.explorviz.code.analysis.visitor.FileDataVisitor;
+import net.explorviz.code.proto.ContributorData;
 import net.explorviz.code.proto.Language;
 import net.explorviz.code.proto.StateData;
 import org.eclipse.jgit.api.Git;
@@ -447,7 +448,14 @@ public class AnalysisService {
     commitReportHandler.addToken(config.landscapeToken());
     commitReportHandler.setRepositoryName(config.getRepositoryName());
 
+    ContributorData contributorData = GitMetricCollector.createContributorData(
+      commit, 
+      config.landscapeToken(),
+      config.getRepositoryName()
+    );
+
     exporter.persistCommit(commitReportHandler.getCommitData());
+    exporter.persistContributor(contributorData);
   }
 
   /**
