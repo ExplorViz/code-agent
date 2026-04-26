@@ -5,6 +5,7 @@ import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Paths;
 import net.explorviz.code.proto.CommitData;
+import net.explorviz.code.proto.ContributorData;
 import net.explorviz.code.proto.FileData;
 import net.explorviz.code.proto.StateData;
 import net.explorviz.code.proto.StateDataRequest;
@@ -159,6 +160,17 @@ public class JsonExporter implements DataExporter {
       throw new RuntimeException(e); // NOPMD
     }
     this.commitCount++;
+  }
+
+  @Override
+  public void persistContributor(final ContributorData contributorData) {
+    try {
+      final String json = unescapeHtml(JsonFormat.printer().print(contributorData));
+      final String fileName = "Contributor_" + contributorData.getName() + JSON_FILE_EXTENSION;
+      Files.write(Paths.get(storageDirectory, fileName), json.getBytes());
+    } catch (IOException e) { // NOPMD
+      throw new RuntimeException(e); // NOPMD
+    }
   }
 
   @Override

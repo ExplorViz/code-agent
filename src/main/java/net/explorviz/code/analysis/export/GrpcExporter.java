@@ -4,6 +4,8 @@ import io.quarkus.grpc.GrpcClient;
 import jakarta.enterprise.context.ApplicationScoped;
 import net.explorviz.code.proto.CommitData;
 import net.explorviz.code.proto.CommitServiceGrpc;
+import net.explorviz.code.proto.ContributorData;
+import net.explorviz.code.proto.ContributorServiceGrpc;
 import net.explorviz.code.proto.FileData;
 import net.explorviz.code.proto.FileDataServiceGrpc;
 import net.explorviz.code.proto.StateData;
@@ -31,6 +33,9 @@ public final class GrpcExporter implements DataExporter {
   //
   @GrpcClient(GRPC_CLIENT_NAME)
   /* package */ StateDataServiceGrpc.StateDataServiceBlockingStub stateDataGrpcClient;
+  //
+  @GrpcClient(GRPC_CLIENT_NAME)
+  /* package */ ContributorServiceGrpc.ContributorServiceBlockingStub contributorDataGrpcClient;
 
   @ConfigProperty(name = "explorviz.landscape.token")
   /* default */ String landscapeTokenProperty;
@@ -84,7 +89,18 @@ public final class GrpcExporter implements DataExporter {
         LOGGER.error(e.getMessage());
       }
     }
+  }
 
+  @Override public void persistContributor(final ContributorData contributorData) {
+    LOGGER.info("Sending contributor data on {}", contributorData.getName(), contributorData.getEmail());
+    try {
+      contributorDataGrpcClient.persistContributor(contributorData);
+    } catch (final Exception e) {
+      if (LOGGER.isErrorEnabled()) {
+        LOGGER.error("Failed to send contributor data {}", contributorData);
+        LOGGER.error(e.getMessage());
+      }
+    }
   }
 
   @Override

@@ -1,6 +1,7 @@
 package net.explorviz.code.analysis.export;
 
 import net.explorviz.code.proto.CommitData;
+import net.explorviz.code.proto.ContributorData;
 import net.explorviz.code.proto.FileData;
 import net.explorviz.code.proto.StateData;
 
@@ -15,6 +16,8 @@ public interface DataExporter {
   void persistFile(final FileData fileData);
 
   void persistCommit(final CommitData commitData);
+
+  void persistContributor(final ContributorData contributorData);
 
   boolean isRemote();
 
