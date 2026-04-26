@@ -11,11 +11,16 @@ service ContributorService {
 }
 
 message ContributorData {
+  // Git data
   string landscape_token = 1;
   string repository_name = 2;
   string contributor_id = 3;
   string name = 4;
   string email = 5;
+
+  // GitHub-specific data
+  string username = 6;
+  string avatar_url = 7;
 }
 
 message CommitAuthorAssociation {
@@ -24,4 +29,3 @@ message CommitAuthorAssociation {
   string commit_id = 3;
   string contributor_id = 4;
 }
-
