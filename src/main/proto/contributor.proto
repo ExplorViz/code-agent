@@ -1,0 +1,25 @@
+syntax = "proto3";
+
+option java_multiple_files = true;
+option java_package = "net.explorviz.code.proto";
+option java_outer_classname = "ContributorProto";
+
+service ContributorService {
+  rpc PersistContributor (ContributorData) returns (google.protobuf.Empty) {}
+}
+
+message ContributorData {
+  string landscape_token = 1;
+  string repository_name = 2;
+  string contributor_id = 3;
+  string name = 4;
+  string email = 5;
+}
+
+message CommitAuthorAssociation {
+  string landscape_token = 1;
+  string repository_name = 2;
+  string commit_id = 3;
+  string contributor_id = 4;
+}
+
