@@ -93,8 +93,6 @@ public class AnalysisService {
   @Inject
   /* package */ AntlrCppParserService cppParserService;
   @Inject
-  /* package */ CommitReportHandler commitReportHandler;
-  @Inject
   /* package */ AnalysisStatusService analysisStatusService;
   @ConfigProperty(name = "explorviz.gitanalysis.save-crashed_files")
   /* default */ boolean saveCrashedFilesProperty;
@@ -355,7 +353,7 @@ public class AnalysisService {
 
     LOGGER.atTrace().addArgument(descriptorList.toString()).log("Files: {}");
 
-    for (final FileDescriptor fileDescriptor : descriptorList) {
+    descriptorList.parallelStream().forEach(fileDescriptor -> {
       try {
         analysisStatusService.setCurrentAnalyzingFile(config.landscapeToken(),
             fileDescriptor.reportedPath);
@@ -389,10 +387,13 @@ public class AnalysisService {
           fileDataHandler.setRepositoryName(config.getRepositoryName());
           exporter.persistFile(fileDataHandler.getProtoBufObject());
         }
+      } catch (IOException e) {
+        LOGGER.error("Failed to analyze file {}: {}", fileDescriptor.reportedPath, e.getMessage());
       } finally {
         analysisStatusService.incrementAnalyzedFile(config.landscapeToken());
       }
-    }
+    });
+
   }
 
   private void createCommitReport(final AnalysisConfig config, final Repository repository,
@@ -402,6 +403,8 @@ public class AnalysisService {
       final List<java.nio.file.PathMatcher> restrictMatchers,
       final List<java.nio.file.PathMatcher> excludeMatchers)
       throws NotFoundException, IOException, GitAPIException {
+    final CommitReportHandler commitReportHandler = new CommitReportHandler();
+
     if (lastCommit == null) {
       commitReportHandler.init(commit.getId().getName(), null, branchName);
     } else {
@@ -413,16 +416,9 @@ public class AnalysisService {
     commitReportHandler.setCommitDate(Timestamp.newBuilder()
         .setSeconds(commit.getCommitterIdent().getWhen().getTime() / 1000).build());
 
-    final List<FileDescriptor> files = gitRepositoryHandler.listFilesInCommit(repository, commit,
-        config.applicationRoot().orElse(config.includeInAnalysisExpressions().orElse("")));
-
-    applyGlobFiltering(files, restrictMatchers, excludeMatchers);
-
     final List<FileDescriptor> modifiedFiles = descriptorTriple.left();
     final List<FileDescriptor> deletedFiles = descriptorTriple.middle();
     final List<FileDescriptor> addedFiles = descriptorTriple.right();
-
-    commitReportHandler.add(files);
 
     for (final FileDescriptor modifiedFile : modifiedFiles) {
       commitReportHandler.addModified(modifiedFile);
@@ -449,6 +445,7 @@ public class AnalysisService {
 
     exporter.persistCommit(commitReportHandler.getCommitData());
   }
+
 
   /**
    * Checks if a file is a text file by checking its MIME type. Detects text/*,
