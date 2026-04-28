@@ -61,6 +61,9 @@ public class AntlrPythonParserService {
     final CommonTokenStream tokens = new CommonTokenStream(lexer);
     final PythonParser parser = new PythonParser(tokens);
 
+    lexer.removeErrorListeners();
+    parser.removeErrorListeners();
+
     // Parse the file
     final PythonParser.File_inputContext fileInput = parser.file_input();
 
