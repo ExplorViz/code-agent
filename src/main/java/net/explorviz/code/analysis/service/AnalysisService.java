@@ -345,8 +345,6 @@ public class AnalysisService {
       throws GitAPIException, NotFoundException, IOException {
 
     Git.wrap(repository).checkout().setName(commit.getName()).call();
-    createCommitReport(config, repository, commit, lastCommit, exporter, branchName, descriptorTriple,
-        restrictMatchers, excludeMatchers);
 
     antlrParserService.reset();
     GitMetricCollector.resetAuthor();
@@ -381,10 +379,10 @@ public class AnalysisService {
             LOGGER.error("File size of file " + fileDescriptor.relativePath
                 + " could not be analyzed." + e.getMessage());
           }
-          // Add Git metrics for all files
           GitMetricCollector.addCommitGitMetrics(fileDataHandler, commit);
           fileDataHandler.setLandscapeToken(config.landscapeToken());
           fileDataHandler.setRepositoryName(config.getRepositoryName());
+          fileDataHandler.setCommitId(commit.getName());
           exporter.persistFile(fileDataHandler.getProtoBufObject());
         }
       } catch (IOException e) {
@@ -393,6 +391,9 @@ public class AnalysisService {
         analysisStatusService.incrementAnalyzedFile(config.landscapeToken());
       }
     });
+
+    createCommitReport(config, repository, commit, lastCommit, exporter, branchName, descriptorTriple,
+        restrictMatchers, excludeMatchers);
 
   }
 
@@ -420,16 +421,8 @@ public class AnalysisService {
     final List<FileDescriptor> deletedFiles = descriptorTriple.middle();
     final List<FileDescriptor> addedFiles = descriptorTriple.right();
 
-    for (final FileDescriptor modifiedFile : modifiedFiles) {
-      commitReportHandler.addModified(modifiedFile);
-    }
-
     for (final FileDescriptor deletedFile : deletedFiles) {
       commitReportHandler.addDeleted(deletedFile);
-    }
-
-    for (final FileDescriptor addedFile : addedFiles) {
-      commitReportHandler.addAdded(addedFile);
     }
 
     final List<Ref> list = Git.wrap(repository).tagList().call();

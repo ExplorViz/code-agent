@@ -66,6 +66,10 @@ public abstract class AbstractFileDataHandler {
     builder.setLandscapeToken(landscapeToken);
   }
 
+  public void setCommitId(final String commitId) {
+    builder.setCommitId(commitId);
+  }
+
   public abstract FileData getProtoBufObject();
 
   @Override
