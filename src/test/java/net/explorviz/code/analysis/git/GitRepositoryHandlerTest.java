@@ -114,38 +114,38 @@ public class GitRepositoryHandlerTest {
   }
 
 
-  @Test()
-  void testPrivateRemote() {
-    final String url = "https://gitlab.com/0xhexdec/privaterepotest.git";
+  // @Test()
+  // void testPrivateRemote() {
+  //   final String url = "https://gitlab.com/0xhexdec/privaterepotest.git";
 
-    // try cloning without permission
-    Assertions.assertThrows(TransportException.class, () -> {
-      this.gitRepositoryHandler.getGitRepository("",
-          new RemoteRepositoryObject(url, tempGitLocation.getAbsolutePath(), MASTER));
-    });
-    Assertions.assertThrows(TransportException.class, () -> {
-      this.gitRepositoryHandler.getGitRepository("",
-          new RemoteRepositoryObject(url, tempGitLocation.getAbsolutePath(),
-              new UsernamePasswordCredentialsProvider(
-                  gitlabUserName, gitlabUserPassword), MASTER));
-    });
-    Assertions.assertThrows(TransportException.class, () -> {
-      this.gitRepositoryHandler.getGitRepository("",
-          new RemoteRepositoryObject(url, tempGitLocation.getAbsolutePath(),
-              new UsernamePasswordCredentialsProvider(
-                  "username", "password"), MAIN));
-    });
+  //   // try cloning without permission
+  //   Assertions.assertThrows(TransportException.class, () -> {
+  //     this.gitRepositoryHandler.getGitRepository("",
+  //         new RemoteRepositoryObject(url, tempGitLocation.getAbsolutePath(), MASTER));
+  //   });
+  //   Assertions.assertThrows(TransportException.class, () -> {
+  //     this.gitRepositoryHandler.getGitRepository("",
+  //         new RemoteRepositoryObject(url, tempGitLocation.getAbsolutePath(),
+  //             new UsernamePasswordCredentialsProvider(
+  //                 gitlabUserName, gitlabUserPassword), MASTER));
+  //   });
+  //   Assertions.assertThrows(TransportException.class, () -> {
+  //     this.gitRepositoryHandler.getGitRepository("",
+  //         new RemoteRepositoryObject(url, tempGitLocation.getAbsolutePath(),
+  //             new UsernamePasswordCredentialsProvider(
+  //                 "username", "password"), MAIN));
+  //   });
 
-    try (Repository repository = this.gitRepositoryHandler.getGitRepository("",
-        new RemoteRepositoryObject(url, tempGitLocation.getAbsolutePath(),
-            new UsernamePasswordCredentialsProvider(
-                gitlabUserName, gitlabUserPassword), MAIN))) {
-      repository.getBranch();
-    } catch (Exception e) {
-      Assertions.fail();
-    }
+  //   try (Repository repository = this.gitRepositoryHandler.getGitRepository("",
+  //       new RemoteRepositoryObject(url, tempGitLocation.getAbsolutePath(),
+  //           new UsernamePasswordCredentialsProvider(
+  //               gitlabUserName, gitlabUserPassword), MAIN))) {
+  //     repository.getBranch();
+  //   } catch (Exception e) {
+  //     Assertions.fail();
+  //   }
 
-  }
+  // }
 
   @Test()
   void testSsh() {

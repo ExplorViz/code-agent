@@ -8,6 +8,7 @@ import java.util.List;
 import java.util.Map;
 import net.explorviz.code.analysis.types.FileDescriptor;
 import net.explorviz.code.proto.CommitData;
+import net.explorviz.code.proto.ContributorData;
 import net.explorviz.code.proto.FileIdentifier;
 
 /**
@@ -21,12 +22,14 @@ public class CommitReportHandler { // NOPMD
   private final List<String> deletedFiles = new ArrayList<>();
   private final List<String> addedFiles = new ArrayList<>();
   private CommitData.Builder builder;
+  private ContributorData.Builder contributorBuilder;
 
   /**
    * Creates a blank handler, use {@link CommitReportHandler#init(String, String, String)} to initialize it.
    */
   public CommitReportHandler() {
     this.builder = CommitData.newBuilder();
+    this.contributorBuilder = ContributorData.newBuilder();
   }
 
   /**
@@ -35,6 +38,7 @@ public class CommitReportHandler { // NOPMD
    */
   public void clear() {
     this.builder = CommitData.newBuilder();
+    this.contributorBuilder = ContributorData.newBuilder();
     this.allFiles.clear();
     this.modifiedFiles.clear();
     this.deletedFiles.clear();
@@ -112,6 +116,10 @@ public class CommitReportHandler { // NOPMD
 
   public void setCommitDate(final Timestamp commitDate) {
     builder.setCommitDate(commitDate);
+  }
+
+  public void setAuthor(final ContributorData contributorData) {
+    builder.setAuthor(contributorData);
   }
 
   /**

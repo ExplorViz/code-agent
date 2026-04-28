@@ -454,8 +454,9 @@ public class AnalysisService {
         config.getRepositoryName()
     );
 
+    commitReportHandler.setAuthor(contributorData);
+
     exporter.persistCommit(commitReportHandler.getCommitData());
-    exporter.persistContributor(contributorData);
   }
 
   /**
@@ -519,6 +520,10 @@ public class AnalysisService {
 
     try {
       AbstractFileDataHandler fileDataHandler = null;
+
+      LOGGER.atError()
+          .addArgument(file.reportedPath)
+          .log("ANALYZING FILE: {} with size {} bytes", file.reportedPath, fileContent.length());
 
       // Route to appropriate parser based on file extension
       if (fileName.endsWith(".ts") || fileName.endsWith(".tsx")
