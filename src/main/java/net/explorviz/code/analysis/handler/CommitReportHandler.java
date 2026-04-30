@@ -16,7 +16,9 @@ import net.explorviz.code.proto.FileIdentifier;
 @ApplicationScoped
 public class CommitReportHandler { // NOPMD
 
+  private final List<FileIdentifier> modifiedFiles = new ArrayList<>();
   private final List<FileIdentifier> deletedFiles = new ArrayList<>();
+  private final List<FileIdentifier> addedFiles = new ArrayList<>();
   private CommitData.Builder builder;
 
   /**
@@ -32,7 +34,9 @@ public class CommitReportHandler { // NOPMD
    */
   public void clear() {
     this.builder = CommitData.newBuilder();
+    this.modifiedFiles.clear();
     this.deletedFiles.clear();
+    this.addedFiles.clear();
   }
 
   /**
@@ -61,13 +65,17 @@ public class CommitReportHandler { // NOPMD
         .build();
   }
 
-
+  public void addModified(final FileDescriptor fileDescriptor) {
+    modifiedFiles.add(toFileId(fileDescriptor));
+  }
 
   public void addDeleted(final FileDescriptor fileDescriptor) {
     deletedFiles.add(toFileId(fileDescriptor));
   }
 
-
+  public void addAdded(final FileDescriptor fileDescriptor) {
+    addedFiles.add(toFileId(fileDescriptor));
+  }
 
   /**
    * ...
@@ -96,6 +104,8 @@ public class CommitReportHandler { // NOPMD
    * Returns the commit data. * * @return commit data object
    */
   public CommitData getCommitData() {
+    builder.addAllAddedFiles(addedFiles);
+    builder.addAllModifiedFiles(modifiedFiles);
     builder.addAllDeletedFiles(deletedFiles);
     return builder.build();
   }

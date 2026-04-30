@@ -22,6 +22,8 @@ message CommitData {
   repeated string tags = 8;
 
   // Git file metrics
+  repeated FileIdentifier added_files = 10;
+  repeated FileIdentifier modified_files = 11;
   repeated FileIdentifier deleted_files = 12;
 }
 
