@@ -123,6 +123,8 @@ function collectPayload(formData) {
   payload.fetchSocialData = formData.get("fetchSocialData") !== null;
   payload.syncSocialWindow = formData.get("syncSocialWindow") !== null;
   payload.firstParentCommitsOnly = formData.get("firstParentCommitsOnly") !== null;
+  payload.skipCommitsWithoutRelevantFileChanges =
+    formData.get("skipCommitsWithoutRelevantFileChanges") !== null;
 
   if (payload.commitAnalysisLimit) {
     payload.commitAnalysisLimit = parseInt(payload.commitAnalysisLimit);

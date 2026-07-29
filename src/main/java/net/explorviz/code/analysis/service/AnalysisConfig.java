@@ -21,6 +21,7 @@ public record AnalysisConfig(Optional<String> repoPath, Optional<String> repoRem
     Optional<CommitSamplingPeriod> commitSamplingPeriod,
     Optional<Integer> maxLocForFullAnalysis,
     boolean firstParentCommitsOnly,
+    boolean skipCommitsWithoutRelevantFileChanges,
     String landscapeToken,
     boolean fetchSocialData,
      boolean syncSocialWindow, Optional<String> fetchEndDate, Optional<Integer> socialDataTimeFrameDays) {
@@ -97,6 +98,7 @@ public record AnalysisConfig(Optional<String> repoPath, Optional<String> repoRem
     private Optional<CommitSamplingPeriod> commitSamplingPeriod = Optional.empty();
     private Optional<Integer> maxLocForFullAnalysis = Optional.empty();
     private boolean firstParentCommitsOnly = true;
+    private boolean skipCommitsWithoutRelevantFileChanges = false;
     private String landscapeToken = "";
     private String applicationName = "";
     private List<ApplicationPath> explicitApplicationPaths;
@@ -187,6 +189,12 @@ public record AnalysisConfig(Optional<String> repoPath, Optional<String> repoRem
       return this;
     }
 
+    public Builder skipCommitsWithoutRelevantFileChanges(
+        final boolean skipCommitsWithoutRelevantFileChanges) {
+      this.skipCommitsWithoutRelevantFileChanges = skipCommitsWithoutRelevantFileChanges;
+      return this;
+    }
+
     public Builder landscapeToken(final String landscapeToken) {
       this.landscapeToken = landscapeToken;
       return this;
@@ -248,6 +256,7 @@ public record AnalysisConfig(Optional<String> repoPath, Optional<String> repoRem
           commitSamplingPeriod,
           maxLocForFullAnalysis,
           firstParentCommitsOnly,
+          skipCommitsWithoutRelevantFileChanges,
           landscapeToken,
           fetchSocialData,
           syncSocialWindow,

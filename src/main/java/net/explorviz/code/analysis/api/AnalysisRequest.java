@@ -54,6 +54,7 @@ public class AnalysisRequest {
   private String commitSamplingPeriod;
   private Integer maxLocForFullAnalysis;
   private boolean firstParentCommitsOnly = true;
+  private boolean skipCommitsWithoutRelevantFileChanges = false;
   private String landscapeToken = "mytokenvalue";
   private String applicationName = "";
   private String applicationRoot;
@@ -227,6 +228,15 @@ public class AnalysisRequest {
     this.firstParentCommitsOnly = firstParentCommitsOnly;
   }
 
+  public boolean isSkipCommitsWithoutRelevantFileChanges() {
+    return skipCommitsWithoutRelevantFileChanges;
+  }
+
+  public void setSkipCommitsWithoutRelevantFileChanges(
+      final boolean skipCommitsWithoutRelevantFileChanges) {
+    this.skipCommitsWithoutRelevantFileChanges = skipCommitsWithoutRelevantFileChanges;
+  }
+
   public boolean isFetchSocialData() {
     return fetchSocialData;
   }
@@ -292,6 +302,7 @@ public class AnalysisRequest {
         .commitSamplingPeriod(CommitSamplingPeriod.fromConfigValue(commitSamplingPeriod))
         .maxLocForFullAnalysis(Optional.ofNullable(maxLocForFullAnalysis))
         .firstParentCommitsOnly(firstParentCommitsOnly)
+        .skipCommitsWithoutRelevantFileChanges(skipCommitsWithoutRelevantFileChanges)
         .landscapeToken((landscapeToken != null && !landscapeToken.isBlank()) ? landscapeToken : "mytokenvalue")
         .applicationRoot(Optional.ofNullable(applicationRoot))
         .fetchSocialData(fetchSocialData)

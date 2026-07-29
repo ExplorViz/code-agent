@@ -185,7 +185,7 @@ public class AnalysisService {
 
       checkIfCommitsAreReachable(startCommit, endCommit, fullBranch);
 
-      final List<RevCommit> commitsInRange = collectCommitsInRange(repository, fullBranch, startCommit,
+      final List<CommitWalkEntry> commitsInRange = collectCommitWalkEntries(repository, fullBranch, startCommit,
           endCommit, exporter.isRemote(), config.firstParentCommitsOnly());
       final int totalCommitsInRange = commitsInRange.size();
       final boolean commitSamplingEnabled = CommitSampler.isEnabled(config);
@@ -204,16 +204,18 @@ public class AnalysisService {
       }
 
       final int commitsToSkipBeforeAnalyzing = totalCommitsInRange - commitsToAnalyze;
-      final List<RevCommit> commitsToProcess =
+      final List<CommitWalkEntry> commitsToProcess =
           commitsInRange.subList(commitsToSkipBeforeAnalyzing, totalCommitsInRange);
+      final List<Integer> commitTimesForSampling =
+          commitsToProcess.stream().map(CommitWalkEntry::commitTime).toList();
       final Set<Integer> fullyAnalyzedCommitIndices =
-          CommitSampler.selectFullyAnalyzedIndices(commitsToProcess, config);
+          CommitSampler.selectFullyAnalyzedIndicesFromCommitTimes(commitTimesForSampling, config);
       final int commitsForProgressTracking =
           commitSamplingEnabled ? commitsToProcess.size() : commitsToAnalyze;
 
       if (commitSamplingEnabled) {
         LOGGER.info(
-            "Commit sampling enabled: persisting {} commits, fully analyzing {} of them",
+            "Commit sampling enabled: walking {} commits, fully analyzing {} of them",
             commitsToProcess.size(),
             fullyAnalyzedCommitIndices.size());
       } else {
@@ -222,14 +224,14 @@ public class AnalysisService {
       analysisStatusService.markRunning(config.landscapeToken(), commitsForProgressTracking, 0);
 
       // find start and end dates for social analysis
-      final List<RevCommit> analyzedCommits = commitSamplingEnabled
+      final List<CommitWalkEntry> analyzedCommits = commitSamplingEnabled
           ? commitsToProcess
           : commitsInRange.subList(commitsToSkipBeforeAnalyzing, totalCommitsInRange);
       if (config.syncSocialWindow() && !analyzedCommits.isEmpty()) {
         long min = Long.MAX_VALUE;
         long max = Long.MIN_VALUE;
-        for (final RevCommit c : analyzedCommits) {
-          final int t = c.getCommitTime();
+        for (final CommitWalkEntry walkEntry : analyzedCommits) {
+          final int t = walkEntry.commitTime();
           min = Math.min(min, t);
           max = Math.max(max, t);
         }
@@ -246,21 +248,21 @@ public class AnalysisService {
       final List<java.nio.file.PathMatcher> excludeMatchers = compileMatchers(
           config.excludeFromAnalysisExpressions());
 
-      RevCommit lastCheckedCommit = resolveRemoteStartCommit(repository, startCommit, exporter.isRemote());
-      String lastFullyAnalyzedCommitHash = null;
+      String lastCheckedCommitHash = startCommit.filter(hash -> !hash.isBlank()).orElse(null);
+      String lastFullyAnalyzedCommitHash = lastCheckedCommitHash;
       int fullAnalysisCount = 0;
       int processedCommitCount = 0;
       for (int index = 0; index < commitsToProcess.size(); index++) {
-        final RevCommit commit = commitsToProcess.get(index);
+        final CommitWalkEntry walkEntry = commitsToProcess.get(index);
         final boolean fullyAnalyzeCommit =
             commitSamplingEnabled && fullyAnalyzedCommitIndices.contains(index)
                 || !commitSamplingEnabled && processedCommitCount < commitsToAnalyze;
 
         if (!fullyAnalyzeCommit && commitSamplingEnabled) {
-          persistMetadataOnlyCommit(config, commit, exporter, branch, tagsByCommitId);
-          processedCommitCount++;
-          analysisStatusService.incrementAnalyzedCommit(config.landscapeToken());
-          lastCheckedCommit = advanceLastCheckedCommit(commit, lastCheckedCommit);
+          LOGGER.atDebug().addArgument(walkEntry.hash())
+              .log("Skipping commit not selected for sampling: {}");
+          recordSkippedCommitInWalk(config);
+          lastCheckedCommitHash = walkEntry.hash();
           continue;
         }
 
@@ -268,110 +270,123 @@ public class AnalysisService {
           break;
         }
 
-        LOGGER.atDebug().addArgument(commit.getName()).log("Analyzing commit: {}");
+        final RevCommit commit = parseCommitWalkEntry(repository, walkEntry);
+        try {
+          LOGGER.atDebug().addArgument(commit.getName()).log("Analyzing commit: {}");
 
-        final boolean isFirstAnalyzedCommit = fullAnalysisCount == 0;
-        final RevCommit baseCommit =
-            resolveDiffBaseCommit(
-                commit, fullAnalysisCount, exporter.isRemote(), startCommit, lastCheckedCommit);
+          final boolean isFirstAnalyzedCommit = fullAnalysisCount == 0;
+          final RevCommit baseCommit =
+              resolveDiffBaseCommit(
+                  repository,
+                  commit,
+                  fullAnalysisCount,
+                  exporter.isRemote(),
+                  startCommit,
+                  lastCheckedCommitHash,
+                  lastFullyAnalyzedCommitHash);
+          final boolean disposeDiffBaseCommit =
+              baseCommit != null
+                  && (commit.getParentCount() == 0
+                      || !baseCommit.getId().equals(commit.getParent(0).getId()));
 
-        if (isFirstAnalyzedCommit && baseCommit == null) {
-          LOGGER.info(
-              "First commit analyzed for repository {} on branch {} — analyzing all files",
-              config.getRepositoryName(),
-              branch);
+          try {
+            if (isFirstAnalyzedCommit && baseCommit == null) {
+              LOGGER.info(
+                  "First commit analyzed for repository {} on branch {} — analyzing all files",
+                  config.getRepositoryName(),
+                  branch);
+            }
+
+            final var reportTriple =
+                gitRepositoryHandler.listDiff(
+                    repository, Optional.ofNullable(baseCommit), commit, config.pathRestrictionForDiff());
+
+            final List<FileDescriptor> descriptorAddedList = new ArrayList<>(reportTriple.right()); // NOPMD
+            final List<FileDescriptor> descriptorModifiedList = new ArrayList<>(reportTriple.left());
+            final List<FileDescriptor> descriptorDeletedList = reportTriple.middle();
+
+            final GlobFilterStats globFilterStats = new GlobFilterStats();
+            globFilterStats.merge(
+                applyGlobFiltering(descriptorAddedList, restrictMatchers, excludeMatchers));
+            globFilterStats.merge(
+                applyGlobFiltering(descriptorModifiedList, restrictMatchers, excludeMatchers));
+            globFilterStats.merge(
+                applyGlobFiltering(descriptorDeletedList, restrictMatchers, excludeMatchers));
+            logGlobFilterSummary(commit.getName(), globFilterStats);
+
+            if (config.skipCommitsWithoutRelevantFileChanges()
+                && !hasRelevantFilteredFileChanges(
+                    descriptorAddedList, descriptorModifiedList, descriptorDeletedList)) {
+              LOGGER.atDebug().addArgument(commit.getName())
+                  .log("Skipping commit without file changes in analysis scope: {}");
+              recordSkippedCommitInWalk(config);
+              lastCheckedCommitHash = walkEntry.hash();
+              continue;
+            }
+
+            LOGGER.atDebug().addArgument(descriptorAddedList.size())
+                .addArgument(descriptorModifiedList.size())
+                .log("Files added: {}, files modified: {}");
+
+            final List<FileDescriptor> unchangedFiles = List.of();
+
+            final List<FileDescriptor> filesToAnalyze = new ArrayList<>(descriptorAddedList.size()
+                + descriptorModifiedList.size());
+            filesToAnalyze.addAll(descriptorAddedList);
+            filesToAnalyze.addAll(descriptorModifiedList);
+
+            analysisStatusService.setCurrentCommitFiles(
+                config.landscapeToken(),
+                filesToAnalyze.size());
+
+            if (filesToAnalyze.isEmpty()) {
+              createCommitReport(
+                  config,
+                  commit,
+                  exporter,
+                  branch,
+                  descriptorAddedList,
+                  descriptorModifiedList,
+                  descriptorDeletedList,
+                  unchangedFiles,
+                  tagsByCommitId,
+                  lastFullyAnalyzedCommitHash);
+
+              fullAnalysisCount++;
+              processedCommitCount++;
+              analysisStatusService.incrementAnalyzedCommit(config.landscapeToken());
+              lastFullyAnalyzedCommitHash = commit.getName();
+              lastCheckedCommitHash = walkEntry.hash();
+              continue;
+            }
+
+            commitAnalysis(
+                config,
+                repository,
+                commit,
+                filesToAnalyze,
+                exporter,
+                branch,
+                descriptorAddedList,
+                descriptorModifiedList,
+                descriptorDeletedList,
+                unchangedFiles,
+                tagsByCommitId,
+                lastFullyAnalyzedCommitHash);
+
+            fullAnalysisCount++;
+            processedCommitCount++;
+            analysisStatusService.incrementAnalyzedCommit(config.landscapeToken());
+            lastFullyAnalyzedCommitHash = commit.getName();
+            lastCheckedCommitHash = walkEntry.hash();
+          } finally {
+            if (disposeDiffBaseCommit && baseCommit != null) {
+              baseCommit.disposeBody();
+            }
+          }
+        } finally {
+          commit.disposeBody();
         }
-
-        final var reportTriple =
-            gitRepositoryHandler.listDiff(
-                repository, Optional.ofNullable(baseCommit), commit, config.pathRestrictionForDiff());
-
-        final List<FileDescriptor> descriptorAddedList = new ArrayList<>(reportTriple.right()); // NOPMD
-        final List<FileDescriptor> descriptorModifiedList = new ArrayList<>(reportTriple.left());
-        final List<FileDescriptor> descriptorDeletedList = reportTriple.middle();
-
-        applyGlobFiltering(descriptorAddedList, restrictMatchers, excludeMatchers);
-        applyGlobFiltering(descriptorModifiedList, restrictMatchers, excludeMatchers);
-        applyGlobFiltering(descriptorDeletedList, restrictMatchers, excludeMatchers);
-
-        LOGGER.atDebug().addArgument(descriptorAddedList.size())
-            .addArgument(descriptorModifiedList.size())
-            .log("Files added: {}, files modified: {}");
-
-        final boolean retransmitAllFiles =
-            hasGapSinceLastFullAnalysis(lastFullyAnalyzedCommitHash, commit);
-        final List<FileDescriptor> unchangedFiles =
-            retransmitAllFiles
-                ? resolveUnchangedFilesAfterSkippedCommits(
-                    repository,
-                    commit,
-                    config.pathRestrictionForDiff(),
-                    descriptorAddedList,
-                    descriptorModifiedList,
-                    descriptorDeletedList)
-                : List.of();
-        if (retransmitAllFiles) {
-          applyGlobFiltering(unchangedFiles, restrictMatchers, excludeMatchers);
-        }
-
-        final List<FileDescriptor> filesToAnalyze = new ArrayList<>(descriptorAddedList.size()
-            + descriptorModifiedList.size() + unchangedFiles.size());
-        filesToAnalyze.addAll(descriptorAddedList);
-        filesToAnalyze.addAll(descriptorModifiedList);
-        filesToAnalyze.addAll(unchangedFiles);
-
-        analysisStatusService.setCurrentCommitFiles(
-            config.landscapeToken(),
-            filesToAnalyze.size());
-
-        if (filesToAnalyze.isEmpty()) {
-          createCommitReport(
-              config,
-              commit,
-              exporter,
-              branch,
-              descriptorAddedList,
-              descriptorModifiedList,
-              descriptorDeletedList,
-              unchangedFiles,
-              tagsByCommitId);
-
-          fullAnalysisCount++;
-          processedCommitCount++;
-          analysisStatusService.incrementAnalyzedCommit(config.landscapeToken());
-          lastFullyAnalyzedCommitHash = commit.getName();
-          lastCheckedCommit = advanceLastCheckedCommit(commit, lastCheckedCommit);
-          continue;
-        }
-
-        commitAnalysis(
-            config,
-            repository,
-            commit,
-            filesToAnalyze,
-            exporter,
-            branch,
-            descriptorAddedList,
-            descriptorModifiedList,
-            descriptorDeletedList,
-            unchangedFiles,
-            tagsByCommitId);
-
-        fullAnalysisCount++;
-        processedCommitCount++;
-        analysisStatusService.incrementAnalyzedCommit(config.landscapeToken());
-        lastFullyAnalyzedCommitHash = commit.getName();
-        lastCheckedCommit = advanceLastCheckedCommit(commit, lastCheckedCommit);
-      }
-
-      for (final RevCommit commit : commitsInRange) {
-        commit.disposeBody();
-      }
-
-      final RevCommit finalLastCheckedCommit = lastCheckedCommit;
-      if (finalLastCheckedCommit != null && commitsInRange.stream()
-          .noneMatch(commit -> commit.getId().equals(finalLastCheckedCommit.getId()))) {
-        finalLastCheckedCommit.disposeBody();
       }
 
       LOGGER.atTrace().addArgument(fullAnalysisCount).log("Analyzed {} commits");
@@ -468,15 +483,22 @@ public class AnalysisService {
   }
 
   /**
-   * Resolves the old commit for {@code git diff}. This may differ from the commit used for
-   * unchanged-file inheritance in landscape-service; see {@link #resolveLandscapeParentCommitIds}.
+   * Resolves the old commit for {@code git diff}. When commits were skipped (sampling or
+   * irrelevant-change filtering), diffs against the last fully analyzed commit so landscape-service
+   * receives the cumulative added/modified/deleted set.
    */
   /* package */ RevCommit resolveDiffBaseCommit(
+      final Repository repository,
       final RevCommit commit,
       final int commitCount,
       final boolean remoteExport,
       final Optional<String> startCommit,
-      final RevCommit lastCheckedCommit) {
+      final String lastCheckedCommitHash,
+      final String lastFullyAnalyzedCommitHash)
+      throws IOException {
+    if (hasGapSinceLastFullAnalysis(lastFullyAnalyzedCommitHash, commit)) {
+      return parseCommitByHash(repository, lastFullyAnalyzedCommitHash);
+    }
     final boolean isFirstAnalyzedCommit = commitCount == 0;
     if (isFirstAnalyzedCommit && (!remoteExport || startCommit.isEmpty())) {
       return null;
@@ -484,7 +506,10 @@ public class AnalysisService {
     if (commit.getParentCount() > 0) {
       return commit.getParent(0);
     }
-    return lastCheckedCommit;
+    if (lastCheckedCommitHash != null && !lastCheckedCommitHash.isBlank()) {
+      return parseCommitByHash(repository, lastCheckedCommitHash);
+    }
+    return null;
   }
 
   /** Uses all git parent links so branch commit trees preserve merge topology. */
@@ -496,11 +521,30 @@ public class AnalysisService {
     return parentIds;
   }
 
-  /**
-   * Parent commit ids for {@link CommitData}, reflecting real git parent-child relationships.
-   */
   /* package */ List<String> resolveLandscapeParentCommitIds(final RevCommit commit) {
     return resolveStoredParentCommitIds(commit);
+  }
+
+  /**
+   * Parent commit ids for {@link CommitData}. When {@code connectToLastAnalyzedWhenCommitsWereSkipped}
+   * is enabled, commits after ignored ones link to the last persisted commit instead of git parents.
+   */
+  /* package */ List<String> resolveLandscapeParentCommitIds(
+      final RevCommit commit,
+      final String lastFullyAnalyzedCommitHash,
+      final boolean connectToLastAnalyzedWhenCommitsWereSkipped) {
+    if (connectToLastAnalyzedWhenCommitsWereSkipped
+        && hasGapSinceLastFullAnalysis(lastFullyAnalyzedCommitHash, commit)) {
+      return List.of(lastFullyAnalyzedCommitHash);
+    }
+    return resolveStoredParentCommitIds(commit);
+  }
+
+  /* package */ boolean hasRelevantFilteredFileChanges(
+      final List<FileDescriptor> addedFiles,
+      final List<FileDescriptor> modifiedFiles,
+      final List<FileDescriptor> deletedFiles) {
+    return !addedFiles.isEmpty() || !modifiedFiles.isEmpty() || !deletedFiles.isEmpty();
   }
 
   /**
@@ -516,25 +560,6 @@ public class AnalysisService {
       return false;
     }
     return !lastFullyAnalyzedCommitHash.equals(commit.getParent(0).getName());
-  }
-
-  /* package */ List<FileDescriptor> resolveUnchangedFilesAfterSkippedCommits(
-      final Repository repository,
-      final RevCommit commit,
-      final String pathRestrictions,
-      final List<FileDescriptor> addedFiles,
-      final List<FileDescriptor> modifiedFiles,
-      final List<FileDescriptor> deletedFiles)
-      throws IOException, NotFoundException {
-    final List<FileDescriptor> allFilesInCommit =
-        gitRepositoryHandler.listFilesInCommit(repository, commit, pathRestrictions);
-    return resolveUnchangedFilesForBootstrapCommit(
-        allFilesInCommit,
-        new Triple<>(modifiedFiles, deletedFiles, addedFiles));
-  }
-
-  /* package */ Optional<RevCommit> toOptionalDiffBase(final RevCommit baseCommit) {
-    return Optional.ofNullable(baseCommit);
   }
 
   /* package */ List<FileDescriptor> resolveUnchangedFilesForBootstrapCommit(
@@ -558,23 +583,18 @@ public class AnalysisService {
     return !"api".equals(runModeProperty);
   }
 
-  private RevCommit resolveRemoteStartCommit(final Repository repository,
-      final Optional<String> startCommit, final boolean remoteExport) throws IOException {
-    if (!remoteExport || startCommit.isEmpty() || startCommit.get().isBlank()) {
-      return null;
-    }
-    try (RevWalk revWalk = new RevWalk(repository)) {
-      return revWalk.parseCommit(repository.resolve(startCommit.get()));
-    }
+  private RevCommit parseCommitWalkEntry(final Repository repository, final CommitWalkEntry entry)
+      throws IOException {
+    return parseCommitByHash(repository, entry.hash());
   }
 
-  private List<RevCommit> collectCommitsInRange(final Repository repository, final String fullBranch,
+  private List<CommitWalkEntry> collectCommitWalkEntries(final Repository repository, final String fullBranch,
       final Optional<String> startCommit, final Optional<String> endCommit,
       final boolean remoteExport, final boolean firstParentCommitsOnly) throws IOException {
     try (RevWalk revWalk = new RevWalk(repository)) {
       prepareRevWalk(repository, revWalk, fullBranch, firstParentCommitsOnly);
 
-      final List<RevCommit> commits = new ArrayList<>();
+      final List<CommitWalkEntry> commits = new ArrayList<>();
       boolean inAnalysisRange = startCommit.isEmpty() || "".equals(startCommit.get());
 
       for (RevCommit commit : revWalk) {
@@ -582,14 +602,19 @@ public class AnalysisService {
           if (commit.name().equals(startCommit.get())) {
             inAnalysisRange = true;
             if (remoteExport) {
+              commit.disposeBody();
               continue;
             }
           } else {
+            commit.disposeBody();
             continue;
           }
         }
-        commits.add(commit);
-        if (endCommit.isPresent() && commit.name().equals(endCommit.get())) {
+        commits.add(new CommitWalkEntry(commit.name(), commit.getCommitTime()));
+        final boolean reachedEndCommit =
+            endCommit.isPresent() && commit.name().equals(endCommit.get());
+        commit.disposeBody();
+        if (reachedEndCommit) {
           break;
         }
       }
@@ -620,7 +645,7 @@ public class AnalysisService {
       final DataExporter exporter, final String branchName,
       final List<FileDescriptor> addedFiles, final List<FileDescriptor> modifiedFiles,
       final List<FileDescriptor> deletedFiles, final List<FileDescriptor> unchangedFiles,
-      final Map<ObjectId, List<String>> tagsByCommitId)
+      final Map<ObjectId, List<String>> tagsByCommitId, final String lastFullyAnalyzedCommitHash)
       throws GitAPIException, NotFoundException, IOException {
 
     // Commit metadata and every file stub must reach the landscape service before FileData.
@@ -633,7 +658,8 @@ public class AnalysisService {
         modifiedFiles,
         deletedFiles,
         unchangedFiles,
-        tagsByCommitId);
+        tagsByCommitId,
+        lastFullyAnalyzedCommitHash);
 
     antlrParserService.reset();
 
@@ -785,66 +811,43 @@ public class AnalysisService {
     return Math.max(1, Runtime.getRuntime().availableProcessors() - 1);
   }
 
-  private RevCommit advanceLastCheckedCommit(final RevCommit commit,
-      final RevCommit previousCommit) {
-    if (previousCommit != null) {
-      previousCommit.disposeBody();
+  private RevCommit parseCommitByHash(final Repository repository, final String commitHash)
+      throws IOException {
+    try (RevWalk revWalk = new RevWalk(repository)) {
+      return revWalk.parseCommit(repository.resolve(commitHash));
     }
-    return commit;
   }
 
-  private void persistMetadataOnlyCommit(final AnalysisConfig config, final RevCommit commit,
-      final DataExporter exporter, final String branchName,
-      final Map<ObjectId, List<String>> tagsByCommitId)
-      throws NotFoundException, IOException, GitAPIException {
-    createCommitReport(
-        config,
-        commit,
-        exporter,
-        branchName,
-        Collections.emptyList(),
-        Collections.emptyList(),
-        Collections.emptyList(),
-        Collections.emptyList(),
-        tagsByCommitId,
-        true);
+  private void recordSkippedCommitInWalk(final AnalysisConfig config) {
+    analysisStatusService.setCurrentCommitFiles(config.landscapeToken(), 0);
+    analysisStatusService.incrementAnalyzedCommit(config.landscapeToken());
+  }
+
+  private boolean shouldReconnectParentAcrossSkippedCommits(final AnalysisConfig config) {
+    return config.skipCommitsWithoutRelevantFileChanges()
+        || CommitSampler.isEnabled(config);
   }
 
   private void createCommitReport(final AnalysisConfig config, final RevCommit commit,
       final DataExporter exporter, final String branchName,
       final List<FileDescriptor> addedFiles, final List<FileDescriptor> modifiedFiles,
       final List<FileDescriptor> deletedFiles, final List<FileDescriptor> unchangedFiles,
-      final Map<ObjectId, List<String>> tagsByCommitId)
-      throws NotFoundException, IOException, GitAPIException {
-    createCommitReport(
-        config,
-        commit,
-        exporter,
-        branchName,
-        addedFiles,
-        modifiedFiles,
-        deletedFiles,
-        unchangedFiles,
-        tagsByCommitId,
-        false);
-  }
-
-  private void createCommitReport(final AnalysisConfig config, final RevCommit commit,
-      final DataExporter exporter, final String branchName,
-      final List<FileDescriptor> addedFiles, final List<FileDescriptor> modifiedFiles,
-      final List<FileDescriptor> deletedFiles, final List<FileDescriptor> unchangedFiles,
-      final Map<ObjectId, List<String>> tagsByCommitId, final boolean metadataOnly)
+      final Map<ObjectId, List<String>> tagsByCommitId, final String lastFullyAnalyzedCommitHash)
       throws NotFoundException, IOException, GitAPIException {
     final CommitReportHandler commitReportHandler = new CommitReportHandler();
 
+    final List<String> parentCommitIds = shouldReconnectParentAcrossSkippedCommits(config)
+        ? resolveLandscapeParentCommitIds(
+            commit, lastFullyAnalyzedCommitHash, true)
+        : resolveLandscapeParentCommitIds(commit);
+
     commitReportHandler.init(
         commit.getId().getName(),
-        resolveLandscapeParentCommitIds(commit),
+        parentCommitIds,
         branchName);
 
     commitReportHandler.setAnalysisFileCount(
         addedFiles.size() + modifiedFiles.size() + unchangedFiles.size());
-    commitReportHandler.setMetadataOnly(metadataOnly);
 
     commitReportHandler.setAuthorDate(Timestamp.newBuilder()
         .setSeconds(commit.getAuthorIdent().getWhen().getTime() / 1000).build());
@@ -1181,11 +1184,39 @@ public class AnalysisService {
     return FallbackFileDataHandlerFactory.create(file, fileContent, language);
   }
 
-  void applyGlobFiltering(final List<FileDescriptor> descriptors,
+  private static final class GlobFilterStats {
+    private int excludedByInclusion;
+    private int excludedByExclusion;
+
+    private void merge(final GlobFilterStats other) {
+      excludedByInclusion += other.excludedByInclusion;
+      excludedByExclusion += other.excludedByExclusion;
+    }
+
+    private boolean hasExclusions() {
+      return excludedByInclusion > 0 || excludedByExclusion > 0;
+    }
+  }
+
+  private void logGlobFilterSummary(final String commitHash, final GlobFilterStats stats) {
+    if (!stats.hasExclusions()) {
+      return;
+    }
+    LOGGER.atDebug()
+        .addArgument(commitHash)
+        .addArgument(stats.excludedByInclusion)
+        .addArgument(stats.excludedByExclusion)
+        .log(
+            "Commit {}: skipped {} file(s) outside inclusion patterns and {} file(s) matching"
+                + " exclusion patterns");
+  }
+
+  private GlobFilterStats applyGlobFiltering(final List<FileDescriptor> descriptors,
       final List<java.nio.file.PathMatcher> restrictMatchers,
       final List<java.nio.file.PathMatcher> excludeMatchers) {
+    final GlobFilterStats stats = new GlobFilterStats();
     if (descriptors == null || descriptors.isEmpty()) {
-      return;
+      return stats;
     }
 
     descriptors.removeIf(desc -> {
@@ -1201,7 +1232,7 @@ public class AnalysisService {
           }
         }
         if (!matchesRestrict) {
-          LOGGER.atDebug().addArgument(desc.relativePath).log("File {} does not match any restrict pattern. Skipping.");
+          stats.excludedByInclusion++;
           return true; // remove because it doesn't match restriction
         }
       }
@@ -1210,7 +1241,7 @@ public class AnalysisService {
       if (excludeMatchers != null && !excludeMatchers.isEmpty()) {
         for (final java.nio.file.PathMatcher matcher : excludeMatchers) {
           if (matcher.matches(path)) {
-            LOGGER.atDebug().addArgument(desc.relativePath).log("File {} matches an exclude pattern. Skipping.");
+            stats.excludedByExclusion++;
             return true; // remove because it matches exclusion
           }
         }
@@ -1218,6 +1249,7 @@ public class AnalysisService {
 
       return false; // keep it
     });
+    return stats;
   }
 
   private List<java.nio.file.PathMatcher> compileMatchers(final Optional<String> patternsString) {

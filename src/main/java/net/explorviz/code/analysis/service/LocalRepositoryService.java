@@ -3,6 +3,7 @@ package net.explorviz.code.analysis.service;
 import jakarta.enterprise.context.ApplicationScoped;
 import java.io.File;
 import java.io.IOException;
+import java.nio.file.FileVisitOption;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
@@ -41,11 +42,13 @@ public class LocalRepositoryService {
       return Collections.emptyList();
     }
 
-    try (Stream<Path> paths = Files.walk(cloneRoot)) {
+    final Path walkRoot = resolveExistingRealPath(cloneRoot);
+
+    try (Stream<Path> paths = Files.walk(walkRoot, FileVisitOption.FOLLOW_LINKS)) {
       return paths
-          .filter(path -> !path.equals(cloneRoot))
+          .filter(path -> !path.equals(walkRoot))
           .filter(this::isGitRepository)
-          .map(path -> getRepositoryInfo(cloneRoot, path))
+          .map(path -> getRepositoryInfo(walkRoot, path))
           .sorted(Comparator.comparing(LocalRepositoryInfo::path))
           .toList();
     }
@@ -62,7 +65,7 @@ public class LocalRepositoryService {
     final Path cloneRoot = getCloneRoot();
     final Path repositoryPath = cloneRoot.resolve(relativeRepositoryPath.trim()).normalize();
 
-    if (!repositoryPath.startsWith(cloneRoot)) {
+    if (!isWithinCloneRoot(cloneRoot, repositoryPath)) {
       throw new IOException("Local repository path must be relative to " + cloneRoot);
     }
 
@@ -89,10 +92,25 @@ public class LocalRepositoryService {
     return Files.isDirectory(gitMetadataPath) || Files.isRegularFile(gitMetadataPath);
   }
 
-  private LocalRepositoryInfo getRepositoryInfo(final Path cloneRoot, final Path repositoryPath) {
-    final String relativePath = cloneRoot.relativize(repositoryPath).toString()
+  private LocalRepositoryInfo getRepositoryInfo(final Path walkRoot, final Path repositoryPath) {
+    final String relativePath = walkRoot.relativize(repositoryPath).toString()
         .replace(File.separatorChar, '/');
     return new LocalRepositoryInfo(relativePath, listBranches(repositoryPath));
+  }
+
+  private boolean isWithinCloneRoot(final Path cloneRoot, final Path repositoryPath)
+      throws IOException {
+    if (repositoryPath.startsWith(cloneRoot)) {
+      return true;
+    }
+    if (!Files.exists(cloneRoot) || !Files.exists(repositoryPath)) {
+      return repositoryPath.startsWith(cloneRoot);
+    }
+    return resolveExistingRealPath(repositoryPath).startsWith(resolveExistingRealPath(cloneRoot));
+  }
+
+  private Path resolveExistingRealPath(final Path path) throws IOException {
+    return path.toRealPath();
   }
 
   private List<String> listBranches(final Path repositoryPath) {

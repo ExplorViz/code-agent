@@ -4,6 +4,7 @@ import io.quarkus.test.junit.QuarkusTest;
 import jakarta.inject.Inject;
 import java.lang.reflect.Constructor;
 import java.util.List;
+import net.explorviz.code.analysis.types.FileDescriptor;
 import org.eclipse.jgit.lib.AnyObjectId;
 import org.eclipse.jgit.lib.ObjectId;
 import org.eclipse.jgit.revwalk.RevCommit;
@@ -56,6 +57,33 @@ class AnalysisServiceLandscapeParentTest {
     Assertions.assertFalse(
         analysisService.hasGapSinceLastFullAnalysis(
             "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa", commit));
+  }
+
+  @Test
+  void linksToLastAnalyzedCommitWhenIrrelevantCommitsWereSkipped() {
+    final RevCommit gitParent = commitWithId("bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb");
+    final RevCommit commit = Mockito.mock(RevCommit.class);
+    Mockito.when(commit.getParentCount()).thenReturn(1);
+    Mockito.doReturn(gitParent).when(commit).getParent(0);
+
+    final List<String> parentIds =
+        analysisService.resolveLandscapeParentCommitIds(
+            commit, "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa", true);
+
+    Assertions.assertEquals(
+        List.of("aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"), parentIds);
+  }
+
+  @Test
+  void hasRelevantChangesWhenAnyFileListIsNonEmpty() {
+    final ObjectId hash = ObjectId.fromString("0123456789abcdef0123456789abcdef01234567");
+    final FileDescriptor file =
+        new FileDescriptor(hash, "File.java", "src/File.java");
+
+    Assertions.assertTrue(
+        analysisService.hasRelevantFilteredFileChanges(List.of(file), List.of(), List.of()));
+    Assertions.assertFalse(
+        analysisService.hasRelevantFilteredFileChanges(List.of(), List.of(), List.of()));
   }
 
   private static RevCommit commitWithId(final String objectId) {

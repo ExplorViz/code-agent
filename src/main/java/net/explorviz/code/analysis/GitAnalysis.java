@@ -87,6 +87,11 @@ public class GitAnalysis { // NOPMD
   @ConfigProperty(name = "explorviz.gitanalysis.first-parent-commits-only", defaultValue = "true")
   /* default */ boolean firstParentCommitsOnlyProperty; // NOCS
 
+  @ConfigProperty(
+      name = "explorviz.gitanalysis.skip-commits-without-relevant-file-changes",
+      defaultValue = "false")
+  /* default */ boolean skipCommitsWithoutRelevantFileChangesProperty; // NOCS
+
   @ConfigProperty(name = "explorviz.landscape.token", defaultValue = "mytokenvalue")
   /* default */ String landscapeTokenProperty; // NOCS
 
@@ -126,6 +131,7 @@ public class GitAnalysis { // NOPMD
             commitSamplingPeriodProperty.orElse(null)))
         .maxLocForFullAnalysis(maxLocForFullAnalysisProperty)
         .firstParentCommitsOnly(firstParentCommitsOnlyProperty)
+        .skipCommitsWithoutRelevantFileChanges(skipCommitsWithoutRelevantFileChangesProperty)
         .landscapeToken(landscapeTokenProperty)
         .applicationName(applicationNameProperty)
         .build();

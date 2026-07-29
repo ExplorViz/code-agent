@@ -134,6 +134,21 @@
               </span>
             </label>
 
+            <label class="toggle" style="grid-column: 1 / -1">
+              <input name="skipCommitsWithoutRelevantFileChanges" type="checkbox" />
+              <span class="label-header">
+                Skip Commits Without Relevant File Changes
+                <span class="tooltip-container">
+                  <span class="tooltip-icon">?</span>
+                  <span class="tooltip-text"
+                    >When enabled, commits with no added, modified, or deleted files in the configured application
+                    roots and include/exclude filters are ignored. Evolution parent links skip those commits to save
+                    analysis time.</span
+                  >
+                </span>
+              </span>
+            </label>
+
             <label style="grid-column: 1 / -1">
               <span class="label-header">
                 Max LOC for Full Analysis
@@ -235,9 +250,8 @@
                 <span class="tooltip-container">
                   <span class="tooltip-icon">?</span>
                   <span class="tooltip-text"
-                    >Analyze every Nth commit (e.g. 5 = commits 1, 6, 11, …). All commits are still
-                    stored in the history; only sampled commits receive full file analysis. Leave empty to
-                    disable interval sampling.</span
+                    >Analyze every Nth commit (e.g. 5 = commits 1, 6, 11, …). Commits that are not
+                    selected are skipped entirely. Leave empty to disable interval sampling.</span
                   >
                 </span>
               </span>
@@ -250,7 +264,7 @@
                   <span class="tooltip-icon">?</span>
                   <span class="tooltip-text"
                     >Alternative to interval sampling: analyze the first commit in each day, week, month, or
-                    year. All other commits are stored as metadata-only entries.</span
+                    year. All other commits in those periods are skipped.</span
                   >
                 </span>
               </span>

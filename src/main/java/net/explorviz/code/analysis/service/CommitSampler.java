@@ -11,8 +11,8 @@ import java.util.Set;
 import org.eclipse.jgit.revwalk.RevCommit;
 
 /**
- * Selects which commits in a branch walk receive full file analysis while the remaining commits
- * are persisted as metadata-only entries.
+ * Selects which commits in a branch walk receive full file analysis. Commits that are not
+ * selected are skipped entirely during the analysis walk.
  */
 public final class CommitSampler {
 

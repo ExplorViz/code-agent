@@ -119,10 +119,6 @@ public class CommitReportHandler { // NOPMD
     builder.setAnalysisFileCount(analysisFileCount);
   }
 
-  public void setMetadataOnly(final boolean metadataOnly) {
-    builder.setMetadataOnly(metadataOnly);
-  }
-
   /**
    * Returns the commit data. * * @return commit data object
    */

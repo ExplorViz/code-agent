@@ -2,6 +2,7 @@ package net.explorviz.code.analysis.service;
 
 import io.quarkus.test.junit.QuarkusTest;
 import jakarta.inject.Inject;
+import java.io.IOException;
 import java.util.List;
 import java.util.Optional;
 import net.explorviz.code.analysis.types.FileDescriptor;
@@ -19,31 +20,28 @@ class AnalysisServiceDiffBaseTest {
   AnalysisService analysisService;
 
   @Test
-  void usesNullDiffBaseForFirstLocalCommitWithoutStartCommit() {
+  void usesNullDiffBaseForFirstLocalCommitWithoutStartCommit() throws IOException {
     final RevCommit commit = Mockito.mock(RevCommit.class);
     Mockito.when(commit.getParentCount()).thenReturn(0);
 
     Assertions.assertNull(
         analysisService.resolveDiffBaseCommit(
-            commit, 0, false, Optional.empty(), null));
+            null, commit, 0, false, Optional.empty(), null, null));
   }
 
   @Test
-  void usesLastCheckedCommitForFirstRemoteCommitWithStartCommitWhenGitParentMissing() {
-    final RevCommit lastChecked = Mockito.mock(RevCommit.class);
+  void usesNullDiffBaseWhenGitParentMissingAndNoLastCheckedCommit() throws IOException {
     final RevCommit commit = Mockito.mock(RevCommit.class);
     Mockito.when(commit.getParentCount()).thenReturn(0);
 
-    Assertions.assertSame(
-        lastChecked,
+    Assertions.assertNull(
         analysisService.resolveDiffBaseCommit(
-            commit, 0, true, Optional.of("parent"), lastChecked));
+            null, commit, 0, true, Optional.of("parent"), null, null));
   }
 
   @Test
-  void usesFirstGitParentForSubsequentCommits() {
+  void usesFirstGitParentForSubsequentCommits() throws IOException {
     final RevCommit firstParent = Mockito.mock(RevCommit.class);
-    final RevCommit lastChecked = Mockito.mock(RevCommit.class);
     final RevCommit commit = Mockito.mock(RevCommit.class);
     Mockito.when(commit.getParentCount()).thenReturn(1);
     Mockito.doReturn(firstParent).when(commit).getParent(0);
@@ -51,7 +49,7 @@ class AnalysisServiceDiffBaseTest {
     Assertions.assertSame(
         firstParent,
         analysisService.resolveDiffBaseCommit(
-            commit, 1, false, Optional.empty(), lastChecked));
+            null, commit, 1, false, Optional.empty(), "ignored", null));
   }
 
   @Test
