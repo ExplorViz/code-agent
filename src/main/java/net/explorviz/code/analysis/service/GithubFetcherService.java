@@ -426,7 +426,6 @@ public class GithubFetcherService {
         .setRepositoryName(repoName)
         .setEmail(authorEmail)
         .setGithubLogin(authorLogin)
-        .setGitUsername(authorLogin)
         .setAvatarUrl(avatarUrl)
         .build();
 
@@ -567,7 +566,6 @@ public class GithubFetcherService {
             .setLandscapeToken(baseActor.getLandscapeToken())
             .setRepositoryName(baseActor.getRepositoryName())
             .setGithubLogin(eventActorLogin)
-            .setGitUsername(eventActorLogin)
             .setAvatarUrl(eventActorAvatarUrl)
             .setEmail(eventActorEmail)
             .build();

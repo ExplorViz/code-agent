@@ -21,14 +21,12 @@ enum TrackableResourceType {
 enum AnnotationType {
   CREATE = 0;
   CLOSE = 1;
-  LABEL = 2;
-  UNLABEL = 3;
-  MERGE = 4;
-  REOPEN = 5;
-  COMMENT = 6;
-  COMMIT = 7;
-  REVIEW = 8;
-  FORCE_PUSH = 9;
+  MERGE = 2;
+  REOPEN = 3;
+  COMMENT = 4;
+  COMMIT = 5;
+  REVIEW = 6;
+  FORCE_PUSH = 7;
 }
 
 enum ResourceState {
