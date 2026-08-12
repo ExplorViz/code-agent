@@ -81,8 +81,20 @@ public class GitRepositoryHandler { // NOPMD
     return repositoryPath;
   }
 
+  private static void ensureCommitTreeParsed(final Repository repository, final RevCommit commit)
+      throws IOException {
+    if (commit.getTree() != null) {
+      return;
+    }
+    try (RevWalk revWalk = new RevWalk(repository)) {
+      revWalk.parseBody(commit);
+    }
+  }
+
   private static AbstractTreeIterator prepareTreeParser(final Repository repository,
-      final RevTree tree) throws IOException {
+      final RevCommit commit) throws IOException {
+    ensureCommitTreeParsed(repository, commit);
+    final RevTree tree = commit.getTree();
     final CanonicalTreeParser treeParser = new CanonicalTreeParser();
     try (ObjectReader reader = repository.newObjectReader()) {
       treeParser.reset(reader, tree.getId());
@@ -488,8 +500,8 @@ public class GitRepositoryHandler { // NOPMD
       addedObjectIdList = listFilesInCommit(repository, newCommit, filter);
     } else {
       final List<DiffEntry> diffs = this.git.diff()
-          .setOldTree(prepareTreeParser(repository, oldCommit.get().getTree()))
-          .setNewTree(prepareTreeParser(repository, newCommit.getTree())).setPathFilter(filter)
+          .setOldTree(prepareTreeParser(repository, oldCommit.get()))
+          .setNewTree(prepareTreeParser(repository, newCommit)).setPathFilter(filter)
           .call();
 
       try (DiffFormatter diffFormatter = new DiffFormatter(DisabledOutputStream.INSTANCE)) {
@@ -596,6 +608,7 @@ public class GitRepositoryHandler { // NOPMD
 
   private List<FileDescriptor> listFilesInCommit(final Repository repository, // NOPMD
       final RevCommit commit, final TreeFilter filter) throws IOException {
+    ensureCommitTreeParsed(repository, commit);
     final List<FileDescriptor> objectIdList = new ArrayList<>();
     try (final TreeWalk treeWalk = new TreeWalk(repository)) { // NOPMD
       treeWalk.addTree(commit.getTree());

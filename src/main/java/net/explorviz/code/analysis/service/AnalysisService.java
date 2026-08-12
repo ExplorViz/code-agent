@@ -190,20 +190,13 @@ public class AnalysisService {
       final int totalCommitsInRange = commitsInRange.size();
       final boolean commitSamplingEnabled = CommitSampler.isEnabled(config);
 
-      int commitsToAnalyze = totalCommitsInRange;
+      CommitRangeSelection commitRangeSelection =
+          resolveCommitRangeSelection(totalCommitsInRange, config);
+      commitRangeSelection = adjustSkipForShallowCloneBoundary(
+          repository, commitsInRange, commitRangeSelection, config);
 
-      // If cloneDepth has been applied, the first commit has no parent and should be
-      // skipped.
-      if (!exporter.isRemote() && totalCommitsInRange > 0 && !commitSamplingEnabled) {
-        commitsToAnalyze = Math.max(0, totalCommitsInRange - 1);
-      }
-
-      // Apply limit if present
-      if (config.commitAnalysisLimit().isPresent() && config.commitAnalysisLimit().get() < commitsToAnalyze) {
-        commitsToAnalyze = config.commitAnalysisLimit().get();
-      }
-
-      final int commitsToSkipBeforeAnalyzing = totalCommitsInRange - commitsToAnalyze;
+      final int commitsToAnalyze = commitRangeSelection.commitsToAnalyze();
+      final int commitsToSkipBeforeAnalyzing = commitRangeSelection.commitsToSkipBeforeAnalyzing();
       final List<CommitWalkEntry> commitsToProcess =
           commitsInRange.subList(commitsToSkipBeforeAnalyzing, totalCommitsInRange);
       final List<Integer> commitTimesForSampling =
@@ -504,7 +497,14 @@ public class AnalysisService {
       return null;
     }
     if (commit.getParentCount() > 0) {
-      return commit.getParent(0);
+      final RevCommit parent = commit.getParent(0);
+      if (!isCommitAvailableInRepository(repository, parent.getName())) {
+        return null;
+      }
+      try (RevWalk revWalk = new RevWalk(repository)) {
+        revWalk.parseBody(parent);
+      }
+      return parent;
     }
     if (lastCheckedCommitHash != null && !lastCheckedCommitHash.isBlank()) {
       return parseCommitByHash(repository, lastCheckedCommitHash);
@@ -546,6 +546,96 @@ public class AnalysisService {
       final List<FileDescriptor> deletedFiles) {
     return !addedFiles.isEmpty() || !modifiedFiles.isEmpty() || !deletedFiles.isEmpty();
   }
+
+  /**
+   * Determines how many oldest commits to skip and how many to analyze when a
+   * {@link AnalysisConfig#commitAnalysisLimit()} is set. Shallow clones fetch {@code limit + 1}
+   * commits; the extra oldest commit is excluded via {@code total - limit} when {@code total > limit}.
+   */
+  /* package */ CommitRangeSelection resolveCommitRangeSelection(
+      final int totalCommitsInRange, final AnalysisConfig config) {
+    int commitsToAnalyze = totalCommitsInRange;
+
+    if (config.commitAnalysisLimit().isPresent()) {
+      final int limit = config.commitAnalysisLimit().get();
+      commitsToAnalyze = Math.min(limit, totalCommitsInRange);
+    }
+
+    final int commitsToSkipBeforeAnalyzing = totalCommitsInRange - commitsToAnalyze;
+    return new CommitRangeSelection(commitsToAnalyze, commitsToSkipBeforeAnalyzing);
+  }
+
+  /**
+   * Excludes the shallow-clone boundary commit when it would otherwise be analyzed. That commit's
+   * parent is not available locally, so it falls outside the intended analysis window.
+   */
+  /* package */ CommitRangeSelection adjustSkipForShallowCloneBoundary(
+      final Repository repository,
+      final List<CommitWalkEntry> commitsInRange,
+      final CommitRangeSelection selection,
+      final AnalysisConfig config) throws IOException {
+    if (config.commitAnalysisLimit().isEmpty() || commitsInRange.isEmpty()) {
+      return selection;
+    }
+
+    int commitsToSkipBeforeAnalyzing = selection.commitsToSkipBeforeAnalyzing();
+    int commitsToAnalyze = selection.commitsToAnalyze();
+    if (commitsToAnalyze == 0) {
+      return selection;
+    }
+
+    final CommitWalkEntry firstEntryToProcess = commitsInRange.get(commitsToSkipBeforeAnalyzing);
+    final RevCommit firstCommitToProcess = parseCommitByHash(repository, firstEntryToProcess.hash());
+    try {
+      if (shouldExcludeAsShallowCloneBoundary(repository, firstCommitToProcess)) {
+        commitsToSkipBeforeAnalyzing++;
+        commitsToAnalyze = Math.max(0, commitsToAnalyze - 1);
+        LOGGER.info(
+            "Excluding shallow-clone boundary commit {} from analysis",
+            firstEntryToProcess.hash());
+      }
+    } finally {
+      firstCommitToProcess.disposeBody();
+    }
+
+    return new CommitRangeSelection(commitsToAnalyze, commitsToSkipBeforeAnalyzing);
+  }
+
+  /* package */ boolean shouldExcludeAsShallowCloneBoundary(
+      final Repository repository, final RevCommit commit) throws IOException {
+    return isShallowBoundaryCommit(repository, commit)
+        || hasMissingParentInRepository(repository, commit);
+  }
+
+  /* package */ boolean isShallowBoundaryCommit(final Repository repository, final RevCommit commit)
+      throws IOException {
+    final java.io.File shallowFile = new java.io.File(repository.getDirectory(), "shallow");
+    if (!shallowFile.isFile()) {
+      return false;
+    }
+    final String commitId = commit.getName();
+    for (final String line : java.nio.file.Files.readAllLines(shallowFile.toPath())) {
+      if (line.startsWith(commitId)) {
+        return true;
+      }
+    }
+    return false;
+  }
+
+  /* package */ boolean hasMissingParentInRepository(
+      final Repository repository, final RevCommit commit) throws IOException {
+    if (commit.getParentCount() == 0) {
+      return false;
+    }
+    return !isCommitAvailableInRepository(repository, commit.getParent(0).getName());
+  }
+
+  private boolean isCommitAvailableInRepository(final Repository repository, final String commitHash)
+      throws IOException {
+    return repository.resolve(commitHash) != null;
+  }
+
+  /* package */ record CommitRangeSelection(int commitsToAnalyze, int commitsToSkipBeforeAnalyzing) {}
 
   /**
    * Returns {@code true} when skipped commits sit between the last fully analyzed commit and

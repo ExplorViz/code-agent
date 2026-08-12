@@ -2,15 +2,21 @@ package net.explorviz.code.analysis.service;
 
 import io.quarkus.test.junit.QuarkusTest;
 import jakarta.inject.Inject;
+import java.io.File;
 import java.io.IOException;
+import java.nio.file.Files;
 import java.util.List;
 import java.util.Optional;
 import net.explorviz.code.analysis.types.FileDescriptor;
 import net.explorviz.code.analysis.types.Triple;
+import org.eclipse.jgit.api.Git;
 import org.eclipse.jgit.lib.ObjectId;
+import org.eclipse.jgit.lib.Repository;
 import org.eclipse.jgit.revwalk.RevCommit;
+import org.eclipse.jgit.revwalk.RevWalk;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.io.TempDir;
 import org.mockito.Mockito;
 
 @QuarkusTest
@@ -40,16 +46,31 @@ class AnalysisServiceDiffBaseTest {
   }
 
   @Test
-  void usesFirstGitParentForSubsequentCommits() throws IOException {
-    final RevCommit firstParent = Mockito.mock(RevCommit.class);
-    final RevCommit commit = Mockito.mock(RevCommit.class);
-    Mockito.when(commit.getParentCount()).thenReturn(1);
-    Mockito.doReturn(firstParent).when(commit).getParent(0);
+  void usesFirstGitParentForSubsequentCommits(@TempDir final File repoDir) throws Exception {
+    try (Git git = Git.init().setDirectory(repoDir).call();
+        Repository repository = git.getRepository()) {
+      final var readme = repoDir.toPath().resolve("README");
+      Files.writeString(readme, "v1");
+      git.add().addFilepattern("README").call();
+      final RevCommit parent = git.commit().setMessage("first").call();
 
-    Assertions.assertSame(
-        firstParent,
-        analysisService.resolveDiffBaseCommit(
-            null, commit, 1, false, Optional.empty(), "ignored", null));
+      Files.writeString(readme, "v2");
+      git.add().addFilepattern("README").call();
+      final RevCommit child = git.commit().setMessage("second").call();
+
+      final RevCommit childForDiff;
+      try (RevWalk walk = new RevWalk(repository)) {
+        childForDiff = walk.parseCommit(child.getId());
+      }
+
+      final RevCommit diffBase =
+          analysisService.resolveDiffBaseCommit(
+              repository, childForDiff, 1, false, Optional.empty(), "ignored", null);
+
+      Assertions.assertNotNull(diffBase);
+      Assertions.assertEquals(parent.getId(), diffBase.getId());
+      Assertions.assertNotNull(diffBase.getTree());
+    }
   }
 
   @Test
