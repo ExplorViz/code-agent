@@ -40,15 +40,9 @@ public class JsonExporter implements DataExporter {
    * @throws IOException gets thrown if the needed directories were not created.
    */
   public JsonExporter(final String repositoryName, final String applicationName) throws IOException {
-    String systemPath = System.getProperty("user.dir");
-    systemPath = systemPath.replace("\\build\\classes\\java\\main", "");
-    systemPath = systemPath.replace("/build/classes/java/main", "");
-
-    if (applicationName == null || applicationName.isBlank()) {
-      this.storageDirectory = Paths.get(systemPath, "analysis-data", repositoryName).toString();
-    } else {
-      this.storageDirectory = Paths.get(systemPath, "analysis-data", repositoryName, applicationName).toString();
-    }
+    this.storageDirectory =
+        LocalAnalysisOutputDirectory.resolveApplicationOutputDirectory(repositoryName, applicationName)
+            .toString();
 
     Files.createDirectories(Paths.get(storageDirectory));
 
@@ -171,6 +165,7 @@ public class JsonExporter implements DataExporter {
   @Override
   public void persistCommit(final CommitData commitData) {
     try {
+      ensureStorageDirectoryExists();
       final String json = unescapeHtml(JsonFormat.printer().print(commitData));
       final String fileName = "CommitReport_" + commitData.getCommitId() + "_" + commitCount
           + JSON_FILE_EXTENSION;
@@ -184,6 +179,7 @@ public class JsonExporter implements DataExporter {
   @Override
   public void persistTrackableResourceEvent(final TrackableResourceEvent trackableResourceEvent) {
     try {
+      ensureStorageDirectoryExists();
       final String json = unescapeHtml(JsonFormat.printer().print(trackableResourceEvent));
       final String fileName = "TrackableResourceEvent" + trackableResourceEvent.getResourceId() + JSON_FILE_EXTENSION;
       Files.write(Paths.get(storageDirectory, fileName), json.getBytes());
@@ -200,6 +196,10 @@ public class JsonExporter implements DataExporter {
   @Override
   public boolean isInvalidCommitHash(final String hash) {
     return false;
+  }
+
+  private void ensureStorageDirectoryExists() throws IOException {
+    Files.createDirectories(Paths.get(storageDirectory));
   }
 
   /**

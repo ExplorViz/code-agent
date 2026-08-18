@@ -163,6 +163,14 @@ public class AnalysisService {
    */
   public void analyzeAndSendRepo(final AnalysisConfig config, final DataExporter exporter) // NOCS
       throws IOException, GitAPIException, NotFoundException, PropertyNotDefinedException { // NOPMD
+    analyzeAndSendRepo(config, exporter, null);
+  }
+
+  public void analyzeAndSendRepo(
+      final AnalysisConfig config,
+      final DataExporter exporter,
+      final net.explorviz.code.analysis.service.benchmark.BenchmarkMetricsCollector benchmarkCollector) // NOCS
+      throws IOException, GitAPIException, NotFoundException, PropertyNotDefinedException { // NOPMD
 
     // start social analysis to run async while repo is being cloned
     Optional<CompletableFuture<Void>> socialFuture = Optional.empty();
@@ -267,6 +275,13 @@ public class AnalysisService {
         try {
           LOGGER.atDebug().addArgument(commit.getName()).log("Analyzing commit: {}");
 
+          final long commitAnalysisStartedAt = System.nanoTime();
+          final double memoryBeforeCommit =
+              benchmarkCollector != null
+                  ? net.explorviz.code.analysis.service.benchmark.BenchmarkMetricsCollector
+                      .currentMemoryConsumptionMb()
+                  : 0;
+
           final boolean isFirstAnalyzedCommit = fullAnalysisCount == 0;
           final RevCommit baseCommit =
               resolveDiffBaseCommit(
@@ -345,6 +360,12 @@ public class AnalysisService {
                   tagsByCommitId,
                   lastFullyAnalyzedCommitHash);
 
+              recordBenchmarkCommitMetrics(
+                  benchmarkCollector,
+                  commit,
+                  commitAnalysisStartedAt,
+                  memoryBeforeCommit);
+
               fullAnalysisCount++;
               processedCommitCount++;
               analysisStatusService.incrementAnalyzedCommit(config.landscapeToken());
@@ -366,6 +387,9 @@ public class AnalysisService {
                 unchangedFiles,
                 tagsByCommitId,
                 lastFullyAnalyzedCommitHash);
+
+            recordBenchmarkCommitMetrics(
+                benchmarkCollector, commit, commitAnalysisStartedAt, memoryBeforeCommit);
 
             fullAnalysisCount++;
             processedCommitCount++;
@@ -419,13 +443,21 @@ public class AnalysisService {
 
     try {
       final boolean ciMode = isCiMode();
+      final boolean skipLatestCommitLookup = config.benchmarkMode() || !ciMode;
       final StateData remoteState = exporter.getStateData(
           config.getRepositoryName(),
           branch,
           config.landscapeToken(),
           config.applicationPathsMap(),
           resolveRepositoryUrlForStateRequest(config, repositoryUrl),
-          !ciMode);
+          skipLatestCommitLookup);
+
+      if (config.benchmarkMode()) {
+        LOGGER.info(
+            "Benchmark mode: registered landscape state without resuming from remote commits.");
+        return new AnalysisStartContext(config.startCommit(), false);
+      }
+
       return resolveAnalysisStartContext(config, exporter, remoteState, ciMode, branch);
     } catch (final Exception e) {
       LOGGER.warn("Could not initialize remote state: {}", e.getMessage());
@@ -906,6 +938,23 @@ public class AnalysisService {
     try (RevWalk revWalk = new RevWalk(repository)) {
       return revWalk.parseCommit(repository.resolve(commitHash));
     }
+  }
+
+  private void recordBenchmarkCommitMetrics(
+      final net.explorviz.code.analysis.service.benchmark.BenchmarkMetricsCollector benchmarkCollector,
+      final RevCommit commit,
+      final long commitAnalysisStartedAt,
+      final double memoryBeforeCommit) {
+    if (benchmarkCollector == null) {
+      return;
+    }
+    final double memoryAfterCommit =
+        net.explorviz.code.analysis.service.benchmark.BenchmarkMetricsCollector
+            .currentMemoryConsumptionMb();
+    benchmarkCollector.recordCommit(
+        commit,
+        System.nanoTime() - commitAnalysisStartedAt,
+        Math.max(memoryBeforeCommit, memoryAfterCommit));
   }
 
   private void recordSkippedCommitInWalk(final AnalysisConfig config) {

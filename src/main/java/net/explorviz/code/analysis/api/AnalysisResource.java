@@ -20,6 +20,7 @@ import net.explorviz.code.analysis.service.AnalysisProgressState;
 import net.explorviz.code.analysis.service.AnalysisStatusService;
 import net.explorviz.code.analysis.service.ConcurrentAnalysisService;
 import net.explorviz.code.analysis.service.LocalRepositoryService;
+import net.explorviz.code.analysis.service.benchmark.BenchmarkOutputDirectory;
 import org.eclipse.microprofile.config.inject.ConfigProperty;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -46,6 +47,9 @@ public class AnalysisResource {
 
   @Inject
   /* default */ LocalRepositoryService localRepositoryService; // NOCS
+
+  @Inject
+  /* default */ BenchmarkOutputDirectory benchmarkOutputDirectory; // NOCS
 
   /**
    * Triggers a Git repository analysis with the provided configuration. The
@@ -78,6 +82,14 @@ public class AnalysisResource {
 
       final AnalysisConfig config = request.toConfig();
 
+      if (config.benchmarkMode()) {
+        if (config.benchmarkRepeatCount().isEmpty() || config.benchmarkRepeatCount().get() < 1) {
+          return Response.status(Response.Status.BAD_REQUEST)
+              .entity("benchmarkRepeatCount must be at least 1 when benchmark mode is enabled")
+              .build();
+        }
+      }
+
       final DataExporter exporter;
       if (request.isSendToRemote()) {
         exporter = grpcExporter;
@@ -99,6 +111,18 @@ public class AnalysisResource {
           });
 
       LOGGER.info("✅ Analysis request queued for repository: {}", repoInfo);
+      if (config.benchmarkMode()) {
+        final String outputDirectory =
+            benchmarkOutputDirectory.resolveOutputDirectory().toAbsolutePath().toString();
+        return Response.status(Response.Status.ACCEPTED)
+            .entity(
+                "Benchmark queued. CSV files will be written to "
+                    + outputDirectory
+                    + "/benchmark-commits.csv and "
+                    + outputDirectory
+                    + "/benchmark-runs.csv")
+            .build();
+      }
       return Response.status(Response.Status.ACCEPTED)
           .entity("Analysis request accepted and queued for processing")
           .build();

@@ -98,6 +98,12 @@ public class GitAnalysis { // NOPMD
   @ConfigProperty(name = "explorviz.gitanalysis.application-name")
   /* default */ String applicationNameProperty; // NOCS
 
+  @ConfigProperty(name = "explorviz.gitanalysis.benchmark-mode", defaultValue = "false")
+  /* default */ boolean benchmarkModeProperty; // NOCS
+
+  @ConfigProperty(name = "explorviz.gitanalysis.benchmark-repeat-count")
+  /* default */ Optional<Integer> benchmarkRepeatCountProperty; // NOCS
+
   @Inject
   /* package */ GrpcExporter grpcExporter; // NOCS
 
@@ -106,6 +112,9 @@ public class GitAnalysis { // NOPMD
 
   @Inject
   /* package */ AnalysisStatusService analysisStatusService; // NOCS
+
+  @Inject
+  /* package */ net.explorviz.code.analysis.service.benchmark.BenchmarkOrchestrator benchmarkOrchestrator; // NOCS
 
   /**
    * Creates an AnalysisConfig from the current properties.
@@ -134,13 +143,19 @@ public class GitAnalysis { // NOPMD
         .skipCommitsWithoutRelevantFileChanges(skipCommitsWithoutRelevantFileChangesProperty)
         .landscapeToken(landscapeTokenProperty)
         .applicationName(applicationNameProperty)
+        .benchmarkMode(benchmarkModeProperty)
+        .benchmarkRepeatCount(benchmarkRepeatCountProperty)
         .build();
   }
 
   private void analyzeAndSendRepo(final DataExporter exporter) // NOCS NOPMD
       throws IOException, GitAPIException, PropertyNotDefinedException, NotFoundException { // NOPMD
     final AnalysisConfig config = createConfig();
-    analysisService.analyzeAndSendRepo(config, exporter);
+    if (config.benchmarkMode()) {
+      benchmarkOrchestrator.runBenchmark(config, exporter);
+    } else {
+      analysisService.analyzeAndSendRepo(config, exporter);
+    }
   }
 
   /* package */ void onStart(@Observes final StartupEvent ev)

@@ -24,7 +24,11 @@ public record AnalysisConfig(Optional<String> repoPath, Optional<String> repoRem
     boolean skipCommitsWithoutRelevantFileChanges,
     String landscapeToken,
     boolean fetchSocialData,
-     boolean syncSocialWindow, Optional<String> fetchEndDate, Optional<Integer> socialDataTimeFrameDays) {
+    boolean syncSocialWindow,
+    Optional<String> fetchEndDate,
+    Optional<Integer> socialDataTimeFrameDays,
+    boolean benchmarkMode,
+    Optional<Integer> benchmarkRepeatCount) {
 
   /**
    * Path filter passed to Git diffs: union of all application roots, or global filters when appropriate.
@@ -108,6 +112,8 @@ public record AnalysisConfig(Optional<String> repoPath, Optional<String> repoRem
     private boolean syncSocialWindow = true;
     private Optional<String> fetchEndDate = Optional.empty();
     private Optional<Integer> socialDataTimeFrameDays = Optional.empty();
+    private boolean benchmarkMode = false;
+    private Optional<Integer> benchmarkRepeatCount = Optional.empty();
 
     public Builder repoPath(final Optional<String> repoPath) {
       this.repoPath = repoPath;
@@ -230,6 +236,16 @@ public record AnalysisConfig(Optional<String> repoPath, Optional<String> repoRem
       return this;
     }
 
+    public Builder benchmarkMode(final boolean benchmarkMode) {
+      this.benchmarkMode = benchmarkMode;
+      return this;
+    }
+
+    public Builder benchmarkRepeatCount(final Optional<Integer> benchmarkRepeatCount) {
+      this.benchmarkRepeatCount = benchmarkRepeatCount;
+      return this;
+    }
+
     public AnalysisConfig build() {
       final List<ApplicationPath> paths;
       if (explicitApplicationPaths != null && !explicitApplicationPaths.isEmpty()) {
@@ -261,7 +277,9 @@ public record AnalysisConfig(Optional<String> repoPath, Optional<String> repoRem
           fetchSocialData,
           syncSocialWindow,
           fetchEndDate,
-          socialDataTimeFrameDays);
+          socialDataTimeFrameDays,
+          benchmarkMode,
+          benchmarkRepeatCount);
     }
   }
 

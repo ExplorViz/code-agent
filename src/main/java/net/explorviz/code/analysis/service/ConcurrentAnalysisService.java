@@ -12,6 +12,7 @@ import java.util.concurrent.TimeUnit;
 import net.explorviz.code.analysis.exceptions.NotFoundException;
 import net.explorviz.code.analysis.exceptions.PropertyNotDefinedException;
 import net.explorviz.code.analysis.export.DataExporter;
+import net.explorviz.code.analysis.service.benchmark.BenchmarkOrchestrator;
 import org.eclipse.jgit.api.errors.GitAPIException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -27,6 +28,9 @@ public class ConcurrentAnalysisService {
 
   @Inject
   /* package */ AnalysisService analysisService; // NOCS
+
+  @Inject
+  /* package */ BenchmarkOrchestrator benchmarkOrchestrator; // NOCS
 
   // Single-threaded executor to process analysis requests sequentially
   private ExecutorService executorService;
@@ -68,7 +72,11 @@ public class ConcurrentAnalysisService {
     return CompletableFuture.runAsync(() -> {
       try {
         LOGGER.info("⚙️  Processing analysis request for repository: {}", repoUrl);
-        analysisService.analyzeAndSendRepo(config, exporter);
+        if (config.benchmarkMode()) {
+          benchmarkOrchestrator.runBenchmark(config, exporter);
+        } else {
+          analysisService.analyzeAndSendRepo(config, exporter);
+        }
         LOGGER.info("✅ Completed analysis for repository: {}", repoUrl);
       } catch (IOException | GitAPIException | NotFoundException
           | PropertyNotDefinedException e) {

@@ -74,6 +74,20 @@ sourceSets {
     }
 }
 
+tasks.register('cleanStaleGrpcGeneratedSources') {
+    doLast {
+        delete "${buildDir}/classes/java/quarkus-generated-sources/grpc"
+    }
+}
+
+tasks.named('quarkusGenerateCode') {
+    dependsOn 'cleanStaleGrpcGeneratedSources'
+}
+
+tasks.named('compileJava') {
+    dependsOn 'cleanStaleGrpcGeneratedSources'
+}
+
 // ANTLR configuration
 def antlrLanguages = [
     'java'       : 'net.explorviz.code.analysis.antlr.generated.java',

@@ -1,5 +1,6 @@
 package net.explorviz.code.analysis.api;
 
+import com.fasterxml.jackson.annotation.JsonProperty;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
@@ -64,6 +65,8 @@ public class AnalysisRequest {
   private boolean syncSocialWindow = true;
   private String fetchEndDate;
   private Integer socialDataTimeFrameDays;
+  private boolean benchmarkMode = false;
+  private Integer benchmarkRepeatCount;
 
   public AnalysisRequest() {
   }
@@ -269,6 +272,24 @@ public class AnalysisRequest {
     this.socialDataTimeFrameDays = socialDataTimeFrameDays;
   }
 
+  public boolean isBenchmarkMode() {
+    return benchmarkMode;
+  }
+
+  @JsonProperty("benchmarkMode")
+  public void setBenchmarkMode(final boolean benchmarkMode) {
+    this.benchmarkMode = benchmarkMode;
+  }
+
+  public Integer getBenchmarkRepeatCount() {
+    return benchmarkRepeatCount;
+  }
+
+  @JsonProperty("benchmarkRepeatCount")
+  public void setBenchmarkRepeatCount(final Integer benchmarkRepeatCount) {
+    this.benchmarkRepeatCount = benchmarkRepeatCount;
+  }
+
   /**
    * Converts this request to an AnalysisConfig.
    *
@@ -308,7 +329,9 @@ public class AnalysisRequest {
         .fetchSocialData(fetchSocialData)
         .syncSocialWindow(syncSocialWindow)
         .socialDataTimeFrameDays(Optional.ofNullable(socialDataTimeFrameDays))
-        .fetchEndDate(Optional.ofNullable(fetchEndDate).filter(s -> !s.isEmpty()));
+        .fetchEndDate(Optional.ofNullable(fetchEndDate).filter(s -> !s.isEmpty()))
+        .benchmarkMode(benchmarkMode)
+        .benchmarkRepeatCount(Optional.ofNullable(benchmarkRepeatCount));
 
     if (!paths.isEmpty()) {
       builder.applicationPaths(paths);
