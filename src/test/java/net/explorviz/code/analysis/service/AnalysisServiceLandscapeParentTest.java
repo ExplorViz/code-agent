@@ -4,6 +4,7 @@ import io.quarkus.test.junit.QuarkusTest;
 import jakarta.inject.Inject;
 import java.lang.reflect.Constructor;
 import java.util.List;
+import java.util.Set;
 import net.explorviz.code.analysis.types.FileDescriptor;
 import org.eclipse.jgit.lib.AnyObjectId;
 import org.eclipse.jgit.lib.ObjectId;
@@ -44,7 +45,25 @@ class AnalysisServiceLandscapeParentTest {
 
     Assertions.assertTrue(
         analysisService.hasGapSinceLastFullAnalysis(
-            "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa", commit));
+            "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+            commit,
+            Set.of("aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa")));
+  }
+
+  @Test
+  void hasNoGapWhenFirstParentWasAlreadyAnalyzedOnParallelBranch() {
+    final RevCommit gitParent = commitWithId("bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb");
+    final RevCommit commit = Mockito.mock(RevCommit.class);
+    Mockito.when(commit.getParentCount()).thenReturn(1);
+    Mockito.doReturn(gitParent).when(commit).getParent(0);
+
+    Assertions.assertFalse(
+        analysisService.hasGapSinceLastFullAnalysis(
+            "cccccccccccccccccccccccccccccccccccccccc",
+            commit,
+            Set.of(
+                "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+                "cccccccccccccccccccccccccccccccccccccccc")));
   }
 
   @Test
@@ -56,7 +75,9 @@ class AnalysisServiceLandscapeParentTest {
 
     Assertions.assertFalse(
         analysisService.hasGapSinceLastFullAnalysis(
-            "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa", commit));
+            "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+            commit,
+            Set.of("aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa")));
   }
 
   @Test
@@ -68,7 +89,10 @@ class AnalysisServiceLandscapeParentTest {
 
     final List<String> parentIds =
         analysisService.resolveLandscapeParentCommitIds(
-            commit, "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa", true);
+            commit,
+            "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+            true,
+            Set.of("aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"));
 
     Assertions.assertEquals(
         List.of("aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"), parentIds);
