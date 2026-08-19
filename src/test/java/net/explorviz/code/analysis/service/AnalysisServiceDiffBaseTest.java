@@ -7,6 +7,7 @@ import java.io.IOException;
 import java.nio.file.Files;
 import java.util.List;
 import java.util.Optional;
+import java.util.Set;
 import net.explorviz.code.analysis.types.FileDescriptor;
 import net.explorviz.code.analysis.types.Triple;
 import org.eclipse.jgit.api.Git;
@@ -32,7 +33,7 @@ class AnalysisServiceDiffBaseTest {
 
     Assertions.assertNull(
         analysisService.resolveDiffBaseCommit(
-            null, commit, 0, false, Optional.empty(), null, null));
+            null, commit, 0, false, Optional.empty(), null, null, Set.of()));
   }
 
   @Test
@@ -42,7 +43,7 @@ class AnalysisServiceDiffBaseTest {
 
     Assertions.assertNull(
         analysisService.resolveDiffBaseCommit(
-            null, commit, 0, true, Optional.of("parent"), null, null));
+            null, commit, 0, true, Optional.of("parent"), null, null, Set.of()));
   }
 
   @Test
@@ -65,7 +66,7 @@ class AnalysisServiceDiffBaseTest {
 
       final RevCommit diffBase =
           analysisService.resolveDiffBaseCommit(
-              repository, childForDiff, 1, false, Optional.empty(), "ignored", null);
+              repository, childForDiff, 1, false, Optional.empty(), "ignored", null, Set.of());
 
       Assertions.assertNotNull(diffBase);
       Assertions.assertEquals(parent.getId(), diffBase.getId());

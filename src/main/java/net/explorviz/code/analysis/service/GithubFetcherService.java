@@ -59,7 +59,7 @@ public class GithubFetcherService {
   private static final Logger LOGGER = LoggerFactory.getLogger(GithubFetcherService.class);
 
   private static final String GITHUB_URL = "https://api.github.com/graphql";
-  private static final Integer PAGE_SIZE = 50;
+  private static final Integer PAGE_SIZE = 10;
   private static final Integer NUM_LABELS = 10;
   private static final Integer NUM_TIMELINE_ITEMS = 25;
   private static final Integer NUM_COMMITS = 25;

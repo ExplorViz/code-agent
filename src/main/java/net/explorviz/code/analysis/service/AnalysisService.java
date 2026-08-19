@@ -251,6 +251,8 @@ public class AnalysisService {
 
       String lastCheckedCommitHash = startCommit.filter(hash -> !hash.isBlank()).orElse(null);
       String lastFullyAnalyzedCommitHash = lastCheckedCommitHash;
+      final Set<String> analyzedCommitHashes = new HashSet<>();
+      startCommit.filter(hash -> !hash.isBlank()).ifPresent(analyzedCommitHashes::add);
       int fullAnalysisCount = 0;
       int processedCommitCount = 0;
       for (int index = 0; index < commitsToProcess.size(); index++) {
@@ -291,7 +293,8 @@ public class AnalysisService {
                   exporter.isRemote(),
                   startCommit,
                   lastCheckedCommitHash,
-                  lastFullyAnalyzedCommitHash);
+                  lastFullyAnalyzedCommitHash,
+                  analyzedCommitHashes);
           final boolean disposeDiffBaseCommit =
               baseCommit != null
                   && (commit.getParentCount() == 0
@@ -358,7 +361,8 @@ public class AnalysisService {
                   descriptorDeletedList,
                   unchangedFiles,
                   tagsByCommitId,
-                  lastFullyAnalyzedCommitHash);
+                  lastFullyAnalyzedCommitHash,
+                  analyzedCommitHashes);
 
               recordBenchmarkCommitMetrics(
                   benchmarkCollector,
@@ -370,6 +374,7 @@ public class AnalysisService {
               processedCommitCount++;
               analysisStatusService.incrementAnalyzedCommit(config.landscapeToken());
               lastFullyAnalyzedCommitHash = commit.getName();
+              analyzedCommitHashes.add(commit.getName());
               lastCheckedCommitHash = walkEntry.hash();
               continue;
             }
@@ -386,7 +391,8 @@ public class AnalysisService {
                 descriptorDeletedList,
                 unchangedFiles,
                 tagsByCommitId,
-                lastFullyAnalyzedCommitHash);
+                lastFullyAnalyzedCommitHash,
+                analyzedCommitHashes);
 
             recordBenchmarkCommitMetrics(
                 benchmarkCollector, commit, commitAnalysisStartedAt, memoryBeforeCommit);
@@ -395,6 +401,7 @@ public class AnalysisService {
             processedCommitCount++;
             analysisStatusService.incrementAnalyzedCommit(config.landscapeToken());
             lastFullyAnalyzedCommitHash = commit.getName();
+            analyzedCommitHashes.add(commit.getName());
             lastCheckedCommitHash = walkEntry.hash();
           } finally {
             if (disposeDiffBaseCommit && baseCommit != null) {
@@ -519,9 +526,11 @@ public class AnalysisService {
       final boolean remoteExport,
       final Optional<String> startCommit,
       final String lastCheckedCommitHash,
-      final String lastFullyAnalyzedCommitHash)
+      final String lastFullyAnalyzedCommitHash,
+      final Set<String> analyzedCommitHashes)
       throws IOException {
-    if (hasGapSinceLastFullAnalysis(lastFullyAnalyzedCommitHash, commit)) {
+    if (hasGapSinceLastFullAnalysis(
+        lastFullyAnalyzedCommitHash, commit, analyzedCommitHashes)) {
       return parseCommitByHash(repository, lastFullyAnalyzedCommitHash);
     }
     final boolean isFirstAnalyzedCommit = commitCount == 0;
@@ -564,9 +573,11 @@ public class AnalysisService {
   /* package */ List<String> resolveLandscapeParentCommitIds(
       final RevCommit commit,
       final String lastFullyAnalyzedCommitHash,
-      final boolean connectToLastAnalyzedWhenCommitsWereSkipped) {
+      final boolean connectToLastAnalyzedWhenCommitsWereSkipped,
+      final Set<String> analyzedCommitHashes) {
     if (connectToLastAnalyzedWhenCommitsWereSkipped
-        && hasGapSinceLastFullAnalysis(lastFullyAnalyzedCommitHash, commit)) {
+        && hasGapSinceLastFullAnalysis(
+            lastFullyAnalyzedCommitHash, commit, analyzedCommitHashes)) {
       return List.of(lastFullyAnalyzedCommitHash);
     }
     return resolveStoredParentCommitIds(commit);
@@ -672,16 +683,29 @@ public class AnalysisService {
   /**
    * Returns {@code true} when skipped commits sit between the last fully analyzed commit and
    * {@code commit}, so landscape-service cannot inherit unchanged files from its git parent.
+   *
+   * <p>When the walk analyzes commits from merged branches, the last fully analyzed commit may
+   * belong to a parallel branch while {@code commit}'s first git parent was already analyzed. That
+   * is not a gap — only an unanalyzed first parent counts as one.
    */
   /* package */ boolean hasGapSinceLastFullAnalysis(
-      final String lastFullyAnalyzedCommitHash, final RevCommit commit) {
+      final String lastFullyAnalyzedCommitHash,
+      final RevCommit commit,
+      final Set<String> analyzedCommitHashes) {
     if (lastFullyAnalyzedCommitHash == null || lastFullyAnalyzedCommitHash.isBlank()) {
       return false;
     }
     if (commit.getParentCount() == 0) {
       return false;
     }
-    return !lastFullyAnalyzedCommitHash.equals(commit.getParent(0).getName());
+    final String firstParentHash = commit.getParent(0).getName();
+    if (lastFullyAnalyzedCommitHash.equals(firstParentHash)) {
+      return false;
+    }
+    if (analyzedCommitHashes.contains(firstParentHash)) {
+      return false;
+    }
+    return true;
   }
 
   /* package */ List<FileDescriptor> resolveUnchangedFilesForBootstrapCommit(
@@ -767,7 +791,8 @@ public class AnalysisService {
       final DataExporter exporter, final String branchName,
       final List<FileDescriptor> addedFiles, final List<FileDescriptor> modifiedFiles,
       final List<FileDescriptor> deletedFiles, final List<FileDescriptor> unchangedFiles,
-      final Map<ObjectId, List<String>> tagsByCommitId, final String lastFullyAnalyzedCommitHash)
+      final Map<ObjectId, List<String>> tagsByCommitId, final String lastFullyAnalyzedCommitHash,
+      final Set<String> analyzedCommitHashes)
       throws GitAPIException, NotFoundException, IOException {
 
     // Commit metadata and every file stub must reach the landscape service before FileData.
@@ -781,7 +806,8 @@ public class AnalysisService {
         deletedFiles,
         unchangedFiles,
         tagsByCommitId,
-        lastFullyAnalyzedCommitHash);
+        lastFullyAnalyzedCommitHash,
+        analyzedCommitHashes);
 
     antlrParserService.reset();
 
@@ -971,13 +997,14 @@ public class AnalysisService {
       final DataExporter exporter, final String branchName,
       final List<FileDescriptor> addedFiles, final List<FileDescriptor> modifiedFiles,
       final List<FileDescriptor> deletedFiles, final List<FileDescriptor> unchangedFiles,
-      final Map<ObjectId, List<String>> tagsByCommitId, final String lastFullyAnalyzedCommitHash)
+      final Map<ObjectId, List<String>> tagsByCommitId, final String lastFullyAnalyzedCommitHash,
+      final Set<String> analyzedCommitHashes)
       throws NotFoundException, IOException, GitAPIException {
     final CommitReportHandler commitReportHandler = new CommitReportHandler();
 
     final List<String> parentCommitIds = shouldReconnectParentAcrossSkippedCommits(config)
         ? resolveLandscapeParentCommitIds(
-            commit, lastFullyAnalyzedCommitHash, true)
+            commit, lastFullyAnalyzedCommitHash, true, analyzedCommitHashes)
         : resolveLandscapeParentCommitIds(commit);
 
     commitReportHandler.init(
