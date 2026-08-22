@@ -16,14 +16,14 @@ import org.slf4j.LoggerFactory;
 final class GithubPager {
 
   private static final Logger LOGGER = LoggerFactory.getLogger(GithubPager.class);
-  private static final int MIN_RATE_LIMIT = 50;
-  private static final int MAX_ATTEMPTS = 5;
+  private static final int MIN_REMAINING = 50;
+  private static final int RETRY_ATTEMPTS = 5;
   private static final int WAIT_MS = 2000;
 
   private final DynamicGraphQLClient client;
   private final Document query;
   private final Map<String, Object> variables;
-  private final String field;
+  private final String resourceType;
 
   private String cursor;
   private boolean hasNextPage = true;
@@ -34,11 +34,11 @@ final class GithubPager {
   private long lastQueryNanos;
 
   GithubPager(final DynamicGraphQLClient client, final Document query, final Map<String, Object> variables,
-      final String field) {
+      final String resourceType) {
     this.client = client;
     this.query = query;
     this.variables = variables;
-    this.field = field;
+    this.resourceType = resourceType;
   }
 
   public Optional<JsonArray> nextPage() {
@@ -51,13 +51,13 @@ final class GithubPager {
 
     long delay = WAIT_MS;
 
-    for (int attempt = 1; attempt <= MAX_ATTEMPTS; attempt++) {
+    for (int attempt = 1; attempt <= RETRY_ATTEMPTS; attempt++) {
       try {
         long t0 = System.nanoTime();
         final Response response = client.executeSync(query, vars);
         lastQueryNanos = System.nanoTime() - t0;
         if (!response.hasError()) {
-          final JsonObject data = response.getData().getJsonObject("repository").getJsonObject(field);
+          final JsonObject data = response.getData().getJsonObject("repository").getJsonObject(resourceType);
           if (totalCount < 0) {
             totalCount = data.getInt("totalCount", -1);
           }
@@ -70,15 +70,15 @@ final class GithubPager {
           seen += nodes.size();
           return Optional.of(nodes);
         }
-        LOGGER.warn("attempt {} of {} returned errors: {}", attempt, MAX_ATTEMPTS, response.getErrors());
+        LOGGER.warn("attempt {} of {} returned errors: {}", attempt, RETRY_ATTEMPTS, response.getErrors());
 
       } catch (InterruptedException e) {
         Thread.currentThread().interrupt();
         break;
       } catch (Exception e) {
-        LOGGER.error("attempt {}/{} failed at cursor {}: {}", attempt, MAX_ATTEMPTS, cursor, e.getMessage());
+        LOGGER.error("attempt {}/{} failed at cursor {}: {}", attempt, RETRY_ATTEMPTS, cursor, e.getMessage());
       }
-      if (attempt < MAX_ATTEMPTS) {
+      if (attempt < RETRY_ATTEMPTS) {
         try {
           Thread.sleep(delay);
           delay *= 2;
@@ -100,11 +100,11 @@ final class GithubPager {
     final JsonObject rateLimit = data.getJsonObject("rateLimit");
     final int remaining = rateLimit.getInt("remaining");
     lastRateLimit = remaining;
-    if (remaining >= MIN_RATE_LIMIT) {
+    if (remaining >= MIN_REMAINING) {
       return;
     }
     final Instant resetAt = Instant.parse(rateLimit.getString("resetAt"));
-    final long waitMs = Math.max(0, Duration.between(Instant.now(), resetAt).toMillis()) + 1000;
+    final long waitMs = Math.max(0, Duration.between(Instant.now(), resetAt).toMillis());
     try {
       Thread.sleep(waitMs);
     } catch (InterruptedException e) {

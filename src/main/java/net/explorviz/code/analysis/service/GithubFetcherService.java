@@ -56,7 +56,6 @@ import org.slf4j.LoggerFactory;
  */
 @ApplicationScoped
 public class GithubFetcherService {
-
   private static final Logger LOGGER = LoggerFactory.getLogger(GithubFetcherService.class);
 
   private static final String GITHUB_URL = "https://api.github.com/graphql";
@@ -65,6 +64,7 @@ public class GithubFetcherService {
   private static final int NUM_TIMELINE_ITEMS = 25;
   private static final int NUM_COMMITS = 25;
   private static final int NUM_ISSUE_REFERENCES = 20;
+
   private long tmapTotal = 0;
   private long tpersistTotal = 0;
   private long tqueryTotal = 0;
@@ -94,13 +94,11 @@ public class GithubFetcherService {
       return Optional.empty();
     }
 
-    // determine repo sub string with format "owner/repo" needed for graphql query
     final Optional<String> repoSubString = extractGithubRepoSubString(config.repoRemoteUrl().get());
     if (repoSubString.isEmpty()) {
       return Optional.empty();
     }
 
-    // send state data before fetching to make sure precondition is met
     preInitializeRemoteState(config, exporter, config.branch().orElse("main"), "");
 
     return Optional.of(
@@ -156,13 +154,13 @@ public class GithubFetcherService {
 
       long tqueryAvg = tqueryTotal / numUpdates;
       long tmapAvg =  tmapTotal / numUpdates;
-      long tperistAvg = tpersistTotal / numUpdates;
+      long tpersistAvg = tpersistTotal / numUpdates;
 
       LOGGER.info(
           "tQuery avg: {}ms, tMap avg: {}ms, tPersist avg: {}ms, social analysis took {} seconds with PAGE_SIZE: {}",
           TimeUnit.NANOSECONDS.toMillis(tqueryAvg),
           TimeUnit.NANOSECONDS.toMillis(tmapAvg),
-          TimeUnit.NANOSECONDS.toMillis(tperistAvg),
+          TimeUnit.NANOSECONDS.toMillis(tpersistAvg),
           String.format(Locale.ROOT, "%.2f", (System.nanoTime() - tStart) / 1_000_000_000.0),
           PAGE_SIZE);
 
@@ -175,7 +173,6 @@ public class GithubFetcherService {
   }
 
   private Date determineEndDate(AnalysisConfig config) {
-
     Date endDate = Date.from(Instant.now()); // Default fallback
     if (config.fetchEndDate().isPresent() && !config.fetchEndDate().get().isBlank()) {
       final String dateStr = config.fetchEndDate().get();
@@ -244,10 +241,10 @@ public class GithubFetcherService {
   }
 
   private void fetchData(final DataExporter exporter, final DynamicGraphQLClient client, final String landscapeToken,
-      final String repoOwnerName, final String field, final Date startDate, final Date endDate) {
+      final String repoOwnerName, final String resourceType, final Date startDate, final Date endDate) {
     final String[] splits = repoOwnerName.split("/");
     final GithubPager pager = new GithubPager(
-        client, buildQuery(field), Map.of("owner", splits[0], "name", splits[1]), field);
+        client, buildQuery(resourceType), Map.of("owner", splits[0], "name", splits[1]), resourceType);
 
     final Instant start =  startDate.toInstant();
     final Instant end = endDate.toInstant();
@@ -282,36 +279,36 @@ public class GithubFetcherService {
       long t2 = System.nanoTime();
       exporter.persistTrackableResourceEventBatch(events);
       long tpersist = System.nanoTime() - t2;
-      logProgress(field, pager, currentDate, start, end, events.size(), tmap, tpersist);
+      logProgress(resourceType, pager, currentDate, start, end, events.size(), tmap, tpersist);
     }
     if (pager.isFailed()) {
-      LOGGER.error("{}: Fetch failed after {}/{} nodes", field, pager.getSeen(), pager.getTotalCount());
+      LOGGER.error("{}: Fetch failed after {}/{} nodes", resourceType, pager.getSeen(), pager.getTotalCount());
     }
   }
 
   private void logProgress(
-      final String field, final GithubPager pager, final Instant currentTime,
+      final String resourceType, final GithubPager pager, final Instant currentTime,
       final Instant startTime, final Instant endTime, final int batchSize, long tmap, long tpersist) {
     final double windowMs = Math.max(1, Duration.between(startTime, endTime).toMillis());
     final double estimatePercent =
         Math.clamp(100 * Duration.between(currentTime, endTime).toMillis() / windowMs, 0, 100);
     LOGGER.info(
         "{}: {}% of time window (at {}), {} nodes processed, sending {} events. Rate limit: {}",
-        field, String.format("%.1f", estimatePercent), currentTime,
+        resourceType, String.format("%.1f", estimatePercent), currentTime,
         pager.getSeen(), batchSize, pager.getLastRateLimit());
     tmapTotal += tmap;
     tpersistTotal += tpersist;
     tqueryTotal += pager.getLastQueryNanos();
     numUpdates += 1;
 
-    LOGGER.info(
+    LOGGER.debug(
         "tQuery: {}ms, tMap: {}ms, tPersist: {}",
         TimeUnit.NANOSECONDS.toMillis(pager.getLastQueryNanos()),
         TimeUnit.NANOSECONDS.toMillis(tmap),
         TimeUnit.NANOSECONDS.toMillis(tpersist));
   }
 
-  private Document buildQuery(final String dataField) {
+  private Document buildQuery(final String resourceType) {
     final Variable owner = var("owner", nonNull("String"));
     final Variable name = var("name", nonNull("String"));
     final Variable cursor = var("cursor", "String");
@@ -320,7 +317,7 @@ public class GithubFetcherService {
         vars(owner, name, cursor),
         field("repository",
             args(arg("owner", owner), arg("name", name)),
-            field(dataField,
+            field(resourceType,
                 args(
                     arg("first", PAGE_SIZE),
                     arg("after", cursor),
@@ -334,7 +331,7 @@ public class GithubFetcherService {
                 field("nodes",
                     field("__typename"),
                     field("updatedAt"),
-                    "issues".equals(dataField)
+                    "issues".equals(resourceType)
                         ? on("Issue",
                         field("id"),
                         field("number"),
@@ -438,14 +435,12 @@ public class GithubFetcherService {
 
   List<TrackableResourceEvent> mapToEvents(
       JsonObject node, String landscapeToken, String repositoryName) {
-
     List<TrackableResourceEvent> events = new ArrayList<>();
 
     TrackableResourceEvent.Builder baseBuilder = parseBaseResource(node, landscapeToken, repositoryName);
     if (baseBuilder == null) {
       return events;
     }
-
 
     final List<TrackableResourceEvent> lifecycleEvents = generateLifecycleEvents(node, baseBuilder);
 
@@ -472,7 +467,6 @@ public class GithubFetcherService {
 
   TrackableResourceEvent.Builder parseBaseResource(
       JsonObject node, String landscapeToken, String repositoryName) {
-
     String typeName = getJsonString(node, "__typename", "Unknown");
 
     final TrackableResourceType resourceType = typeName.equals("Issue")
@@ -521,7 +515,6 @@ public class GithubFetcherService {
       }
     }
 
-
     String resourceId = String.valueOf(node.getInt("number"));
     String title = getJsonString(node, "title", "");
     String description = getJsonString(node, "body", "");
@@ -565,9 +558,7 @@ public class GithubFetcherService {
 
   private List<TrackableResourceEvent> generateLifecycleEvents(
       JsonObject node, TrackableResourceEvent.Builder baseBuilder) {
-
     List<TrackableResourceEvent> events = new ArrayList<>();
-
     String id = getJsonString(node, "id", "");
 
     if (node.containsKey("createdAt") && !node.isNull("createdAt")) {
@@ -614,7 +605,6 @@ public class GithubFetcherService {
 
   private List<TrackableResourceEvent> parseTimelineEvents(
       JsonObject node, TrackableResourceEvent.Builder baseBuilder) {
-
     List<TrackableResourceEvent> events = new ArrayList<>();
     String id = getJsonString(node, "id", "");
 
@@ -654,7 +644,6 @@ public class GithubFetcherService {
           eventActorEmail = getJsonString(authorObj, "email", "");
           eventActorAvatarUrl = getJsonString(authorObj, "avatarUrl", "");
         }
-
 
         ResourceState newState = ResourceState.UNCHANGED; // Default to unchanged and update on transition only
 
