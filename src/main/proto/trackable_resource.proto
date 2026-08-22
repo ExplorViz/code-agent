@@ -10,6 +10,7 @@ import "contributor.proto";
 
 service TrackableResourceService {
   rpc persistTrackableResourceEvent (TrackableResourceEvent) returns (google.protobuf.Empty) {}
+  rpc persistTrackableResourceEvents (TrackableResourceEventBatch) returns (google.protobuf.Empty) {}
   rpc relinkResources (RelinkResourcesRequest) returns (google.protobuf.Empty) {}
 }
 
@@ -34,6 +35,10 @@ enum ResourceState {
   OPEN = 1;
   CLOSED = 2;
   MERGED = 3;
+}
+
+message TrackableResourceEventBatch {
+  repeated TrackableResourceEvent events = 1;
 }
 
 message TrackableResourceEvent {
