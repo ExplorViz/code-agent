@@ -170,6 +170,12 @@ public interface DataExporter {
 
   void persistTrackableResourceEvent(final TrackableResourceEvent trackableResourceEvent);
 
+  default void persistTrackableResourceEventBatch(final List<TrackableResourceEvent> trackableResourceEvents) {
+    for (final TrackableResourceEvent trackableResourceEvent : trackableResourceEvents) {
+      persistTrackableResourceEvent(trackableResourceEvent);
+    }
+  }
+
 
   boolean isRemote();
 

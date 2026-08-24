@@ -18,6 +18,7 @@ import net.explorviz.code.proto.StateData;
 import net.explorviz.code.proto.StateDataRequest;
 import net.explorviz.code.proto.StateDataServiceGrpc;
 import net.explorviz.code.proto.TrackableResourceEvent;
+import net.explorviz.code.proto.TrackableResourceEventBatch;
 import net.explorviz.code.proto.TrackableResourceServiceGrpc;
 import org.eclipse.microprofile.config.inject.ConfigProperty;
 import org.slf4j.Logger;
@@ -152,7 +153,23 @@ public final class GrpcExporter implements DataExporter {
           + trackableResourceEvent.getAnnotationId(), e);
     }
   }
-  
+
+  @Override
+  public void persistTrackableResourceEventBatch(final List<TrackableResourceEvent> events) {
+    if (events.isEmpty()) {
+      return;
+    }
+    LOGGER.info("Sending batch of {} trackable resource events via RPC", events.size());
+    try {
+      trackableResourceGrpcClient.persistTrackableResourceEvents(
+          TrackableResourceEventBatch.newBuilder().addAllEvents(events).build()
+      );
+    } catch (final Exception e) {
+      LOGGER.error("Failed to send batch of {} trackable resource events: {}", events.size(), e.getMessage());
+      throw new RuntimeException("Failed to send trackable resource event batch ", e);
+    }
+  }
+
   @Override
   public void relinkResourceEvents(final String token, final String repoName) {
     LOGGER.info("Sending relink request on {}", repoName);
