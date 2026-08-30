@@ -181,7 +181,7 @@ public class AnalysisService {
           initializeRemoteStateAndResolveStart(config, exporter, branch, repositoryUrl);
       final Optional<String> startCommit = analysisStartContext.startCommit();
 
-      final Optional<String> endCommit config.endCommit();
+      final Optional<String> endCommit = config.endCommit();
 
       checkIfCommitsAreReachable(startCommit, endCommit, fullBranch);
 
