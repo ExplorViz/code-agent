@@ -2,6 +2,7 @@ package net.explorviz.code.analysis.api;
 
 import jakarta.inject.Inject;
 import jakarta.ws.rs.Consumes;
+import jakarta.ws.rs.DELETE;
 import jakarta.ws.rs.GET;
 import jakarta.ws.rs.POST;
 import jakarta.ws.rs.Path;
@@ -12,9 +13,11 @@ import jakarta.ws.rs.core.Response;
 import jakarta.ws.rs.sse.Sse;
 import jakarta.ws.rs.sse.SseEventSink;
 import java.io.IOException;
+import net.explorviz.code.analysis.exceptions.AnalysisCancelledException;
 import net.explorviz.code.analysis.export.DataExporter;
 import net.explorviz.code.analysis.export.GrpcExporter;
 import net.explorviz.code.analysis.export.JsonExporter;
+import net.explorviz.code.analysis.service.AnalysisCancellationResult;
 import net.explorviz.code.analysis.service.AnalysisConfig;
 import net.explorviz.code.analysis.service.AnalysisProgressState;
 import net.explorviz.code.analysis.service.AnalysisStatusService;
@@ -88,10 +91,20 @@ public class AnalysisResource {
       // Submit to queue for async processing
       analysisService.analyzeAndSendRepoAsync(config, exporter)
           .whenComplete((result, error) -> {
+            if (analysisStatusService.getStatus(landscapeToken)
+                .map(analysisStatusService::isTerminalStatus)
+                .orElse(false)) {
+              return;
+            }
             if (error != null) {
-              analysisStatusService.markFailed(landscapeToken);
-              LOGGER.error("❌ Async analysis failed for {}: {}",
-                  repoInfo, error.getMessage());
+              if (isCancelledError(error)) {
+                analysisStatusService.markCancelled(landscapeToken);
+                LOGGER.info("🛑 Async analysis cancelled for {}", repoInfo);
+              } else {
+                analysisStatusService.markFailed(landscapeToken);
+                LOGGER.error("❌ Async analysis failed for {}: {}",
+                    repoInfo, error.getMessage());
+              }
             } else {
               analysisStatusService.markFinished(landscapeToken);
               LOGGER.info("✅ Async analysis completed for {}", repoInfo);
@@ -109,6 +122,33 @@ public class AnalysisResource {
           .entity("Failed to queue analysis request: " + e.getMessage())
           .build();
     }
+  }
+
+  @DELETE
+  @Path("/cancel/{landscapeToken}")
+  @Produces(MediaType.TEXT_PLAIN)
+  public Response cancelAnalysis(@PathParam("landscapeToken") final String landscapeToken) {
+    final AnalysisCancellationResult result = analysisService.cancelAnalysis(landscapeToken);
+    return switch (result) {
+      case CANCELLED -> Response.ok("Analysis cancellation requested").build();
+      case NOT_FOUND -> Response.status(Response.Status.NOT_FOUND)
+          .entity("No analysis job found for landscapeToken=" + landscapeToken)
+          .build();
+      case ALREADY_TERMINAL -> Response.status(Response.Status.CONFLICT)
+          .entity("Analysis job is already in a terminal state for landscapeToken=" + landscapeToken)
+          .build();
+    };
+  }
+
+  private boolean isCancelledError(final Throwable error) {
+    Throwable current = error;
+    while (current != null) {
+      if (current instanceof AnalysisCancelledException) {
+        return true;
+      }
+      current = current.getCause();
+    }
+    return false;
   }
 
   @GET

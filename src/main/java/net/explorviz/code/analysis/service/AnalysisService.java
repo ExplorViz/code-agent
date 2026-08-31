@@ -24,6 +24,7 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 import java.util.function.Supplier;
 import net.explorviz.code.analysis.FileLanguageResolver;
+import net.explorviz.code.analysis.exceptions.AnalysisCancelledException;
 import net.explorviz.code.analysis.exceptions.DebugFileWriter;
 import net.explorviz.code.analysis.exceptions.NotFoundException;
 import net.explorviz.code.analysis.exceptions.PropertyNotDefinedException;
@@ -164,6 +165,8 @@ public class AnalysisService {
   public void analyzeAndSendRepo(final AnalysisConfig config, final DataExporter exporter) // NOCS
       throws IOException, GitAPIException, NotFoundException, PropertyNotDefinedException { // NOPMD
 
+    ensureNotCancelled(config.landscapeToken());
+
     // start social analysis to run async while repo is being cloned
     Optional<CompletableFuture<Void>> socialFuture = Optional.empty();
 
@@ -248,6 +251,7 @@ public class AnalysisService {
       int fullAnalysisCount = 0;
       int processedCommitCount = 0;
       for (int index = 0; index < commitsToProcess.size(); index++) {
+        ensureNotCancelled(config.landscapeToken());
         final CommitWalkEntry walkEntry = commitsToProcess.get(index);
         final boolean fullyAnalyzeCommit =
             commitSamplingEnabled && fullyAnalyzedCommitIndices.contains(index)
@@ -763,6 +767,8 @@ public class AnalysisService {
       final Set<String> analyzedCommitHashes)
       throws GitAPIException, NotFoundException, IOException {
 
+    ensureNotCancelled(config.landscapeToken());
+
     // Commit metadata and every file stub must reach the landscape service before FileData.
     createCommitReport(
         config,
@@ -805,6 +811,7 @@ public class AnalysisService {
     for (final FileDescriptor fileDescriptor : descriptorList) {
       analysisTasks.add(managedExecutor.supplyAsync(() -> {
         try {
+          ensureNotCancelled(config.landscapeToken());
           inFlightTasks.acquire();
           analysisStatusService.setCurrentAnalyzingFile(config.landscapeToken(),
               fileDescriptor.reportedPath);
@@ -828,6 +835,9 @@ public class AnalysisService {
           return toExportFileData(fileDataHandler, config);
         } catch (InterruptedException e) {
           Thread.currentThread().interrupt();
+          if (analysisStatusService.isCancellationRequested(config.landscapeToken())) {
+            throw new AnalysisCancelledException(config.landscapeToken());
+          }
           LOGGER.warn("File analysis interrupted for {}", fileDescriptor.reportedPath);
           final AbstractFileDataHandler minimalHandler = createMinimalFileDataHandler(fileDescriptor, commit);
           GitMetricCollector.addCommitGitMetrics(minimalHandler, commitAuthor);
@@ -885,6 +895,13 @@ public class AnalysisService {
       persistThread.join();
     } catch (InterruptedException e) {
       Thread.currentThread().interrupt();
+    }
+  }
+
+  private void ensureNotCancelled(final String landscapeToken) {
+    if (analysisStatusService.isCancellationRequested(landscapeToken)
+        || Thread.currentThread().isInterrupted()) {
+      throw new AnalysisCancelledException(landscapeToken);
     }
   }
 

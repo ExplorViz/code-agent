@@ -16,6 +16,7 @@ public class TerminalProgressReporter {
   private static final String STATUS_RUNNING = "running";
   private static final String STATUS_FINISHED = "finished";
   private static final String STATUS_FAILED = "failed";
+  private static final String STATUS_CANCELLED = "cancelled";
   private static final int BAR_WIDTH = 30;
   private static final long MIN_RENDER_INTERVAL_NANOS = 100_000_000L;
   private static final int[] FILE_MILESTONE_PERCENTS = {25, 50, 75};
@@ -103,6 +104,17 @@ public class TerminalProgressReporter {
     return "Analysis failed at commit " + failedAtCommit + "/" + totalCommits;
   }
 
+  static String formatAnalysisCancelledMessage(final AnalysisProgressState state) {
+    final int totalCommits = Math.max(0, state.totalCommits());
+    if (totalCommits == 0) {
+      return "Analysis cancelled";
+    }
+    return "Analysis cancelled after commit "
+        + Math.min(Math.max(0, state.analyzedCommits()), totalCommits)
+        + "/"
+        + totalCommits;
+  }
+
   static int resolveFilePercent(final AnalysisProgressState state) {
     final int totalFiles = Math.max(0, state.totalFiles());
     if (totalFiles == 0) {
@@ -173,7 +185,8 @@ public class TerminalProgressReporter {
   }
 
   private void updateInteractive(final AnalysisProgressState state) {
-    if (STATUS_FINISHED.equals(state.status()) || STATUS_FAILED.equals(state.status())) {
+    if (STATUS_FINISHED.equals(state.status()) || STATUS_FAILED.equals(state.status())
+        || STATUS_CANCELLED.equals(state.status())) {
       renderFinalState(state);
       finish();
       return;
@@ -199,6 +212,12 @@ public class TerminalProgressReporter {
 
     if (STATUS_FAILED.equals(state.status())) {
       LOGGER.warn(formatAnalysisFailedMessage(state));
+      resetMilestoneTracking();
+      return;
+    }
+
+    if (STATUS_CANCELLED.equals(state.status())) {
+      LOGGER.info(formatAnalysisCancelledMessage(state));
       resetMilestoneTracking();
       return;
     }
@@ -267,6 +286,11 @@ public class TerminalProgressReporter {
           null);
       writeProgressLines(formatCommitLine(completed), formatFileLine(completed));
       rememberRender(completed);
+      return;
+    }
+    if (STATUS_CANCELLED.equals(state.status()) && active) {
+      writeProgressLines(formatCommitLine(state), formatFileLine(state) + " - cancelled");
+      rememberRender(state);
       return;
     }
     if (active) {

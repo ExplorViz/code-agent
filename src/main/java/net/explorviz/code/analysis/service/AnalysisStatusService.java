@@ -18,14 +18,16 @@ import org.jboss.logging.Logger;
 @ApplicationScoped
 public class AnalysisStatusService {
 
-  private static final String STATUS_PENDING = "pending";
-  private static final String STATUS_RUNNING = "running";
-  private static final String STATUS_FINISHED = "finished";
-  private static final String STATUS_FAILED = "failed";
+  public static final String STATUS_PENDING = "pending";
+  public static final String STATUS_RUNNING = "running";
+  public static final String STATUS_FINISHED = "finished";
+  public static final String STATUS_FAILED = "failed";
+  public static final String STATUS_CANCELLED = "cancelled";
   private static final String UNKNOWN_TOKEN = "unknown";
 
   private final Map<String, AnalysisProgressState> stateByLandscapeToken = new ConcurrentHashMap<>();
   private final Map<String, Set<SseSubscriber>> subscribersByLandscapeToken = new ConcurrentHashMap<>();
+  private final Set<String> cancellationRequestedTokens = ConcurrentHashMap.newKeySet();
 
   @Inject
   TerminalProgressReporter terminalProgressReporter;
@@ -34,11 +36,15 @@ public class AnalysisStatusService {
   }
 
   public void markPending(final String landscapeToken) {
+    cancellationRequestedTokens.remove(normalizeToken(landscapeToken));
     upsertStateAndNotify(landscapeToken, current -> emptyState(STATUS_PENDING));
   }
 
   public void markRunning(final String landscapeToken, final int totalCommits,
       final int totalFiles) {
+    if (isCancellationRequested(landscapeToken)) {
+      return;
+    }
     upsertStateAndNotify(landscapeToken, current -> {
       final AnalysisProgressState previous = current == null ? emptyState(STATUS_PENDING) : current;
       return new AnalysisProgressState(STATUS_RUNNING, totalCommits, previous.analyzedCommits(),
@@ -74,6 +80,9 @@ public class AnalysisStatusService {
   }
 
   public void markFinished(final String landscapeToken) {
+    if (isTerminalStatus(getStatus(landscapeToken).orElse(null))) {
+      return;
+    }
     upsertStateAndNotify(landscapeToken, current -> {
       if (current == null) {
         return emptyState(STATUS_FINISHED);
@@ -84,6 +93,9 @@ public class AnalysisStatusService {
   }
 
   public void markFailed(final String landscapeToken) {
+    if (isTerminalStatus(getStatus(landscapeToken).orElse(null))) {
+      return;
+    }
     upsertStateAndNotify(landscapeToken, current -> {
       if (current == null) {
         return emptyState(STATUS_FAILED);
@@ -92,6 +104,41 @@ public class AnalysisStatusService {
           current.analyzedCommits(), current.totalFiles(), current.analyzedFiles(),
           current.currentAnalysingFile());
     });
+  }
+
+  public void markCancelled(final String landscapeToken) {
+    upsertStateAndNotify(landscapeToken, current -> {
+      if (current == null) {
+        return emptyState(STATUS_CANCELLED);
+      }
+      return new AnalysisProgressState(STATUS_CANCELLED, current.totalCommits(),
+          current.analyzedCommits(), current.totalFiles(), current.analyzedFiles(), null);
+    });
+  }
+
+  public AnalysisCancellationResult requestCancellation(final String landscapeToken) {
+    final String token = normalizeToken(landscapeToken);
+    final Optional<String> currentStatus = getStatus(landscapeToken);
+    if (currentStatus.isEmpty()) {
+      return AnalysisCancellationResult.NOT_FOUND;
+    }
+    if (isTerminalStatus(currentStatus.get())) {
+      return AnalysisCancellationResult.ALREADY_TERMINAL;
+    }
+
+    cancellationRequestedTokens.add(token);
+    markCancelled(landscapeToken);
+    return AnalysisCancellationResult.CANCELLED;
+  }
+
+  public boolean isCancellationRequested(final String landscapeToken) {
+    return cancellationRequestedTokens.contains(normalizeToken(landscapeToken));
+  }
+
+  public boolean isTerminalStatus(final String status) {
+    return STATUS_FINISHED.equals(status)
+        || STATUS_FAILED.equals(status)
+        || STATUS_CANCELLED.equals(status);
   }
 
   public Optional<String> getStatus(final String landscapeToken) {
@@ -122,7 +169,12 @@ public class AnalysisStatusService {
       final Function<AnalysisProgressState, AnalysisProgressState> update) {
     final String token = normalizeToken(landscapeToken);
     final AnalysisProgressState updatedState = stateByLandscapeToken.computeIfPresent(token,
-        (ignored, current) -> update.apply(current));
+        (ignored, current) -> {
+          if (isTerminalStatus(current.status())) {
+            return current;
+          }
+          return update.apply(current);
+        });
 
     if (updatedState != null) {
       notifySubscribers(token, updatedState);
@@ -180,7 +232,7 @@ public class AnalysisStatusService {
           }
         });
 
-    if (STATUS_FINISHED.equals(state.status()) || STATUS_FAILED.equals(state.status())) {
+    if (isTerminalStatus(state.status())) {
       sink.close();
       removeSubscriber(landscapeToken, subscriber);
     }
